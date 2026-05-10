@@ -1,0 +1,28 @@
+# NODE / FRONTEND
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# JAVA / SPRING BOOT
+backend/target/
+backend/.mvn/
+backend/*.jar
+
+# ENV FILES
+.env
+*.env
+
+# IDE / EDITORS
+.vscode/
+.idea/
+*.iml
+
+# OS FILES
+.DS_Store
+Thumbs.db
+
+# LOGS
+*.log
+
+# DOCKER
+docker-data/
