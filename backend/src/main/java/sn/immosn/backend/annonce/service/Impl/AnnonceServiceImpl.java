@@ -8,7 +8,6 @@ import sn.immosn.backend.annonce.data.entity.Annonce;
 import sn.immosn.backend.annonce.data.entity.AnnonceCommodite;
 import sn.immosn.backend.annonce.data.entity.Commodite;
 import sn.immosn.backend.annonce.data.entity.TypeBienAnnonce;
-import sn.immosn.backend.annonce.data.repository.AnnonceCommoditesRepository;
 import sn.immosn.backend.annonce.data.repository.AnnonceRepository;
 import sn.immosn.backend.annonce.data.repository.CommoditeRepository;
 import sn.immosn.backend.annonce.data.repository.TypeBienAnnonceRepository;
