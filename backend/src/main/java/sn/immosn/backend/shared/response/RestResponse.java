@@ -20,4 +20,7 @@ public record RestResponse<T>(
     public static <T> RestResponse<T> error(String message, HttpStatus status) {
         return new RestResponse<>(false, status, message, null, LocalDateTime.now());
     }
+    public static <T> RestResponse<T> badRequest(String message, T data) {
+        return new RestResponse<>(false, HttpStatus.BAD_REQUEST, message, data, LocalDateTime.now());
+    }
 }

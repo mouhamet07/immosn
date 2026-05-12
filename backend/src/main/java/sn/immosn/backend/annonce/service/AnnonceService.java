@@ -25,4 +25,5 @@ public interface AnnonceService {
 
     // ── Admin : liste incluant archivées ──────────────────
     Page<AnnonceListDto> getAllAnnoncesAdmin(Pageable pageable);
+    AnnonceResponseDto getAnnonceByIdAdmin(Long id);
 }

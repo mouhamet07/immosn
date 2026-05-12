@@ -17,12 +17,12 @@ import sn.immosn.backend.client.web.annonce.dto.AnnonceListDto;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceResponseDto;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceUpdateRequestDto;
 import sn.immosn.backend.client.web.annonce.mapper.AnnonceMapper;
+import sn.immosn.backend.shared.exception.EntityNotFoundException;
 
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-
 public class AnnonceServiceImpl implements AnnonceService {
 
     private final AnnonceRepository annonceRepository;
@@ -30,62 +30,41 @@ public class AnnonceServiceImpl implements AnnonceService {
     private final TypeBienAnnonceRepository typeBienAnnonceRepository;
     private final AnnonceMapper annonceMapper;
 
-
-
     @Override
     public AnnonceResponseDto createAnnonce(AnnonceCreateRequestDto requestDto) {
-
         TypeBienAnnonce typeBien = typeBienAnnonceRepository
-                .findById(requestDto.typeBienId())
-                .orElseThrow(() -> new RuntimeException("Type de bien non trouvé"));
-
-        if (typeBien.getIsArchived()) {
-            throw new RuntimeException("Ce type de bien est archivé");
-        }
+                .findByIdAndIsArchivedFalse(requestDto.typeBienId())
+                .orElseThrow(() -> new EntityNotFoundException("Type de bien non trouvé"));
 
         List<Commodite> commodites = requestDto.commoditeIds() != null
                 ? commoditeRepository.findByIdInAndIsArchivedFalse(requestDto.commoditeIds())
                 : List.of();
 
         Annonce annonce = annonceMapper.toEntity(requestDto, typeBien, commodites);
-
-        for (Commodite commodite : commodites) {
-            AnnonceCommodite ac = AnnonceCommodite.builder()
-                    .annonce(annonce)
-                    .commodite(commodite)
-                    .build();
-            annonce.getAnnonceCommodites().add(ac);
-        }
-
         Annonce savedAnnonce = annonceRepository.save(annonce);
         return annonceMapper.toResponse(savedAnnonce);
     }
 
     @Override
     public AnnonceResponseDto getAnnonceById(Long id) {
-        Annonce annonce = annonceRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Annonce non trouvée avec l'ID: " + id));
-        if (annonce.getArchived()) {
-            throw new RuntimeException("Annonce archivée avec l'ID: " + id);
-        }
+        Annonce annonce = annonceRepository
+            .findByIdAndIsArchivedFalse(id)
+            .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée avec l'ID: " + id));
         return annonceMapper.toResponse(annonce);
     }
 
     @Override
     public Page<AnnonceListDto> getAllAnnonces(Pageable pageable) {
         return annonceRepository
-                .findByArchivedFalse(pageable)
+                .findByIsArchivedFalse(pageable)
                 .map(annonceMapper::toListDto);
     }
 
     @Override
     public AnnonceResponseDto updateAnnonce(Long id, AnnonceUpdateRequestDto requestDto) {
-        Annonce annonce = annonceRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Annonce non trouvée"));
-
-        if (annonce.getArchived()) {
-            throw new RuntimeException("Impossible de modifier une annonce archivée");
-        }
+        Annonce annonce = annonceRepository
+            .findByIdAndIsArchivedFalse(id)
+            .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée"));
 
         if (requestDto.libelle() != null) annonce.setLibelle(requestDto.libelle());
         if (requestDto.description() != null) annonce.setDescription(requestDto.description());
@@ -95,17 +74,12 @@ public class AnnonceServiceImpl implements AnnonceService {
         if (requestDto.adresse() != null) annonce.setAdresse(requestDto.adresse());
         if (requestDto.images() != null) annonce.setImages(requestDto.images());
 
-
         if (requestDto.typeBienId() != null) {
             TypeBienAnnonce typeBien = typeBienAnnonceRepository
-                    .findById(requestDto.typeBienId())
-                    .orElseThrow(() -> new RuntimeException("Type de bien non trouvé"));
-            if (typeBien.getIsArchived()) {
-                throw new RuntimeException("Ce type de bien est archivé");
-            }
+                    .findByIdAndIsArchivedFalse(requestDto.typeBienId())
+                    .orElseThrow(() -> new EntityNotFoundException("Type de bien non trouvé"));
             annonce.setTypeBien(typeBien);
         }
-
 
         if (requestDto.commoditeIds() != null) {
             List<Commodite> commodites = commoditeRepository.findByIdInAndIsArchivedFalse(requestDto.commoditeIds());
@@ -125,27 +99,17 @@ public class AnnonceServiceImpl implements AnnonceService {
 
     @Override
     public void archiveAnnonce(Long id) {
-        Annonce annonce = annonceRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Annonce non trouvée avec l'ID: " + id));
-
-        if (annonce.getArchived()) {
-            throw new RuntimeException("Cette annonce est déjà archivée");
-        }
-
-        annonce.setArchived(true);
+        Annonce annonce = annonceRepository.findByIdAndIsArchivedFalse(id)
+                .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée avec l'ID: " + id));
+        annonce.setIsArchived(true);
         annonceRepository.save(annonce);
     }
 
     @Override
     public void restoreAnnonce(Long id) {
         Annonce annonce = annonceRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Annonce non trouvée avec l'ID: " + id));
-
-        if (!annonce.getArchived()) {
-            throw new RuntimeException("Cette annonce n'est pas archivée");
-        }
-
-        annonce.setArchived(false);
+                .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée avec l'ID: " + id));
+        annonce.setIsArchived(false);
         annonceRepository.save(annonce);
     }
 
@@ -154,5 +118,13 @@ public class AnnonceServiceImpl implements AnnonceService {
         return annonceRepository
                 .findAll(pageable)
                 .map(annonceMapper::toListDto);
+    }
+    
+    @Override
+    public AnnonceResponseDto getAnnonceByIdAdmin(Long id) {
+        Annonce annonce = annonceRepository
+            .findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée avec l'ID: " + id));
+        return annonceMapper.toResponse(annonce);
     }
 }

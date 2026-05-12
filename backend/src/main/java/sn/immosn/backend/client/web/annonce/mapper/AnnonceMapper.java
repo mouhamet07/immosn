@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import lombok.RequiredArgsConstructor;
 import sn.immosn.backend.annonce.data.entity.Annonce;
+import sn.immosn.backend.annonce.data.entity.AnnonceCommodite;
 import sn.immosn.backend.annonce.data.entity.Commodite;
 import sn.immosn.backend.annonce.data.entity.TypeBienAnnonce;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceCreateRequestDto;
@@ -33,7 +34,7 @@ public class AnnonceMapper {
                 .map(ac -> toCommoditeResponse(ac.getCommodite()))
                 .collect(Collectors.toList()),
             a.getImages(),
-            a.getArchived(),
+            a.getIsArchived(),
             a.getCreatedAt(),
             a.getUpdatedAt()
         );
@@ -51,7 +52,7 @@ public class AnnonceMapper {
             a.getSurface(),
             firstImage,
             a.getCreatedAt(),
-            a.getArchived()
+            a.getIsArchived()
         );
     }
 
@@ -65,12 +66,19 @@ public class AnnonceMapper {
             .adresse(dto.adresse())
             .typeBien(typeBien)
             .images(dto.images())
-            .archived(false)
+            .isArchived(false)
             .build();
 
-        // Les commodites seront gérées via AnnonceCommodites dans le service
+            for (Commodite commodite : commodites) {
+            AnnonceCommodite ac = AnnonceCommodite.builder()
+                .annonce(annonce)
+                .commodite(commodite)
+                .build();
+            annonce.getAnnonceCommodites().add(ac);
+        }
         return annonce;
     }
+    
 
     private TypeBienResponseDto toTypeBienResponse(TypeBienAnnonce t) {
         if (t == null) return null;

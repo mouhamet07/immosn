@@ -69,7 +69,7 @@ public class Annonce {
 
     @Builder.Default
     @Column(name = "is_archived", nullable = false)
-    private Boolean archived = false;
+    private Boolean isArchived = false;
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
     @Column(name = "updated_at", nullable = false)
@@ -80,7 +80,6 @@ public class Annonce {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }
-
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();

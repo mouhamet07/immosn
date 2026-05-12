@@ -1,0 +1,109 @@
+package sn.immosn.backend.client.web.annonce.controller;
+
+import java.util.List;
+
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import sn.immosn.backend.annonce.service.TypeBienAnnonceService;
+import sn.immosn.backend.client.web.annonce.dto.TypeBienRequestDto;
+import sn.immosn.backend.client.web.annonce.dto.TypeBienResponseDto;
+import sn.immosn.backend.shared.response.RestResponse;
+
+@RestController
+@RequestMapping("/api/v1/types-bien")
+@RequiredArgsConstructor
+@Validated
+public class TypeBienAnnonceController {
+
+    private final TypeBienAnnonceService typeBienService;
+
+    /**
+     * POST /api/v1/types-bien
+     * Crée un nouveau type de bien (villa, appartement, terrain, etc.)
+     */
+    @PostMapping
+    public ResponseEntity<RestResponse<TypeBienResponseDto>> create(
+        @RequestBody @Valid TypeBienRequestDto req) 
+    {
+        return ResponseEntity
+            .status(HttpStatus.CREATED)
+            .body(RestResponse.success(typeBienService.createTypeBien(req), HttpStatus.CREATED));
+    }
+
+    /**
+     * GET /api/v1/types-bien
+     * Récupère la liste de tous les types de bien actifs
+     */
+    @GetMapping
+    public ResponseEntity<RestResponse<List<TypeBienResponseDto>>> getAll() {
+        return ResponseEntity
+            .status(HttpStatus.OK)
+            .body(RestResponse.success(typeBienService.getAllTypesBien(), HttpStatus.OK));
+    }
+
+    /**
+     * GET /api/v1/types-bien
+     * Récupère la liste paginée de tous les types de bien actifs et inactifs
+     */
+    @GetMapping("/paged")
+    public ResponseEntity<RestResponse<List<TypeBienResponseDto>>> getAllPaged(
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity
+            .status(HttpStatus.OK)
+            .body(RestResponse.success(typeBienService.getAllTypesBienPaged(pageable), HttpStatus.OK));
+    }
+
+    /**
+     * GET /api/v1/types-bien/{id}
+     * Récupère les détails d'un type de bien spécifique
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<RestResponse<TypeBienResponseDto>> getById(@PathVariable Long id) {
+        return ResponseEntity
+            .status(HttpStatus.OK)
+            .body(RestResponse.success(typeBienService.getTypeBienById(id), HttpStatus.OK));
+    }
+
+    /**
+     * PUT /api/v1/types-bien/{id}
+     * Modifie complètement un type de bien existant
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<RestResponse<TypeBienResponseDto>> update(
+        @PathVariable Long id,
+        @RequestBody @Valid TypeBienRequestDto req) {
+        return ResponseEntity
+            .status(HttpStatus.OK)
+            .body(RestResponse.success(typeBienService.updateTypeBien(id, req), HttpStatus.OK));
+    }
+
+    /**
+     * DELETE /api/v1/types-bien/{id}
+     * Archive (soft delete) un type de bien sans supprimer les données
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<RestResponse<Void>> archive(@PathVariable Long id) {
+        typeBienService.archiveTypeBien(id);
+        return ResponseEntity
+            .status(HttpStatus.NO_CONTENT)
+            .body(RestResponse.success(null, HttpStatus.NO_CONTENT));
+    }
+}

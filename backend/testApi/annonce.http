@@ -1,0 +1,13 @@
+@baseUrl=http://localhost:8080/api/v1/annonces
+###
+POST {{baseUrl}}
+Content-Type: application/json
+accept: application/json
+
+{
+  "libelle": "Appartement à louer",
+  "description": "Un bel appartement situé au centre-ville.",
+  "prix": 500000,
+  "typeBienId": 1,
+  "commoditeIds": []
+}
