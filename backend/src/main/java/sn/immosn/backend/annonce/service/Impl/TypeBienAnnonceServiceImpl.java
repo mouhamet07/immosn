@@ -3,6 +3,7 @@ package sn.immosn.backend.annonce.service.Impl;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,7 @@ public class TypeBienAnnonceServiceImpl implements TypeBienAnnonceService {
 
     @Override
     public TypeBienResponseDto createTypeBien(TypeBienRequestDto request) {
+        // Vérifier que le libellé n'existe pas déjà
         if (typeBienAnnonceRepository.existsByLibelleIgnoreCase(request.libelle())) {
             throw new ResponseStatusException(
                 HttpStatus.CONFLICT,
@@ -50,6 +52,15 @@ public class TypeBienAnnonceServiceImpl implements TypeBienAnnonceService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<TypeBienResponseDto> getAllTypesBienPaged(Pageable pageable) {
+        return typeBienAnnonceRepository.findByIsArchivedFalse(pageable)
+                .stream()
+                .map(this::toResponseDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public TypeBienResponseDto getTypeBienById(Long id) {
         TypeBienAnnonce typeBien = findByIdOrThrow(id);
         return toResponseDto(typeBien);
@@ -59,6 +70,7 @@ public class TypeBienAnnonceServiceImpl implements TypeBienAnnonceService {
     public TypeBienResponseDto updateTypeBien(Long id, TypeBienRequestDto request) {
         TypeBienAnnonce typeBien = findByIdOrThrow(id);
 
+        // Vérifier que le nouveau libellé n'appartient pas à un autre enregistrement
         if (!typeBien.getLibelle().equalsIgnoreCase(request.libelle())
                 && typeBienAnnonceRepository.existsByLibelleIgnoreCase(request.libelle())) {
             throw new ResponseStatusException(
@@ -87,7 +99,6 @@ public class TypeBienAnnonceServiceImpl implements TypeBienAnnonceService {
         typeBienAnnonceRepository.save(typeBien);
     }
 
-   
 
     private TypeBienAnnonce findByIdOrThrow(Long id) {
         return typeBienAnnonceRepository.findById(id)
