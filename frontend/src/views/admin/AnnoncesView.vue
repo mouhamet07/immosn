@@ -109,6 +109,18 @@ async function archiver() {
     confirmId.value = null
   }
 }
+
+// Restaurer une annonce archivée — PATCH /api/v1/annonces/{id}/restore
+async function restaurer(id) {
+  try {
+    await annonceService.restoreAnnonce(id)
+    const idx = annonces.value.findIndex(a => a.id === id)
+    if (idx !== -1) annonces.value[idx].archived = false
+    toast.value.show('Annonce restaurée avec succès.', 'success')
+  } catch {
+    toast.value.show('Erreur lors de la restauration.', 'error')
+  }
+}
 </script>
 
 <template>
@@ -223,8 +235,15 @@ async function archiver() {
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                   </svg>
                 </button>
-                <!-- Archiver -->
-                <button class="action-btn" title="Archiver" @click="confirmId = a.id">
+                <!-- Restaurer (si archivée) -->
+                <button v-if="a.archived" class="action-btn action-btn--restore" title="Restaurer" @click="restaurer(a.id)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="1 4 1 10 7 10"/>
+                    <path d="M3.51 15a9 9 0 1 0 .49-4.5"/>
+                  </svg>
+                </button>
+                <!-- Archiver (si active) -->
+                <button v-else class="action-btn" title="Archiver" @click="confirmId = a.id">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="21 8 21 21 3 21 3 8"/>
                     <rect x="1" y="3" width="22" height="5"/>
@@ -437,6 +456,8 @@ async function archiver() {
 .action-btn:hover { background: var(--color-background); }
 .action-btn--edit:hover { border-color: var(--color-primary); }
 .action-btn--edit:hover svg { stroke: var(--color-primary); opacity: 1; }
+.action-btn--restore:hover { border-color: var(--color-accent); }
+.action-btn--restore:hover svg { stroke: var(--color-accent); opacity: 1; }
 
 .empty-state { text-align: center; padding: 3rem !important; }
 .empty-state__content { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; color: var(--color-text); opacity: 0.5; font-size: 1.5rem; }
