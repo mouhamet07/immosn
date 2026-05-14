@@ -9,19 +9,20 @@ import sn.immosn.backend.client.web.annonce.dto.CommoditeResponseDto;
 @Component
 public class CommoditeMapper {
 
-    public CommoditeResponseDto toResponseDto(Commodite commodite) {
-        if (commodite == null) {
-            return null;
-        }
-        return new CommoditeResponseDto(commodite.getId(), commodite.getLibelle());
+    public CommoditeResponseDto toResponse(Commodite entity) {
+        if (entity == null) return null;
+        return new CommoditeResponseDto(
+                entity.getId(),
+                entity.getLibelle()
+        );
     }
 
-    public Commodite toEntity(CommoditeRequestDto request) {
-        if (request == null) {
-            return null;
-        }
+    public Commodite toEntity(CommoditeRequestDto dto) {
+        if (dto == null) return null;
         return Commodite.builder()
-            .libelle(request.libelle())
-            .build();
+                .libelle(dto.libelle())
+                .isArchived(false)
+                .build();
     }
+
 }
