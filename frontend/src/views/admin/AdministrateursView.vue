@@ -5,7 +5,6 @@ import StatsCard from '@/components/admin/StatsCard.vue'
 import ConfirmModal from '@/components/admin/ConfirmModal.vue'
 import ToastNotification from '@/components/admin/ToastNotification.vue'
 import { usePagination } from '@/composables/usePagination'
-import { MOCK_ADMINS } from '@/mocks/admins'
 import api from '@/services/api'
 
 const router = useRouter()
@@ -36,8 +35,7 @@ onMounted(async () => {
     const res = await api.get('/admins')
     admins.value = res.data
   } catch (err) {
-    console.warn('[AdministrateursView] Backend indisponible, utilisation des mocks.', err)
-    admins.value = MOCK_ADMINS
+    console.warn('[AdministrateursView] Backend indisponible.', err)
   } finally {
     loading.value = false
   }

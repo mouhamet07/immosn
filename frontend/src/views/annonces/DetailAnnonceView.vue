@@ -3,11 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ButtonPrimary from '@/components/ButtonPrimary.vue'
 import Badge from '@/components/Badge.vue'
-<<<<<<< HEAD
 import annonceService from '@/services/annonceService'
-=======
-import { MOCK_ANNONCES } from '@/mocks/annonces'
->>>>>>> master
 import placeholderImg from '@/assets/Penthouse.png'
 
 const route = useRoute()
@@ -19,7 +15,6 @@ const error = ref('')
 const favoris = ref(false)
 const imageActive = ref(0)
 
-<<<<<<< HEAD
 onMounted(async () => {
   loading.value = true
   try {
@@ -31,19 +26,6 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-=======
-onMounted(() => {
-  loading.value = true
-  const id = parseInt(route.params.id)
-  if (!Number.isInteger(id)) {
-    error.value = 'Identifiant invalide.'
-    loading.value = false
-    return
-  }
-  annonce.value = MOCK_ANNONCES.find(a => a.id === id) || null
-  if (!annonce.value) error.value = 'Annonce introuvable.'
-  loading.value = false
->>>>>>> master
 })
 
 function formatPrix(prix) {
@@ -53,14 +35,11 @@ function formatPrix(prix) {
 function toUSD(prix) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(prix / 600)
 }
-<<<<<<< HEAD
 
 // Retourner placeholder si pas d'image (dév)
 function getImage(index) {
   return annonce.value?.images?.[index] || placeholderImg
 }
-=======
->>>>>>> master
 </script>
 
 <template>
@@ -90,46 +69,28 @@ function getImage(index) {
         <!-- Image principale -->
         <div class="detail-gallery__main">
           <img
-<<<<<<< HEAD
             :src="getImage(imageActive)"
-=======
-            :src="annonce.photos?.[imageActive] || placeholderImg"
->>>>>>> master
             :alt="annonce.libelle"
             class="detail-gallery__img"
           />
           <button class="detail-gallery__favoris" @click="favoris = !favoris">
             {{ favoris ? '❤️' : '🤍' }}
           </button>
-<<<<<<< HEAD
           <Badge v-if="annonce.typeBien" :label="annonce.typeBien.libelle" class="detail-gallery__badge" />
-=======
-          <Badge v-if="annonce.badge" :label="annonce.badge" class="detail-gallery__badge" />
->>>>>>> master
         </div>
 
         <!-- Miniatures -->
         <div class="detail-gallery__thumbs">
           <div
-<<<<<<< HEAD
             v-for="(photo, index) in (annonce.images || []).slice(1, 3)"
-=======
-            v-for="(photo, index) in (annonce.photos || []).slice(1, 3)"
->>>>>>> master
             :key="index"
             class="detail-gallery__thumb"
             @click="imageActive = index + 1"
           >
             <img :src="photo" :alt="`Photo ${index + 2}`" />
           </div>
-<<<<<<< HEAD
           <div v-if="annonce.images?.length > 3" class="detail-gallery__more">
             +{{ annonce.images.length - 3 }} Plus
-=======
-          <!-- Bouton +N photos -->
-          <div v-if="annonce.photos?.length > 3" class="detail-gallery__more">
-            +{{ annonce.photos.length - 3 }} Plus
->>>>>>> master
           </div>
         </div>
       </div>
@@ -154,7 +115,6 @@ function getImage(index) {
           <div class="detail-stats">
             <div class="detail-stat">
               <span class="detail-stat__icon">🛏️</span>
-<<<<<<< HEAD
               <span class="detail-stat__value">{{ annonce.nbrPieces }}</span>
               <span class="detail-stat__label">Chambres</span>
             </div>
@@ -162,29 +122,12 @@ function getImage(index) {
               <span class="detail-stat__icon">📄</span>
               <span class="detail-stat__value">{{ annonce.typeBien?.libelle || '–' }}</span>
               <span class="detail-stat__label">Type de bien</span>
-=======
-              <span class="detail-stat__value">{{ annonce.nbreDePieces }}</span>
-              <span class="detail-stat__label">Chambres</span>
-            </div>
-            <div class="detail-stat">
-              <span class="detail-stat__icon">🚿</span>
-              <span class="detail-stat__value">{{ annonce.nbreSallesBain || '–' }}</span>
-              <span class="detail-stat__label">Salles de bain</span>
->>>>>>> master
             </div>
             <div class="detail-stat">
               <span class="detail-stat__icon">📐</span>
               <span class="detail-stat__value">{{ annonce.surface }} m²</span>
               <span class="detail-stat__label">Surface</span>
             </div>
-<<<<<<< HEAD
-=======
-            <div class="detail-stat">
-              <span class="detail-stat__icon">🏊</span>
-              <span class="detail-stat__value">{{ annonce.piscine ? 'Oui' : 'Non' }}</span>
-              <span class="detail-stat__label">Piscine privée</span>
-            </div>
->>>>>>> master
           </div>
 
           <!-- Présentation architecturale -->
@@ -198,11 +141,7 @@ function getImage(index) {
             <h2 class="detail-section__title">Équipements et caractéristiques</h2>
             <ul v-if="annonce.commodites?.length" class="detail-commodites">
               <li v-for="(item, i) in annonce.commodites" :key="i" class="detail-commodite">
-<<<<<<< HEAD
                 ✅ {{ item.libelle }}
-=======
-                ✅ {{ item }}
->>>>>>> master
               </li>
             </ul>
             <p v-else class="detail-section__text">Aucun équipement renseigné.</p>

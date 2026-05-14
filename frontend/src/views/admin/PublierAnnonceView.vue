@@ -1,5 +1,4 @@
 <script setup>
-<<<<<<< HEAD
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import FormStepper from '@/components/admin/FormStepper.vue'
@@ -7,13 +6,6 @@ import ToastNotification from '@/components/admin/ToastNotification.vue'
 import annonceService from '@/services/annonceService'
 import commoditeService from '@/services/commoditeService'
 import typeBienService from '@/services/typeBienService'
-=======
-import { ref, reactive, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import FormStepper from '@/components/admin/FormStepper.vue'
-import ToastNotification from '@/components/admin/ToastNotification.vue'
-import api from '@/services/api'
->>>>>>> master
 
 const router = useRouter()
 const toast = ref(null)
@@ -23,7 +15,6 @@ const currentStep = ref(0)
 
 const progress = computed(() => Math.round((currentStep.value / (STEPS.length - 1)) * 100))
 
-<<<<<<< HEAD
 // Champs alignés avec AnnonceCreateRequestDto
 const form = reactive({
   libelle:      '',
@@ -62,62 +53,22 @@ function toggleCommodite(id) {
   const idx = form.commoditeIds.indexOf(id)
   if (idx === -1) form.commoditeIds.push(id)
   else form.commoditeIds.splice(idx, 1)
-=======
-const form = reactive({
-  titre:       '',
-  description: '',
-  typeBien:    '',
-  prix:        '',
-  quartier:    '',
-  adresse:     '',
-  equipements: [],
-  photos:      [],
-})
-
-const EQUIPEMENTS = [
-  { key: 'climatisation', label: 'Climatisation', icon: '❄️' },
-  { key: 'parking',       label: 'Parking',       icon: '🚗' },
-  { key: 'internet',      label: 'Internet',      icon: '📶' },
-  { key: 'piscine',       label: 'Piscine',       icon: '🏊' },
-  { key: 'salle_sport',   label: 'Salle de sport', icon: '🏋️' },
-  { key: 'ascenseur',     label: 'Ascenseur',     icon: '🛗' },
-  { key: 'securite',      label: 'Sécurité',      icon: '🔒' },
-  { key: 'balcon',        label: 'Balcon privé',  icon: '🌿' },
-]
-
-const photoPreviews = ref([])
-
-function toggleEquipement(key) {
-  const idx = form.equipements.indexOf(key)
-  if (idx === -1) form.equipements.push(key)
-  else form.equipements.splice(idx, 1)
->>>>>>> master
 }
 
 function handleFileUpload(e) {
   const files = Array.from(e.target.files)
   files.forEach(file => {
-<<<<<<< HEAD
     const reader = new FileReader()
     reader.onload = ev => {
       form.images.push(ev.target.result)
       photoPreviews.value.push(ev.target.result)
     }
-=======
-    form.photos.push(file)
-    const reader = new FileReader()
-    reader.onload = ev => photoPreviews.value.push(ev.target.result)
->>>>>>> master
     reader.readAsDataURL(file)
   })
 }
 
 function removePhoto(i) {
-<<<<<<< HEAD
   form.images.splice(i, 1)
-=======
-  form.photos.splice(i, 1)
->>>>>>> master
   photoPreviews.value.splice(i, 1)
 }
 
@@ -126,7 +77,6 @@ const loading = ref(false)
 async function submit() {
   loading.value = true
   try {
-<<<<<<< HEAD
     await annonceService.createAnnonce({
       libelle:      form.libelle,
       description:  form.description,
@@ -138,15 +88,6 @@ async function submit() {
       commoditeIds: form.commoditeIds,
       images:       form.images,
     })
-=======
-    const data = new FormData()
-    Object.entries(form).forEach(([k, v]) => {
-      if (k === 'photos') v.forEach(f => data.append('photos', f))
-      else if (k === 'equipements') data.append('equipements', JSON.stringify(v))
-      else data.append(k, v)
-    })
-    await api.post('/annonces', data, { headers: { 'Content-Type': 'multipart/form-data' } })
->>>>>>> master
     toast.value.show('Annonce publiée avec succès.', 'success')
     setTimeout(() => router.push('/admin/annonces'), 1200)
   } catch (err) {
@@ -186,13 +127,8 @@ async function submit() {
         <h2 class="form-section__title"><span class="form-section__num">1</span> Identité du bien</h2>
 
         <div class="field">
-<<<<<<< HEAD
           <label class="field__label">LIBELLÉ DE L'ANNONCE <span class="req">*</span></label>
           <input v-model="form.libelle" type="text" class="field__input" placeholder="ex. Villa moderne à Almadies" />
-=======
-          <label class="field__label">TITRE DE L'ANNONCE <span class="req">*</span></label>
-          <input v-model="form.titre" type="text" class="field__input" placeholder="ex. Villa moderne à Almadies" />
->>>>>>> master
         </div>
 
         <div class="field">
@@ -202,23 +138,12 @@ async function submit() {
 
         <div class="field-row">
           <div class="field">
-<<<<<<< HEAD
             <label class="field__label">TYPE DE BIEN (ID) <span class="req">*</span></label>
             <select v-model="form.typeBienId" class="field__input">
               <option :value="null">Sélectionner...</option>
               <option v-for="type in typesBien" :key="type.id" :value="type.id">
                 {{ type.libelle }}
               </option>
-=======
-            <label class="field__label">TYPE D'ANNONCE <span class="req">*</span></label>
-            <select v-model="form.typeBien" class="field__input">
-              <option value="">Sélectionner...</option>
-              <option value="VILLA">Villa</option>
-              <option value="APPARTEMENT">Appartement</option>
-              <option value="BUREAU">Bureau</option>
-              <option value="TERRAIN">Terrain</option>
-              <option value="MAISON">Maison</option>
->>>>>>> master
             </select>
           </div>
           <div class="field">
@@ -226,7 +151,6 @@ async function submit() {
             <input v-model="form.prix" type="number" class="field__input" placeholder="ex. 150000000" />
           </div>
         </div>
-<<<<<<< HEAD
 
         <div class="field-row">
           <div class="field">
@@ -238,8 +162,6 @@ async function submit() {
             <input v-model="form.surface" type="number" class="field__input" placeholder="ex. 150" />
           </div>
         </div>
-=======
->>>>>>> master
       </section>
 
       <!-- Section 2 — Localisation -->
@@ -247,30 +169,16 @@ async function submit() {
         <h2 class="form-section__title"><span class="form-section__num">2</span> Contexte géographique</h2>
 
         <div class="field">
-<<<<<<< HEAD
           <label class="field__label">ADRESSE COMPLÈTE <span class="req">*</span></label>
           <input v-model="form.adresse" type="text" class="field__input" placeholder="ex. 12 Rue Carnot, Plateau, Dakar" />
         </div>
 
-=======
-          <label class="field__label">QUARTIER <span class="req">*</span></label>
-          <input v-model="form.quartier" type="text" class="field__input" placeholder="ex. Plateau, Dakar" />
-        </div>
-
-        <div class="field">
-          <label class="field__label">ADRESSE COMPLÈTE</label>
-          <input v-model="form.adresse" type="text" class="field__input" placeholder="ex. 12 Rue Carnot, Dakar" />
-        </div>
-
-        <!-- Placeholder carte -->
->>>>>>> master
         <div class="map-placeholder">
           <span class="map-placeholder__icon">📍</span>
           <span>Cliquer pour placer l'annonce sur la carte</span>
         </div>
       </section>
 
-<<<<<<< HEAD
       <!-- Section 3 — Équipements (commoditeIds depuis API) -->
       <section v-else-if="currentStep === 2" class="form-section">
         <h2 class="form-section__title"><span class="form-section__num">3</span> Équipements de base</h2>
@@ -291,27 +199,6 @@ async function submit() {
       </section>
 
       <!-- Section 4 — Photos (images) -->
-=======
-      <!-- Section 3 — Équipements -->
-      <section v-else-if="currentStep === 2" class="form-section">
-        <h2 class="form-section__title"><span class="form-section__num">3</span> Équipements de base</h2>
-        <div class="equipements-grid">
-          <button
-            v-for="eq in EQUIPEMENTS"
-            :key="eq.key"
-            type="button"
-            class="equip-card"
-            :class="{ 'equip-card--selected': form.equipements.includes(eq.key) }"
-            @click="toggleEquipement(eq.key)"
-          >
-            <span class="equip-card__icon">{{ eq.icon }}</span>
-            <span class="equip-card__label">{{ eq.label }}</span>
-          </button>
-        </div>
-      </section>
-
-      <!-- Section 4 — Photos -->
->>>>>>> master
       <section v-else-if="currentStep === 3" class="form-section">
         <h2 class="form-section__title"><span class="form-section__num">4</span> Portfolio visuel</h2>
 
@@ -336,7 +223,6 @@ async function submit() {
           Sauvegarder en brouillon
         </button>
         <div class="form-nav__right">
-<<<<<<< HEAD
           <button v-if="currentStep > 0" type="button" class="btn-prev" @click="currentStep--">
             Étape précédente
           </button>
@@ -345,32 +231,6 @@ async function submit() {
           </button>
           <button v-else type="button" class="btn-next" :disabled="loading" @click="submit">
             {{ loading ? 'Publication...' : "Publier l'annonce" }}
-=======
-          <button
-            v-if="currentStep > 0"
-            type="button"
-            class="btn-prev"
-            @click="currentStep--"
-          >
-            Étape précédente
-          </button>
-          <button
-            v-if="currentStep < STEPS.length - 1"
-            type="button"
-            class="btn-next"
-            @click="currentStep++"
-          >
-            Continuer vers la fiche finale
-          </button>
-          <button
-            v-else
-            type="button"
-            class="btn-next"
-            :disabled="loading"
-            @click="submit"
-          >
-            {{ loading ? 'Publication...' : 'Publier l\'annonce' }}
->>>>>>> master
           </button>
         </div>
       </div>
@@ -386,10 +246,6 @@ async function submit() {
   max-width: 860px;
 }
 
-<<<<<<< HEAD
-=======
-/* En-tête */
->>>>>>> master
 .publier-header {
   display: flex;
   align-items: flex-start;
@@ -398,22 +254,8 @@ async function submit() {
   flex-wrap: wrap;
 }
 
-<<<<<<< HEAD
 .publier-header__title { font-size: 1.5rem; font-weight: 800; color: var(--color-text); }
 .publier-header__subtitle { font-size: 0.88rem; color: #6b7280; margin-top: 0.25rem; }
-=======
-.publier-header__title {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: var(--color-text);
-}
-
-.publier-header__subtitle {
-  font-size: 0.88rem;
-  color: #6B7280;
-  margin-top: 0.25rem;
-}
->>>>>>> master
 
 .publier-progress {
   display: flex;
@@ -423,16 +265,12 @@ async function submit() {
   min-width: 160px;
 }
 
-.publier-progress__label {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--color-accent);
-}
+.publier-progress__label { font-size: 0.82rem; font-weight: 700; color: var(--color-accent); }
 
 .publier-progress__bar {
   width: 160px;
   height: 6px;
-  background: #E8E0D4;
+  background: #e8e0d4;
   border-radius: 3px;
   overflow: hidden;
 }
@@ -485,23 +323,8 @@ async function submit() {
   flex-shrink: 0;
 }
 
-<<<<<<< HEAD
 .field { display: flex; flex-direction: column; gap: 0.4rem; }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-=======
-/* Champs */
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.field-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
->>>>>>> master
 
 .field__label {
   font-size: 0.75rem;
@@ -515,11 +338,7 @@ async function submit() {
 
 .field__input {
   padding: 0.7rem 0.9rem;
-<<<<<<< HEAD
   border: 1.5px solid #e8e0d4;
-=======
-  border: 1.5px solid #E8E0D4;
->>>>>>> master
   border-radius: var(--radius-sm);
   font-size: 0.9rem;
   color: var(--color-text);
@@ -528,16 +347,9 @@ async function submit() {
   width: 100%;
 }
 
-<<<<<<< HEAD
 .field__input:focus { border-color: var(--color-primary); outline: none; }
 .field__textarea { resize: vertical; min-height: 100px; }
 
-=======
-.field__input:focus { border-color: var(--color-primary); }
-.field__textarea { resize: vertical; min-height: 100px; }
-
-/* Carte map */
->>>>>>> master
 .map-placeholder {
   display: flex;
   flex-direction: column;
@@ -545,11 +357,7 @@ async function submit() {
   justify-content: center;
   gap: 0.5rem;
   height: 160px;
-<<<<<<< HEAD
   background: #e8f2ef;
-=======
-  background: #E8F2EF;
->>>>>>> master
   border: 2px dashed var(--color-primary);
   border-radius: var(--radius);
   color: var(--color-primary);
@@ -560,10 +368,6 @@ async function submit() {
 
 .map-placeholder__icon { font-size: 2rem; }
 
-<<<<<<< HEAD
-=======
-/* Équipements */
->>>>>>> master
 .equipements-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -572,45 +376,22 @@ async function submit() {
 
 .equip-card {
   display: flex;
-<<<<<<< HEAD
   align-items: center;
   justify-content: center;
   padding: 0.9rem 0.5rem;
   border-radius: var(--radius-sm);
   border: 1.5px solid #e8e0d4;
-=======
-  flex-direction: column;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.9rem 0.5rem;
-  border-radius: var(--radius-sm);
-  border: 1.5px solid #E8E0D4;
->>>>>>> master
   background: var(--color-card);
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
 }
 
-<<<<<<< HEAD
 .equip-card:hover { background: #f0ebe3; }
 .equip-card--selected { border-color: var(--color-primary); background: #e8f2ef; }
 .equip-card__label { font-size: 0.82rem; font-weight: 500; color: var(--color-text); text-align: center; }
 
 .equip-empty { font-size: 0.88rem; color: #6b7280; text-align: center; padding: 2rem; }
 
-=======
-.equip-card:hover { background: #F0EBE3; }
-
-.equip-card--selected {
-  border-color: var(--color-primary);
-  background: #E8F2EF;
-}
-
-.equip-card__icon { font-size: 1.4rem; }
-.equip-card__label { font-size: 0.75rem; font-weight: 500; color: var(--color-text); text-align: center; }
-
-/* Upload */
->>>>>>> master
 .upload-zone {
   display: flex;
   flex-direction: column;
@@ -618,11 +399,7 @@ async function submit() {
   justify-content: center;
   gap: 0.6rem;
   height: 160px;
-<<<<<<< HEAD
   border: 2px dashed #e8e0d4;
-=======
-  border: 2px dashed #E8E0D4;
->>>>>>> master
   border-radius: var(--radius);
   cursor: pointer;
   transition: border-color 0.2s;
@@ -631,11 +408,7 @@ async function submit() {
 .upload-zone:hover { border-color: var(--color-primary); }
 .upload-zone__input { display: none; }
 .upload-zone__icon { font-size: 2rem; }
-<<<<<<< HEAD
 .upload-zone__text { font-size: 0.88rem; color: #6b7280; }
-=======
-.upload-zone__text { font-size: 0.88rem; color: #6B7280; }
->>>>>>> master
 
 .upload-zone__btn {
   background: var(--color-primary);
@@ -646,17 +419,7 @@ async function submit() {
   font-weight: 600;
 }
 
-<<<<<<< HEAD
 .photo-previews { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.75rem; }
-=======
-/* Previews */
-.photo-previews {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: 0.75rem;
-}
->>>>>>> master
 
 .photo-thumb {
   position: relative;
@@ -664,11 +427,7 @@ async function submit() {
   height: 90px;
   border-radius: var(--radius-sm);
   overflow: hidden;
-<<<<<<< HEAD
   border: 1px solid #e8e0d4;
-=======
-  border: 1px solid #E8E0D4;
->>>>>>> master
 }
 
 .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
@@ -689,20 +448,12 @@ async function submit() {
   border: none;
 }
 
-<<<<<<< HEAD
-=======
-/* Navigation bas */
->>>>>>> master
 .form-nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding-top: 1.5rem;
-<<<<<<< HEAD
   border-top: 1px solid #e8e0d4;
-=======
-  border-top: 1px solid #E8E0D4;
->>>>>>> master
   flex-wrap: wrap;
   gap: 0.75rem;
 }
@@ -711,23 +462,12 @@ async function submit() {
   background: transparent;
   border: none;
   font-size: 0.85rem;
-<<<<<<< HEAD
   color: #6b7280;
-=======
-  color: #6B7280;
->>>>>>> master
   text-decoration: underline;
   cursor: pointer;
 }
 
-<<<<<<< HEAD
 .form-nav__right { display: flex; gap: 0.75rem; }
-=======
-.form-nav__right {
-  display: flex;
-  gap: 0.75rem;
-}
->>>>>>> master
 
 .btn-prev {
   padding: 0.6rem 1.25rem;

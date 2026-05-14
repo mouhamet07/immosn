@@ -4,12 +4,7 @@ import { useRouter } from 'vue-router'
 import ConfirmModal from '@/components/admin/ConfirmModal.vue'
 import ToastNotification from '@/components/admin/ToastNotification.vue'
 import { usePagination } from '@/composables/usePagination'
-<<<<<<< HEAD
 import annonceService from '@/services/annonceService'
-=======
-import { MOCK_ANNONCES } from '@/mocks/annonces'
-import api from '@/services/api'
->>>>>>> master
 
 const router = useRouter()
 const toast = ref(null)
@@ -18,7 +13,6 @@ const annonces = ref([])
 const loading = ref(true)
 const confirmId = ref(null)
 
-<<<<<<< HEAD
 // Modal de modification
 const editModal = ref(false)
 const editLoading = ref(false)
@@ -35,8 +29,6 @@ const editForm = ref({
   images: [],
 })
 
-=======
->>>>>>> master
 const { currentPage, totalPages, paginated, rangeLabel, prev, next } = usePagination(annonces, 6)
 
 function formatPrix(p) {
@@ -47,7 +39,6 @@ function formatDate(d) {
   return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-<<<<<<< HEAD
 // Récupérer toutes les annonces admin — GET /api/v1/annonces/admin
 onMounted(async () => {
   try {
@@ -56,29 +47,11 @@ onMounted(async () => {
     annonces.value = res.data.data
   } catch {
     toast.value.show('Erreur lors du chargement des annonces.', 'error')
-=======
-onMounted(async () => {
-  try {
-    const res = await api.get('/annonces')
-    annonces.value = res.data
-  } catch (err) {
-    console.warn('[AnnoncesView] Backend indisponible, utilisation des mocks.', err)
-    annonces.value = MOCK_ANNONCES.map(a => ({
-      id: a.id,
-      titre: a.libelle,
-      quartier: a.quartier,
-      typeBien: a.typeBien,
-      prix: a.prix,
-      statut: a.statut,
-      dateCreation: a.dateCreation,
-    }))
->>>>>>> master
   } finally {
     loading.value = false
   }
 })
 
-<<<<<<< HEAD
 // Ouvrir modal de modification avec les données de l'annonce
 function ouvrirModification(annonce) {
   editForm.value = {
@@ -131,21 +104,11 @@ async function archiver() {
     annonces.value = annonces.value.filter(a => a.id !== confirmId.value)
     toast.value.show('Annonce archivée.', 'success')
   } catch {
-=======
-async function archiver() {
-  try {
-    await api.delete(`/annonces/${confirmId.value}`)
-    annonces.value = annonces.value.filter(a => a.id !== confirmId.value)
-    toast.value.show('Annonce archivée.', 'success')
-  } catch (err) {
-    console.error('[AnnoncesView] Erreur archivage.', err)
->>>>>>> master
     toast.value.show("Erreur lors de l'archivage.", 'error')
   } finally {
     confirmId.value = null
   }
 }
-<<<<<<< HEAD
 
 // Restaurer une annonce archivée — PATCH /api/v1/annonces/{id}/restore
 async function restaurer(id) {
@@ -158,17 +121,11 @@ async function restaurer(id) {
     toast.value.show('Erreur lors de la restauration.', 'error')
   }
 }
-=======
->>>>>>> master
 </script>
 
 <template>
   <div class="annonces-admin">
     <ToastNotification ref="toast" />
-<<<<<<< HEAD
-
-=======
->>>>>>> master
     <ConfirmModal
       v-if="confirmId"
       title="Archiver l'annonce"
@@ -177,7 +134,6 @@ async function restaurer(id) {
       @cancel="confirmId = null"
     />
 
-<<<<<<< HEAD
     <!-- Modal de modification -->
     <div v-if="editModal" class="modal-overlay" @click.self="editModal = false">
       <div class="modal-card">
@@ -227,8 +183,6 @@ async function restaurer(id) {
       </div>
     </div>
 
-=======
->>>>>>> master
     <!-- En-tête -->
     <div class="page-header">
       <div>
@@ -250,13 +204,8 @@ async function restaurer(id) {
       <table class="data-table">
         <thead>
           <tr>
-<<<<<<< HEAD
             <th>Libellé</th>
             <th>Adresse</th>
-=======
-            <th>Titre</th>
-            <th>Quartier</th>
->>>>>>> master
             <th>Type</th>
             <th>Prix</th>
             <th>Date</th>
@@ -266,7 +215,6 @@ async function restaurer(id) {
         </thead>
         <tbody>
           <tr v-for="a in paginated" :key="a.id" class="data-table__row">
-<<<<<<< HEAD
             <td class="td-title">{{ a.libelle }}</td>
             <td class="td-muted">{{ a.adresse }}</td>
             <td class="td-muted">{{ a.typeBien?.libelle || '–' }}</td>
@@ -275,25 +223,10 @@ async function restaurer(id) {
             <td>
               <span class="badge" :class="a.archived ? 'badge--neutral' : 'badge--active'">
                 {{ a.archived ? 'Archivé' : 'Actif' }}
-=======
-            <td class="td-title">{{ a.titre }}</td>
-            <td class="td-muted">{{ a.quartier }}</td>
-            <td class="td-muted">{{ a.typeBien }}</td>
-            <td class="td-muted">{{ formatPrix(a.prix) }}</td>
-            <td class="td-muted">{{ formatDate(a.dateCreation) }}</td>
-            <td>
-              <span class="badge" :class="{
-                'badge--active':  a.statut === 'ACTIF',
-                'badge--neutral': a.statut === 'INACTIF',
-                'badge--pending': a.statut === 'EN_ATTENTE',
-              }">
-                {{ a.statut === 'EN_ATTENTE' ? 'En attente' : a.statut === 'ACTIF' ? 'Actif' : 'Inactif' }}
->>>>>>> master
               </span>
             </td>
             <td>
               <div class="td-actions">
-<<<<<<< HEAD
                 <!-- Modifier -->
                 <button class="action-btn action-btn--edit" title="Modifier" @click="ouvrirModification(a)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -315,10 +248,6 @@ async function restaurer(id) {
                     <rect x="1" y="3" width="22" height="5"/>
                     <line x1="10" y1="12" x2="14" y2="12"/>
                   </svg>
-=======
-                <button class="action-btn" title="Archiver" @click="confirmId = a.id">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
->>>>>>> master
                 </button>
               </div>
             </td>
@@ -357,11 +286,7 @@ async function restaurer(id) {
 }
 
 .page-header__title { font-size: 1.5rem; font-weight: 800; color: var(--color-text); }
-<<<<<<< HEAD
 .page-header__subtitle { font-size: 0.88rem; color: var(--color-text); opacity: 0.6; margin-top: 0.25rem; }
-=======
-.page-header__subtitle { font-size: 0.88rem; color: var(--color-text-muted); margin-top: 0.25rem; }
->>>>>>> master
 
 .btn-add {
   background: var(--color-primary);
@@ -376,7 +301,6 @@ async function restaurer(id) {
 }
 .btn-add:hover { background: var(--color-primary-hover); }
 
-<<<<<<< HEAD
 /* Modal */
 .modal-overlay {
   position: fixed;
@@ -465,17 +389,11 @@ async function restaurer(id) {
 .btn-save:hover:not(:disabled) { background: var(--color-primary-hover); }
 .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
 
-=======
->>>>>>> master
 /* Skeleton */
 .skeleton-table { display: flex; flex-direction: column; gap: 0.75rem; }
 .skeleton-row {
   height: 52px;
-<<<<<<< HEAD
   background: linear-gradient(90deg, var(--color-background) 25%, var(--color-border) 50%, var(--color-background) 75%);
-=======
-  background: linear-gradient(90deg, var(--color-hover-row) 25%, var(--color-border-solid) 50%, var(--color-hover-row) 75%);
->>>>>>> master
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
   border-radius: var(--radius-sm);
@@ -491,13 +409,7 @@ async function restaurer(id) {
 }
 
 .data-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
-<<<<<<< HEAD
 .data-table thead tr { background: var(--color-background); border-bottom: 1px solid var(--color-border); }
-=======
-
-.data-table thead tr { background: var(--color-background); border-bottom: 1px solid var(--color-border-solid); }
-
->>>>>>> master
 .data-table th {
   padding: 0.85rem 1rem;
   text-align: left;
@@ -505,7 +417,6 @@ async function restaurer(id) {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-<<<<<<< HEAD
   color: var(--color-text);
   opacity: 0.6;
 }
@@ -516,21 +427,6 @@ async function restaurer(id) {
 .data-table td { padding: 0.9rem 1rem; vertical-align: middle; }
 .td-title { font-weight: 600; color: var(--color-text); }
 .td-muted { color: var(--color-text); opacity: 0.6; font-size: 0.85rem; }
-=======
-  color: var(--color-text-muted);
-}
-
-.data-table__row {
-  border-bottom: 1px solid var(--color-hover-row);
-  transition: background 0.15s;
-}
-.data-table__row:hover { background: var(--color-hover-row); }
-.data-table__row:last-child { border-bottom: none; }
-
-.data-table td { padding: 0.9rem 1rem; vertical-align: middle; }
-.td-title { font-weight: 600; color: var(--color-text); }
-.td-muted { color: var(--color-text-muted); font-size: 0.85rem; }
->>>>>>> master
 
 .badge {
   display: inline-block;
@@ -539,14 +435,8 @@ async function restaurer(id) {
   font-size: 0.75rem;
   font-weight: 600;
 }
-<<<<<<< HEAD
 .badge--active  { background: rgba(74, 124, 111, 0.12); color: var(--color-primary); }
 .badge--neutral { background: rgba(45, 55, 72, 0.1); color: var(--color-text); }
-=======
-.badge--active  { background: var(--badge-active-bg);  color: var(--badge-active-color); }
-.badge--neutral { background: var(--badge-neutral-bg); color: var(--badge-neutral-color); }
-.badge--pending { background: var(--badge-pending-bg); color: var(--badge-pending-color); }
->>>>>>> master
 
 .td-actions { display: flex; gap: 0.5rem; }
 
@@ -555,17 +445,12 @@ async function restaurer(id) {
   height: 32px;
   border-radius: var(--radius-sm);
   background: transparent;
-<<<<<<< HEAD
   border: 1px solid var(--color-border);
-=======
-  border: 1px solid var(--color-border-solid);
->>>>>>> master
   display: flex;
   align-items: center;
   justify-content: center;
   transition: background 0.15s;
 }
-<<<<<<< HEAD
 .action-btn svg { width: 15px; height: 15px; stroke: var(--color-text); opacity: 0.6; }
 .action-btn:hover { background: var(--color-background); }
 .action-btn--edit:hover { border-color: var(--color-primary); }
@@ -575,30 +460,16 @@ async function restaurer(id) {
 
 .empty-state { text-align: center; padding: 3rem !important; }
 .empty-state__content { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; color: var(--color-text); opacity: 0.5; font-size: 1.5rem; }
-=======
-.action-btn svg { width: 15px; height: 15px; stroke: var(--color-text-muted); }
-.action-btn:hover { background: var(--badge-pending-bg); border-color: var(--color-accent); }
-.action-btn:hover svg { stroke: var(--color-accent); }
-
-.empty-state { text-align: center; padding: 3rem !important; }
-.empty-state__content { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; color: var(--color-text-muted); font-size: 1.5rem; }
->>>>>>> master
 
 .table-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0.85rem 1rem;
-<<<<<<< HEAD
   border-top: 1px solid var(--color-border);
   font-size: 0.82rem;
   color: var(--color-text);
   opacity: 0.6;
-=======
-  border-top: 1px solid var(--color-border-solid);
-  font-size: 0.82rem;
-  color: var(--color-text-muted);
->>>>>>> master
 }
 
 .pagination { display: flex; gap: 0.5rem; }
@@ -606,20 +477,12 @@ async function restaurer(id) {
 .page-btn {
   padding: 0.4rem 0.9rem;
   border-radius: var(--radius-sm);
-<<<<<<< HEAD
   border: 1px solid var(--color-border);
-=======
-  border: 1px solid var(--color-border-solid);
->>>>>>> master
   background: var(--color-card);
   font-size: 0.82rem;
   color: var(--color-text);
   transition: background 0.15s;
 }
-<<<<<<< HEAD
 .page-btn:hover:not(:disabled) { background: var(--color-background); }
-=======
-.page-btn:hover:not(:disabled) { background: var(--color-hover-row); }
->>>>>>> master
 .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 </style>
