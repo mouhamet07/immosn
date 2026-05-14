@@ -1,39 +1,40 @@
 import api from './api'
 
+/**
+ * Valide qu'un ID est un entier positif avant de l'injecter dans une URL.
+ * Prévient les attaques SSRF par manipulation de l'URL.
+ */
+function validateId(id) {
+  const parsed = Number(id)
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`ID invalide : "${id}"`)
+  }
+  return parsed
+}
+
 export default {
-  // Récupérer toutes les annonces actives (clients) — GET /api/v1/annonces
-  // Réponse: PagedResponse<AnnonceListDto> → { data, totalElements, totalPages, currentPage, pageSize, isFirst, isLast }
-  getAllAnnonces({ page = 0, size, sort = 'createdAt', direction = 'DESC' } = {}) {
-    return api.get('/annonces', { params: { page, size, sort, direction } })
+  // Récupérer toutes les annonces avec filtres optionnels
+  getAllAnnonces(filters = {}) {
+    return api.get('/annonces', { params: filters })
   },
 
-  // Récupérer toutes les annonces admin — GET /api/v1/annonces/admin
-  getAllAnnoncesAdmin({ page = 0, size, sort = 'createdAt', direction = 'DESC' } = {}) {
-    return api.get('/annonces/admin', { params: { page, size, sort, direction } })
-  },
-
-  // Récupérer le détail d'une annonce — GET /api/v1/annonces/{id}
+  // Récupérer le détail d'une annonce par ID
   getAnnonceById(id) {
-    return api.get(`/annonces/${id}`)
+    return api.get(`/annonces/${validateId(id)}`)
   },
 
-  // Créer une annonce (ADMIN) — POST /api/v1/annonces
+  // Créer une annonce (ADMIN uniquement)
   createAnnonce(data) {
     return api.post('/annonces', data)
   },
 
-  // Modifier une annonce (ADMIN) — PUT /api/v1/annonces/{id}
+  // Modifier une annonce (ADMIN uniquement)
   updateAnnonce(id, data) {
-    return api.put(`/annonces/${id}`, data)
+    return api.put(`/annonces/${validateId(id)}`, data)
   },
 
-  // Archiver une annonce (ADMIN) — DELETE /api/v1/annonces/{id}
+  // Archiver une annonce (ADMIN uniquement)
   archiveAnnonce(id) {
-    return api.delete(`/annonces/${id}`)
-  },
-
-  // Restaurer une annonce archivée (ADMIN) — PATCH /api/v1/annonces/{id}/restore
-  restoreAnnonce(id) {
-    return api.patch(`/annonces/${id}/restore`)
+    return api.delete(`/annonces/${validateId(id)}`)
   },
 }

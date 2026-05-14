@@ -1,9 +1,10 @@
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import FormStepper from '@/components/admin/FormStepper.vue'
 import ToastNotification from '@/components/admin/ToastNotification.vue'
 import annonceService from '@/services/annonceService'
+import commoditeService from '@/services/commoditeService'
 
 const router = useRouter()
 const toast = ref(null)
@@ -15,27 +16,29 @@ const progress = computed(() => Math.round((currentStep.value / (STEPS.length - 
 
 // Champs alignés avec AnnonceCreateRequestDto
 const form = reactive({
-  libelle:      '',   // @NotBlank String
-  description:  '',   // String
-  typeBienId:   null, // @NotNull Long
-  nbrPieces:    '',   // @NotNull @Positive Integer
-  surface:      '',   // @NotNull @Positive Double
-  prix:         '',   // @NotNull @Positive Double
-  adresse:      '',   // @NotBlank String
-  commoditeIds: [],   // List<Long>
-  images:       [],   // List<String>
+  libelle:      '',
+  description:  '',
+  typeBienId:   null,
+  nbrPieces:    '',
+  surface:      '',
+  prix:         '',
+  adresse:      '',
+  commoditeIds: [],
+  images:       [],
 })
 
-const EQUIPEMENTS = [
-  { id: 1, label: 'Climatisation', icon: '❄️' },
-  { id: 2, label: 'Parking',       icon: '🚗' },
-  { id: 3, label: 'Internet',      icon: '📶' },
-  { id: 4, label: 'Piscine',       icon: '🏊' },
-  { id: 5, label: 'Salle de sport', icon: '🏋️' },
-  { id: 6, label: 'Ascenseur',     icon: '🛗' },
-  { id: 7, label: 'Sécurité',      icon: '🔒' },
-  { id: 8, label: 'Balcon privé',  icon: '🌿' },
-]
+// Commodités chargées depuis GET /api/v1/commodites
+const commodites = ref([])
+
+onMounted(async () => {
+  try {
+    const res = await commoditeService.getAllCommodites()
+    // Réponse: RestResponse<List<CommoditeResponseDto>> → { id, libelle }
+    commodites.value = res.data.data
+  } catch {
+    toast.value?.show('Erreur lors du chargement des commodités.', 'error')
+  }
+})
 
 const photoPreviews = ref([])
 
@@ -67,7 +70,6 @@ const loading = ref(false)
 async function submit() {
   loading.value = true
   try {
-    // Envoi JSON avec champs exacts de AnnonceCreateRequestDto
     await annonceService.createAnnonce({
       libelle:      form.libelle,
       description:  form.description,
@@ -129,7 +131,7 @@ async function submit() {
 
         <div class="field-row">
           <div class="field">
-            <label class="field__label">TYPE DE BIEN <span class="req">*</span></label>
+            <label class="field__label">TYPE DE BIEN (ID) <span class="req">*</span></label>
             <select v-model="form.typeBienId" class="field__input">
               <option :value="null">Sélectionner...</option>
               <option :value="1">Villa</option>
@@ -172,22 +174,23 @@ async function submit() {
         </div>
       </section>
 
-      <!-- Section 3 — Équipements (commoditeIds) -->
+      <!-- Section 3 — Équipements (commoditeIds depuis API) -->
       <section v-else-if="currentStep === 2" class="form-section">
         <h2 class="form-section__title"><span class="form-section__num">3</span> Équipements de base</h2>
-        <div class="equipements-grid">
+
+        <div v-if="commodites.length" class="equipements-grid">
           <button
-            v-for="eq in EQUIPEMENTS"
+            v-for="eq in commodites"
             :key="eq.id"
             type="button"
             class="equip-card"
             :class="{ 'equip-card--selected': form.commoditeIds.includes(eq.id) }"
             @click="toggleCommodite(eq.id)"
           >
-            <span class="equip-card__icon">{{ eq.icon }}</span>
-            <span class="equip-card__label">{{ eq.label }}</span>
+            <span class="equip-card__label">{{ eq.libelle }}</span>
           </button>
         </div>
+        <p v-else class="equip-empty">Chargement des équipements...</p>
       </section>
 
       <!-- Section 4 — Photos (images) -->
@@ -218,21 +221,10 @@ async function submit() {
           <button v-if="currentStep > 0" type="button" class="btn-prev" @click="currentStep--">
             Étape précédente
           </button>
-          <button
-            v-if="currentStep < STEPS.length - 1"
-            type="button"
-            class="btn-next"
-            @click="currentStep++"
-          >
+          <button v-if="currentStep < STEPS.length - 1" type="button" class="btn-next" @click="currentStep++">
             Continuer vers la fiche finale
           </button>
-          <button
-            v-else
-            type="button"
-            class="btn-next"
-            :disabled="loading"
-            @click="submit"
-          >
+          <button v-else type="button" class="btn-next" :disabled="loading" @click="submit">
             {{ loading ? 'Publication...' : "Publier l'annonce" }}
           </button>
         </div>
@@ -257,17 +249,8 @@ async function submit() {
   flex-wrap: wrap;
 }
 
-.publier-header__title {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: var(--color-text);
-}
-
-.publier-header__subtitle {
-  font-size: 0.88rem;
-  color: #6b7280;
-  margin-top: 0.25rem;
-}
+.publier-header__title { font-size: 1.5rem; font-weight: 800; color: var(--color-text); }
+.publier-header__subtitle { font-size: 0.88rem; color: #6b7280; margin-top: 0.25rem; }
 
 .publier-progress {
   display: flex;
@@ -277,11 +260,7 @@ async function submit() {
   min-width: 160px;
 }
 
-.publier-progress__label {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--color-accent);
-}
+.publier-progress__label { font-size: 0.82rem; font-weight: 700; color: var(--color-accent); }
 
 .publier-progress__bar {
   width: 160px;
@@ -337,17 +316,8 @@ async function submit() {
   flex-shrink: 0;
 }
 
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.field-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
+.field { display: flex; flex-direction: column; gap: 0.4rem; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 
 .field__label {
   font-size: 0.75rem;
@@ -399,9 +369,8 @@ async function submit() {
 
 .equip-card {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.4rem;
+  justify-content: center;
   padding: 0.9rem 0.5rem;
   border-radius: var(--radius-sm);
   border: 1.5px solid #e8e0d4;
@@ -412,8 +381,9 @@ async function submit() {
 
 .equip-card:hover { background: #f0ebe3; }
 .equip-card--selected { border-color: var(--color-primary); background: #e8f2ef; }
-.equip-card__icon { font-size: 1.4rem; }
-.equip-card__label { font-size: 0.75rem; font-weight: 500; color: var(--color-text); text-align: center; }
+.equip-card__label { font-size: 0.82rem; font-weight: 500; color: var(--color-text); text-align: center; }
+
+.equip-empty { font-size: 0.88rem; color: #6b7280; text-align: center; padding: 2rem; }
 
 .upload-zone {
   display: flex;
@@ -442,12 +412,7 @@ async function submit() {
   font-weight: 600;
 }
 
-.photo-previews {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: 0.75rem;
-}
+.photo-previews { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.75rem; }
 
 .photo-thumb {
   position: relative;
