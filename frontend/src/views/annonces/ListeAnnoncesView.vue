@@ -2,6 +2,7 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import AnnonceCard from '@/components/AnnonceCard.vue'
 import ButtonPrimary from '@/components/ButtonPrimary.vue'
+<<<<<<< HEAD
 import annonceService from '@/services/annonceService'
 
 // Images mockées (utilisées tant que le backend ne renvoie pas d'URLs)
@@ -13,11 +14,15 @@ import imgLuxury from '@/assets/Luxury Home.png'
 import imgNgor from '@/assets/Villa Ngor.png'
 
 const MOCK_IMAGES = [imgAppartement, imgVilla, imgMaison, imgPenthouse, imgLuxury, imgNgor]
+=======
+import { MOCK_ANNONCES } from '@/mocks/annonces'
+>>>>>>> master
 
 const annonces = ref([])
 const loading = ref(false)
 const error = ref('')
 
+<<<<<<< HEAD
 // Pagination backend (PagedResponse)
 const currentPage = ref(0)
 const totalPages = ref(1)
@@ -25,11 +30,17 @@ const pageNumbers = computed(() => Array.from({ length: totalPages.value }, (_, 
 
 // Filtres
 const filtres = reactive({
+=======
+// Filtres
+const filtres = reactive({
+  quartier: '',
+>>>>>>> master
   typeBien: '',
   budget: '',
   chambres: '',
 })
 
+<<<<<<< HEAD
 async function fetchAnnonces(page = 0) {
   loading.value = true
   error.value = ''
@@ -41,6 +52,52 @@ async function fetchAnnonces(page = 0) {
     totalPages.value = paged.totalPages
     currentPage.value = paged.currentPage
   } catch {
+=======
+// Pagination
+const currentPage = ref(1)
+const itemsPerPage = 9
+const totalPages = ref(1)
+
+const paginatedAnnonces = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  return annonces.value.slice(start, start + itemsPerPage)
+})
+
+const pageNumbers = computed(() => {
+  return Array.from({ length: totalPages.value }, (_, i) => i + 1)
+})
+
+async function fetchAnnonces() {
+  loading.value = true
+  error.value = ''
+  try {
+    await new Promise((r) => setTimeout(r, 300))
+    let result = [...MOCK_ANNONCES]
+
+    // Filtrage côté client
+    if (filtres.quartier) {
+      result = result.filter((a) => a.adresse.toLowerCase().includes(filtres.quartier.toLowerCase()))
+    }
+    if (filtres.typeBien) {
+      result = result.filter((a) => a.typeBien === filtres.typeBien)
+    }
+    if (filtres.budget) {
+      const [min, max] = filtres.budget.replace('+', '-999999999').split('-').map(Number)
+      result = result.filter((a) => a.prix >= min && a.prix <= max)
+    }
+    if (filtres.chambres) {
+      const nb = parseInt(filtres.chambres)
+      result = filtres.chambres === '4'
+        ? result.filter((a) => a.nbreDePieces >= 4)
+        : result.filter((a) => a.nbreDePieces === nb)
+    }
+
+    annonces.value = result
+    totalPages.value = Math.ceil(annonces.value.length / itemsPerPage) || 1
+    currentPage.value = 1
+  } catch (err) {
+    console.warn('[ListeAnnoncesView] Erreur chargement annonces.', err)
+>>>>>>> master
     error.value = 'Impossible de charger les annonces. Veuillez réessayer.'
   } finally {
     loading.value = false
@@ -48,18 +105,27 @@ async function fetchAnnonces(page = 0) {
 }
 
 function goToPage(page) {
+<<<<<<< HEAD
   if (page >= 0 && page < totalPages.value) {
     fetchAnnonces(page)
+=======
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page
+>>>>>>> master
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 }
 
+<<<<<<< HEAD
 // Retourner une image mock si imagePrincipale est null (dev uniquement)
 function getImage(annonce, index) {
   return annonce.imagePrincipale || MOCK_IMAGES[index % MOCK_IMAGES.length]
 }
 
 onMounted(() => fetchAnnonces(0))
+=======
+onMounted(fetchAnnonces)
+>>>>>>> master
 </script>
 
 <template>
@@ -133,19 +199,34 @@ onMounted(() => fetchAnnonces(0))
       <div v-else-if="error" class="liste-error">{{ error }}</div>
 
       <!-- Grille d'annonces -->
+<<<<<<< HEAD
       <div v-else-if="annonces.length" class="liste-grid">
         <AnnonceCard
           v-for="(annonce, index) in annonces"
+=======
+      <div v-else-if="paginatedAnnonces.length" class="liste-grid">
+        <AnnonceCard
+          v-for="annonce in paginatedAnnonces"
+>>>>>>> master
           :key="annonce.id"
           :id="annonce.id"
           :title="annonce.libelle"
           :prix="annonce.prix"
+<<<<<<< HEAD
           :images="[getImage(annonce, index)]"
           :nbrChambres="annonce.nbrPieces"
           :nbrSallesBain="0"
           :surface="annonce.surface"
           :adresse="annonce.adresse"
           :badge="annonce.typeBien?.libelle || ''"
+=======
+          :images="annonce.photos"
+          :nbrChambres="annonce.nbreDePieces"
+          :nbrSallesBain="annonce.nbreSallesBain || 0"
+          :surface="annonce.surface"
+          :adresse="annonce.adresse"
+          :badge="annonce.badge || ''"
+>>>>>>> master
         />
       </div>
 
@@ -158,7 +239,11 @@ onMounted(() => fetchAnnonces(0))
       <div v-if="totalPages > 1" class="liste-pagination">
         <button
           class="liste-pagination__btn"
+<<<<<<< HEAD
           :disabled="currentPage === 0"
+=======
+          :disabled="currentPage === 1"
+>>>>>>> master
           @click="goToPage(currentPage - 1)"
         >
           ← Précédent
@@ -168,15 +253,24 @@ onMounted(() => fetchAnnonces(0))
           v-for="page in pageNumbers"
           :key="page"
           class="liste-pagination__page"
+<<<<<<< HEAD
           :class="{ 'liste-pagination__page--active': page - 1 === currentPage }"
           @click="goToPage(page - 1)"
+=======
+          :class="{ 'liste-pagination__page--active': page === currentPage }"
+          @click="goToPage(page)"
+>>>>>>> master
         >
           {{ page }}
         </button>
 
         <button
           class="liste-pagination__btn"
+<<<<<<< HEAD
           :disabled="currentPage === totalPages - 1"
+=======
+          :disabled="currentPage === totalPages"
+>>>>>>> master
           @click="goToPage(currentPage + 1)"
         >
           Suivant →
