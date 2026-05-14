@@ -13,12 +13,13 @@ import sn.immosn.backend.annonce.data.entity.TypeBienAnnonce;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceCreateRequestDto;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceListDto;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceResponseDto;
-import sn.immosn.backend.client.web.annonce.dto.CommoditeResponseDto;
-import sn.immosn.backend.client.web.annonce.dto.TypeBienResponseDto;
 
 @Component
 @RequiredArgsConstructor
 public class AnnonceMapper {
+
+    private final TypeBienAnnonceMapper typeBienAnnonceMapper;
+    private final CommoditeMapper commoditeMapper;
 
     public AnnonceResponseDto toResponse(Annonce a) {
         return new AnnonceResponseDto(
@@ -29,9 +30,9 @@ public class AnnonceMapper {
             a.getSurface(),
             a.getPrix(),
             a.getAdresse(),
-            toTypeBienResponse(a.getTypeBien()),
+            typeBienAnnonceMapper.toResponseDto(a.getTypeBien()),
             a.getAnnonceCommodites().stream()
-                .map(ac -> toCommoditeResponse(ac.getCommodite()))
+                .map(ac -> commoditeMapper.toResponseDto(ac.getCommodite()))
                 .collect(Collectors.toList()),
             a.getImages(),
             a.getIsArchived(),
@@ -47,7 +48,7 @@ public class AnnonceMapper {
             a.getLibelle(),
             a.getPrix(),
             a.getAdresse(),
-            toTypeBienResponse(a.getTypeBien()),
+            typeBienAnnonceMapper.toResponseDto(a.getTypeBien()),
             a.getNbrPieces().intValue(),
             a.getSurface(),
             firstImage,
@@ -80,13 +81,4 @@ public class AnnonceMapper {
     }
     
 
-    private TypeBienResponseDto toTypeBienResponse(TypeBienAnnonce t) {
-        if (t == null) return null;
-        return new TypeBienResponseDto(t.getId(), t.getLibelle());
-    }
-
-    private CommoditeResponseDto toCommoditeResponse(Commodite c) {
-        if (c == null) return null;
-        return new CommoditeResponseDto(c.getId(), c.getLibelle());
-    }
 }

@@ -2,6 +2,7 @@ package sn.immosn.backend.client.web.annonce.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -22,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 import sn.immosn.backend.annonce.service.CommoditeService;
 import sn.immosn.backend.client.web.annonce.dto.CommoditeRequestDto;
 import sn.immosn.backend.client.web.annonce.dto.CommoditeResponseDto;
+import sn.immosn.backend.shared.response.PagedResponse;
 import sn.immosn.backend.shared.response.RestResponse;
 
 @RestController
@@ -61,14 +63,15 @@ public class CommoditeController {
      * Récupère la liste de toutes les commodités pagines actif comme inactives disponibles
      */
     @GetMapping("/paged")
-    public ResponseEntity<RestResponse<List<CommoditeResponseDto>>> getAllPaged(
+    public ResponseEntity<PagedResponse<CommoditeResponseDto>> getAllPaged(
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "10") int size
     ) {
         Pageable pageable = PageRequest.of(page, size);
+        Page<CommoditeResponseDto> result = commoditeService.getAllCommoditesPaged(pageable);
         return ResponseEntity
             .status(HttpStatus.OK)
-            .body(RestResponse.success(commoditeService.getAllCommoditesPaged(pageable), HttpStatus.OK));
+            .body(PagedResponse.fromPage(result));
     }
 
     /**

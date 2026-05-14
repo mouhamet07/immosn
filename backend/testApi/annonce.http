@@ -1,5 +1,6 @@
 @baseUrl=http://localhost:8080/api/v1/annonces
-###
+
+### Annonces - Create
 POST {{baseUrl}}
 Content-Type: application/json
 accept: application/json
@@ -8,6 +9,48 @@ accept: application/json
   "libelle": "Appartement à louer",
   "description": "Un bel appartement situé au centre-ville.",
   "prix": 500000,
+  "surface": 75.5,
+  "nbrPieces": 3,
+  "adresse": "Dakar, Plateau",
   "typeBienId": 1,
-  "commoditeIds": []
+  "commoditeIds": [1, 2],
+  "images": ["https://example.com/image1.jpg"]
 }
+
+### Annonces - List active
+GET {{baseUrl}}?page=0&size=10&sort=createdAt&direction=DESC
+accept: application/json
+
+### Annonces - Get by id
+GET {{baseUrl}}/1
+accept: application/json
+
+### Annonces - Update
+PUT {{baseUrl}}/1
+Content-Type: application/json
+accept: application/json
+
+{
+  "id" : 1,
+  "libelle": "Appartement mis à jour",
+  "description": "Appart rénové, bien situé.",
+  "prix": 550000,
+  "surface": 78.0,
+  "nbrPieces": 4,
+  "adresse": "Dakar, Plateau",
+  "typeBienId": 1,
+  "commoditeIds": [1],
+  "images": ["https://example.com/image1.jpg", "https://example.com/image2.jpg"]
+}
+
+### Annonces - Archive
+DELETE {{baseUrl}}/1
+accept: application/json
+
+### Annonces - Restore
+PATCH {{baseUrl}}/1/restore
+accept: application/json
+
+### Annonces - List admin
+GET {{baseUrl}}/admin?page=0&size=10&sort=createdAt&direction=DESC
+accept: application/json
