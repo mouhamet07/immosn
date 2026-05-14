@@ -4,16 +4,6 @@ import AnnonceCard from '@/components/AnnonceCard.vue'
 import ButtonPrimary from '@/components/ButtonPrimary.vue'
 import annonceService from '@/services/annonceService'
 
-// Images mockées (utilisées tant que le backend ne renvoie pas d'URLs)
-import imgAppartement from '@/assets/Appartement Almadies.png'
-import imgVilla from '@/assets/Contemporary Villa.png'
-import imgMaison from '@/assets/Maison Plateau.png'
-import imgPenthouse from '@/assets/Penthouse.png'
-import imgLuxury from '@/assets/Luxury Home.png'
-import imgNgor from '@/assets/Villa Ngor.png'
-
-const MOCK_IMAGES = [imgAppartement, imgVilla, imgMaison, imgPenthouse, imgLuxury, imgNgor]
-
 const annonces = ref([])
 const loading = ref(false)
 const error = ref('')
@@ -52,11 +42,6 @@ function goToPage(page) {
     fetchAnnonces(page)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
-}
-
-// Retourner une image mock si imagePrincipale est null (dev uniquement)
-function getImage(annonce, index) {
-  return annonce.imagePrincipale || MOCK_IMAGES[index % MOCK_IMAGES.length]
 }
 
 onMounted(() => fetchAnnonces(0))
@@ -135,12 +120,12 @@ onMounted(() => fetchAnnonces(0))
       <!-- Grille d'annonces -->
       <div v-else-if="annonces.length" class="liste-grid">
         <AnnonceCard
-          v-for="(annonce, index) in annonces"
+          v-for="annonce in annonces"
           :key="annonce.id"
           :id="annonce.id"
           :title="annonce.libelle"
           :prix="annonce.prix"
-          :images="[getImage(annonce, index)]"
+          :images="annonce.imagePrincipale ? [annonce.imagePrincipale] : []"
           :nbrChambres="annonce.nbrPieces"
           :nbrSallesBain="0"
           :surface="annonce.surface"
