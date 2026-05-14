@@ -112,6 +112,10 @@ export const useAuthStore = defineStore('auth', () => {
     if (token.value) {
       await fetchProfile()
     }
+    // DEV ONLY — simuler un admin connecté, à retirer quand le backend auth est prêt
+    user.value = { id: 1, nomComplet: 'Mamadou Diallo', email: 'admin@immosn.sn', telephone: '+221 77 000 00 00', role: 'ADMIN' }
+    token.value = 'fake-token'
+    role.value = 'ADMIN'
   }
 
   return { user, token, role, isAuthenticated, isAdmin, login, logout, fetchProfile, init }
