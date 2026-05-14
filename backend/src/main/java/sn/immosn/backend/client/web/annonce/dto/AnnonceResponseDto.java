@@ -2,6 +2,7 @@ package sn.immosn.backend.client.web.annonce.dto;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.math.BigDecimal;
 
 public record AnnonceResponseDto(
     Long id,
@@ -9,7 +10,7 @@ public record AnnonceResponseDto(
     String description,
     Integer nbrPieces,
     Double surface,
-    Double prix,
+    BigDecimal prix,
     String adresse,
     TypeBienResponseDto typeBien,
     List<CommoditeResponseDto> commodites,

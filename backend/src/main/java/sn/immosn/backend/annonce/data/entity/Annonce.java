@@ -1,5 +1,6 @@
 package sn.immosn.backend.annonce.data.entity;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,14 +22,12 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Entity
 @Table(name = "annonces")
-@Getter
-@Setter 
+@Data
 @NoArgsConstructor 
 @AllArgsConstructor 
 @Builder
@@ -44,8 +43,8 @@ public class Annonce {
     private Integer nbrPieces;
     @Column(nullable = false)
     private Double surface;
-    @Column(nullable = false)
-    private Double prix;
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal prix;
     @Column(nullable = false)
     private String adresse;
 
@@ -53,12 +52,14 @@ public class Annonce {
     @JoinColumn(name = "type_bien_id", nullable = false)
     private TypeBienAnnonce typeBien;
 
+    @Builder.Default
     @OneToMany(mappedBy = "annonce",
         cascade = CascadeType.ALL,
         orphanRemoval = true
     )
     private List<AnnonceCommodite> annonceCommodites = new ArrayList<>();
 
+    @Builder.Default
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(
         name = "annonce_images",
@@ -69,7 +70,7 @@ public class Annonce {
 
     @Builder.Default
     @Column(name = "is_archived", nullable = false)
-    private Boolean isArchived = false;
+    private boolean isArchived = false;
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
     @Column(name = "updated_at", nullable = false)

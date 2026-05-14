@@ -26,16 +26,16 @@ public class AnnonceMapper {
             a.getId(),
             a.getLibelle(),
             a.getDescription(),
-            a.getNbrPieces().intValue(),
+            a.getNbrPieces(),
             a.getSurface(),
             a.getPrix(),
             a.getAdresse(),
             typeBienAnnonceMapper.toResponseDto(a.getTypeBien()),
             a.getAnnonceCommodites().stream()
-                .map(ac -> commoditeMapper.toResponseDto(ac.getCommodite()))
+                .map(ac -> commoditeMapper.toResponse(ac.getCommodite()))
                 .collect(Collectors.toList()),
             a.getImages(),
-            a.getIsArchived(),
+            a.isArchived(),
             a.getCreatedAt(),
             a.getUpdatedAt()
         );
@@ -49,11 +49,11 @@ public class AnnonceMapper {
             a.getPrix(),
             a.getAdresse(),
             typeBienAnnonceMapper.toResponseDto(a.getTypeBien()),
-            a.getNbrPieces().intValue(),
+            a.getNbrPieces(),
             a.getSurface(),
             firstImage,
             a.getCreatedAt(),
-            a.getIsArchived()
+            a.isArchived()
         );
     }
 
@@ -61,7 +61,7 @@ public class AnnonceMapper {
         Annonce annonce = Annonce.builder()
             .libelle(dto.libelle())
             .description(dto.description())
-            .nbrPieces(dto.nbrPieces().intValue())
+            .nbrPieces(dto.nbrPieces())
             .surface(dto.surface())
             .prix(dto.prix())
             .adresse(dto.adresse())

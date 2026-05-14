@@ -33,7 +33,7 @@ public class TypeBienAnnonce {
 
     @Builder.Default                    
     @Column(name = "is_archived", nullable = false)
-    private Boolean isArchived = false;
+    private boolean isArchived = false;
 
     @OneToMany(mappedBy = "typeBien")
     private List<Annonce> annonces = new ArrayList<>();

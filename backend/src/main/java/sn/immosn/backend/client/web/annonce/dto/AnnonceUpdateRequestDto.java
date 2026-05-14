@@ -1,13 +1,14 @@
 package sn.immosn.backend.client.web.annonce.dto;
 
 import java.util.List;
+import java.math.BigDecimal;
 
 public record AnnonceUpdateRequestDto(
     String libelle,
     String description,
     Integer nbrPieces,
     Double surface,
-    Double prix,
+    BigDecimal prix,
     String adresse,
     Long typeBienId,
     List<Long> commoditeIds,

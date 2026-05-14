@@ -101,7 +101,7 @@ public class AnnonceServiceImpl implements AnnonceService {
     public void archiveAnnonce(Long id) {
         Annonce annonce = annonceRepository.findByIdAndIsArchivedFalse(id)
                 .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée avec l'ID: " + id));
-        annonce.setIsArchived(true);
+        annonce.setArchived(true);
         annonceRepository.save(annonce);
     }
 
@@ -109,7 +109,7 @@ public class AnnonceServiceImpl implements AnnonceService {
     public void restoreAnnonce(Long id) {
         Annonce annonce = annonceRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée avec l'ID: " + id));
-        annonce.setIsArchived(false);
+        annonce.setArchived(false);
         annonceRepository.save(annonce);
     }
 

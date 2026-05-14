@@ -34,7 +34,7 @@ public class Commodite {
 
     @Builder.Default                   
     @Column(name = "is_archived", nullable = false)
-    private Boolean isArchived = false;
+    private boolean isArchived = false;
 
     @OneToMany(mappedBy = "commodite",  
             cascade = CascadeType.ALL,

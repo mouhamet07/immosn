@@ -13,7 +13,7 @@ accept: application/json
   "nbrPieces": 3,
   "adresse": "Dakar, Plateau",
   "typeBienId": 1,
-  "commoditeIds": [1, 2],
+  "commoditeIds": [1],
   "images": ["https://example.com/image1.jpg"]
 }
 

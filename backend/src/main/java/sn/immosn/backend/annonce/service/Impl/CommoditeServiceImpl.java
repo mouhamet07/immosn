@@ -56,7 +56,7 @@ public class CommoditeServiceImpl implements CommoditeService {
         Commodite commodite = commoditeRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Commodité non trouvée avec l'ID: " + id));
 
-        if (commodite.getIsArchived()) {
+        if (commodite.isArchived()) {
             throw new EntityNotFoundException("Cette commodité n'est plus disponible");
         }
 
@@ -69,7 +69,7 @@ public class CommoditeServiceImpl implements CommoditeService {
         Commodite commodite = commoditeRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Commodité non trouvée avec l'ID: " + id));
 
-        if (commodite.getIsArchived()) {
+        if (commodite.isArchived()) {
             throw new EntityNotFoundException("Cette commodité n'est plus disponible");
         }
 
@@ -95,11 +95,11 @@ public class CommoditeServiceImpl implements CommoditeService {
         Commodite commodite = commoditeRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Commodité non trouvée avec l'ID: " + id));
 
-        if (commodite.getIsArchived()) {
+        if (commodite.isArchived()) {
             throw new EntityNotFoundException("Cette commodité est déjà archivée");
         }
 
-        commodite.setIsArchived(true);
+        commodite.setArchived(true);
         commoditeRepository.save(commodite);
     }
 }

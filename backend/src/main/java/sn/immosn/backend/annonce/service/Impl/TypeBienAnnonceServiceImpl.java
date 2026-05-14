@@ -79,7 +79,7 @@ public class TypeBienAnnonceServiceImpl implements TypeBienAnnonceService {
     public void archiveTypeBien(Long id) {
         TypeBienAnnonce typeBien = findActiveByIdOrThrow(id);
 
-        typeBien.setIsArchived(true);
+        typeBien.setArchived(true);
         typeBienAnnonceRepository.save(typeBien);
     }
 

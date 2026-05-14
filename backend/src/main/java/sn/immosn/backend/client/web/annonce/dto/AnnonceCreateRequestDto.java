@@ -1,5 +1,6 @@
 package sn.immosn.backend.client.web.annonce.dto;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import jakarta.validation.constraints.NotBlank;
@@ -15,7 +16,7 @@ public record AnnonceCreateRequestDto (
     @NotNull @Positive 
     Double surface,
     @NotNull @Positive 
-    Double prix,
+    BigDecimal prix,
     @NotBlank 
     String adresse,
     @NotNull Long typeBienId,
