@@ -17,7 +17,7 @@ const router = createRouter({
       component: () => import('@/layouts/ClientLayout.vue'),
       children: [
         { path: '', name: 'annonces', component: () => import('@/views/annonces/ListeAnnoncesView.vue') },
-        { path: '/annonces/:id', name: 'detail-annonce', component: () => import('@/views/annonces/DetailAnnonceView.vue') },
+        { path: ':id', name: 'detail-annonce', component: () => import('@/views/annonces/DetailAnnonceView.vue') },
         {
           path: '/profil',
           name: 'profil',

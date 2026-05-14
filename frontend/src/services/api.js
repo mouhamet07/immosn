@@ -6,12 +6,18 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
-// Intercepteur requête : ajouter le token Bearer
+// Intercepteur requête : ajouter le token Bearer et gérer FormData
 api.interceptors.request.use((config) => {
+  // Si c'est FormData, supprimer Content-Type pour que le navigateur le définisse correctement
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type']
+  }
+
   const token = localStorage.getItem('token')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+
   return config
 })
 
