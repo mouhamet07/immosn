@@ -28,10 +28,4 @@ public class CommoditeMapper {
                 .build();
     }
 
-    public List<CommoditeResponseDto> toResponseList(List<Commodite> entities) {
-        if (entities == null) return List.of();
-        return entities.stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
-    }
 }
