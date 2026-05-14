@@ -1,0 +1,36 @@
+@baseUrl=http://localhost:8080/api/v1/commodites
+
+### Commodités - Create
+POST {{baseUrl}}
+Content-Type: application/json
+accept: application/json
+
+{
+    "libelle": "Piscine"
+}
+
+### Commodités - List active
+GET {{baseUrl}}
+accept: application/json
+
+### Commodités - List paged
+GET {{baseUrl}}/paged?page=0&size=10
+accept: application/json
+
+### Commodités - Get by id
+GET {{baseUrl}}/1
+accept: application/json
+
+### Commodités - Update
+PUT {{baseUrl}}/1
+Content-Type: application/json
+accept: application/json
+
+{
+    "id" : 1,
+    "libelle": "Piscine chauffée"
+}
+
+### Commodités - Archive
+DELETE {{baseUrl}}/1
+accept: application/json

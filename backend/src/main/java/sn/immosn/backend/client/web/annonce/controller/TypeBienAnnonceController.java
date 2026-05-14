@@ -2,6 +2,7 @@ package sn.immosn.backend.client.web.annonce.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -22,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 import sn.immosn.backend.annonce.service.TypeBienAnnonceService;
 import sn.immosn.backend.client.web.annonce.dto.TypeBienRequestDto;
 import sn.immosn.backend.client.web.annonce.dto.TypeBienResponseDto;
+import sn.immosn.backend.shared.response.PagedResponse;
 import sn.immosn.backend.shared.response.RestResponse;
 
 @RestController
@@ -61,14 +63,15 @@ public class TypeBienAnnonceController {
      * Récupère la liste paginée de tous les types de bien actifs et inactifs
      */
     @GetMapping("/paged")
-    public ResponseEntity<RestResponse<List<TypeBienResponseDto>>> getAllPaged(
+    public ResponseEntity<PagedResponse<TypeBienResponseDto>> getAllPaged(
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "10") int size
     ) {
         Pageable pageable = PageRequest.of(page, size);
+        Page<TypeBienResponseDto> result = typeBienService.getAllTypesBienPaged(pageable);
         return ResponseEntity
             .status(HttpStatus.OK)
-            .body(RestResponse.success(typeBienService.getAllTypesBienPaged(pageable), HttpStatus.OK));
+            .body(PagedResponse.fromPage(result));
     }
 
     /**

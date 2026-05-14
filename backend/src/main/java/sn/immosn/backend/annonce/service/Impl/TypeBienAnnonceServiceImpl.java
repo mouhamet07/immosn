@@ -3,11 +3,10 @@ package sn.immosn.backend.annonce.service.Impl;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
 import sn.immosn.backend.annonce.data.entity.TypeBienAnnonce;
@@ -15,6 +14,9 @@ import sn.immosn.backend.annonce.data.repository.TypeBienAnnonceRepository;
 import sn.immosn.backend.annonce.service.TypeBienAnnonceService;
 import sn.immosn.backend.client.web.annonce.dto.TypeBienRequestDto;
 import sn.immosn.backend.client.web.annonce.dto.TypeBienResponseDto;
+import sn.immosn.backend.client.web.annonce.mapper.TypeBienAnnonceMapper;
+import sn.immosn.backend.shared.exception.EntityExistException;
+import sn.immosn.backend.shared.exception.EntityNotFoundException;
 
 @Service
 @RequiredArgsConstructor
@@ -22,23 +24,18 @@ import sn.immosn.backend.client.web.annonce.dto.TypeBienResponseDto;
 public class TypeBienAnnonceServiceImpl implements TypeBienAnnonceService {
 
     private final TypeBienAnnonceRepository typeBienAnnonceRepository;
+    private final TypeBienAnnonceMapper typeBienAnnonceMapper;
 
     @Override
     public TypeBienResponseDto createTypeBien(TypeBienRequestDto request) {
         // Vérifier que le libellé n'existe pas déjà
         if (typeBienAnnonceRepository.existsByLibelleIgnoreCase(request.libelle())) {
-            throw new ResponseStatusException(
-                HttpStatus.CONFLICT,
-                "Un type de bien avec le libellé '" + request.libelle() + "' existe déjà"
-            );
+            throw new EntityExistException("Un type de bien avec le libellé '" + request.libelle() + "' existe déjà");
         }
 
-        TypeBienAnnonce typeBien = TypeBienAnnonce.builder()
-                .libelle(request.libelle())
-                .build();
-
+        TypeBienAnnonce typeBien = typeBienAnnonceMapper.toEntity(request);
         TypeBienAnnonce saved = typeBienAnnonceRepository.save(typeBien);
-        return toResponseDto(saved);
+        return typeBienAnnonceMapper.toResponseDto(saved);
     }
 
     @Override
@@ -46,69 +43,49 @@ public class TypeBienAnnonceServiceImpl implements TypeBienAnnonceService {
     public List<TypeBienResponseDto> getAllTypesBien() {
         return typeBienAnnonceRepository.findByIsArchivedFalse()
                 .stream()
-                .map(this::toResponseDto)
+                .map(typeBienAnnonceMapper::toResponseDto)
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<TypeBienResponseDto> getAllTypesBienPaged(Pageable pageable) {
-        return typeBienAnnonceRepository.findByIsArchivedFalse(pageable)
-                .stream()
-                .map(this::toResponseDto)
-                .collect(Collectors.toList());
+    public Page<TypeBienResponseDto> getAllTypesBienPaged(Pageable pageable) {
+        return typeBienAnnonceRepository.findAll(pageable)
+                .map(typeBienAnnonceMapper::toResponseDto);
     }
 
     @Override
     @Transactional(readOnly = true)
     public TypeBienResponseDto getTypeBienById(Long id) {
-        TypeBienAnnonce typeBien = findByIdOrThrow(id);
-        return toResponseDto(typeBien);
+        TypeBienAnnonce typeBien = findActiveByIdOrThrow(id);
+        return typeBienAnnonceMapper.toResponseDto(typeBien);
     }
 
     @Override
     public TypeBienResponseDto updateTypeBien(Long id, TypeBienRequestDto request) {
-        TypeBienAnnonce typeBien = findByIdOrThrow(id);
+        TypeBienAnnonce typeBien = findActiveByIdOrThrow(id);
 
-        // Vérifier que le nouveau libellé n'appartient pas à un autre enregistrement
         if (!typeBien.getLibelle().equalsIgnoreCase(request.libelle())
                 && typeBienAnnonceRepository.existsByLibelleIgnoreCase(request.libelle())) {
-            throw new ResponseStatusException(
-                HttpStatus.CONFLICT,
-                "Un type de bien avec le libellé '" + request.libelle() + "' existe déjà"
-            );
+            throw new EntityExistException("Un type de bien avec le libellé '" + request.libelle() + "' existe déjà");
         }
 
         typeBien.setLibelle(request.libelle());
         TypeBienAnnonce updated = typeBienAnnonceRepository.save(typeBien);
-        return toResponseDto(updated);
+        return typeBienAnnonceMapper.toResponseDto(updated);
     }
 
     @Override
     public void archiveTypeBien(Long id) {
-        TypeBienAnnonce typeBien = findByIdOrThrow(id);
-
-        if (Boolean.TRUE.equals(typeBien.getIsArchived())) {
-            throw new ResponseStatusException(
-                HttpStatus.BAD_REQUEST,
-                "Le type de bien avec l'id " + id + " est déjà archivé"
-            );
-        }
+        TypeBienAnnonce typeBien = findActiveByIdOrThrow(id);
 
         typeBien.setIsArchived(true);
         typeBienAnnonceRepository.save(typeBien);
     }
 
-
-    private TypeBienAnnonce findByIdOrThrow(Long id) {
-        return typeBienAnnonceRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "Type de bien introuvable avec l'id : " + id
-                ));
+    private TypeBienAnnonce findActiveByIdOrThrow(Long id) {
+        return typeBienAnnonceRepository.findByIdAndIsArchivedFalse(id)
+                .orElseThrow(() -> new EntityNotFoundException("Type de bien introuvable avec l'id : " + id));
     }
 
-    private TypeBienResponseDto toResponseDto(TypeBienAnnonce typeBien) {
-        return new TypeBienResponseDto(typeBien.getId(), typeBien.getLibelle());
-    }
 }
