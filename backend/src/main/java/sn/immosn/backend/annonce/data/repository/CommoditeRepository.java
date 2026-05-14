@@ -11,4 +11,5 @@ import sn.immosn.backend.annonce.data.entity.Commodite;
 public interface CommoditeRepository extends JpaRepository<Commodite, Long> {
     List<Commodite> findByIsArchivedFalse();
     List<Commodite> findByIdInAndIsArchivedFalse(List<Long> ids);
+    boolean existsByLibelleIgnoreCase(String libelle);
 }
