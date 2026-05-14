@@ -5,6 +5,7 @@ import FormStepper from '@/components/admin/FormStepper.vue'
 import ToastNotification from '@/components/admin/ToastNotification.vue'
 import annonceService from '@/services/annonceService'
 import commoditeService from '@/services/commoditeService'
+import typeBienService from '@/services/typeBienService'
 
 const router = useRouter()
 const toast = ref(null)
@@ -27,16 +28,22 @@ const form = reactive({
   images:       [],
 })
 
-// Commodités chargées depuis GET /api/v1/commodites
+// Types de bien et commodités chargés depuis le backend
 const commodites = ref([])
+const typesBien = ref([])
 
 onMounted(async () => {
   try {
-    const res = await commoditeService.getAllCommodites()
+    const [resCommodites, resTypesBien] = await Promise.all([
+      commoditeService.getAllCommodites(),
+      typeBienService.getAllTypesBien(),
+    ])
     // Réponse: RestResponse<List<CommoditeResponseDto>> → { id, libelle }
-    commodites.value = res.data.data
+    commodites.value = resCommodites.data.data
+    // Réponse: RestResponse<List<TypeBienResponseDto>> → { id, libelle }
+    typesBien.value = resTypesBien.data.data
   } catch {
-    toast.value?.show('Erreur lors du chargement des commodités.', 'error')
+    toast.value?.show('Erreur lors du chargement des données.', 'error')
   }
 })
 
@@ -134,11 +141,9 @@ async function submit() {
             <label class="field__label">TYPE DE BIEN (ID) <span class="req">*</span></label>
             <select v-model="form.typeBienId" class="field__input">
               <option :value="null">Sélectionner...</option>
-              <option :value="1">Villa</option>
-              <option :value="2">Appartement</option>
-              <option :value="3">Bureau</option>
-              <option :value="4">Terrain</option>
-              <option :value="5">Maison</option>
+              <option v-for="type in typesBien" :key="type.id" :value="type.id">
+                {{ type.libelle }}
+              </option>
             </select>
           </div>
           <div class="field">
