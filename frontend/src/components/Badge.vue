@@ -1,4 +1,5 @@
 <script setup>
+defineOptions({ name: 'AnnonceBadge' })
 defineProps({
   label: { type: String, required: true },
   variant: { type: String, default: 'accent' }, // accent | primary | neutral
