@@ -18,6 +18,11 @@ export default {
     return api.get('/annonces', { params: filters })
   },
 
+  // Récupérer toutes les annonces admin avec les annonces archivées
+  getAllAnnoncesAdmin(filters = {}) {
+    return api.get('/annonces/admin', { params: filters })
+  },
+
   // Récupérer le détail d'une annonce par ID
   getAnnonceById(id) {
     return api.get(`/annonces/${validateId(id)}`)
@@ -36,5 +41,10 @@ export default {
   // Archiver une annonce (ADMIN uniquement)
   archiveAnnonce(id) {
     return api.delete(`/annonces/${validateId(id)}`)
+  },
+
+  // Restaurer une annonce archivée (ADMIN uniquement)
+  restoreAnnonce(id) {
+    return api.patch(`/annonces/${validateId(id)}/restore`)
   },
 }
