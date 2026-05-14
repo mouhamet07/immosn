@@ -1,8 +1,5 @@
 package sn.immosn.backend.client.web.annonce.mapper;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 import org.springframework.stereotype.Component;
 
 import sn.immosn.backend.annonce.data.entity.Commodite;
