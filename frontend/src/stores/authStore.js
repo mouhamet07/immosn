@@ -2,6 +2,7 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import router from '@/router'
 import api from '@/services/api'
+import authService from '@/services/authService'
 
 // Décode le payload d'un JWT sans librairie externe
 function parseJwt(token) {
@@ -58,8 +59,8 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function login(email, motDePasse) {
-    // POST /api/v1/auth/login — Réponse: RestResponse<AuthResponseDto> → response.data.data
-    const response = await api.post('/auth/login', { email, motDePasse })
+    // POST /api/v1/auth/login via authService — Réponse: RestResponse<AuthResponseDto> → response.data.data
+    const response = await authService.login(email, motDePasse)
     const data = response.data.data
     // Champ exact du backend: accessToken (AuthResponseDto)
     token.value = data.accessToken
@@ -80,7 +81,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function logout() {
     try {
-      await api.post('/auth/logout')
+      await authService.logout()
     } catch {
       // Ignorer les erreurs serveur
     } finally {
@@ -97,7 +98,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function fetchProfile() {
     try {
       // Réponse: RestResponse<AuthResponseDto> → { data: { id, nomComplet, email, telephone, roles, accessToken, ... } }
-      const response = await api.get('/auth/profile')
+      const response = await authService.getProfile()
       user.value = response.data.data
       // roles est un Set<String> côté backend, sérialisé en array JSON
       const roles = Array.isArray(response.data.data?.roles) ? response.data.data.roles : []
