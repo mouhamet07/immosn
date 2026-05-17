@@ -2,6 +2,7 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import router from '@/router'
 import api from '@/services/api'
+import authService from '@/services/authService'
 
 // Décode le payload d'un JWT sans librairie externe
 function parseJwt(token) {
@@ -27,7 +28,7 @@ function isTokenExpired(token) {
  * Valide que le rôle reçu fait partie des valeurs autorisées.
  * Empêche l'injection d'une valeur arbitraire depuis le JWT ou le localStorage.
  */
-const ALLOWED_ROLES = ['CLIENT', 'ADMIN', 'SUPER_ADMIN']
+const ALLOWED_ROLES = ['CLIENT', 'ADMIN', 'EMPLOYE']
 function sanitizeRole(role) {
   return ALLOWED_ROLES.includes(role) ? role : 'CLIENT'
 }
@@ -50,7 +51,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const isAuthenticated = computed(() => !!token.value)
-  const isAdmin = computed(() => role.value === 'ADMIN' || role.value === 'SUPER_ADMIN')
+  const isAdmin = computed(() => role.value === 'ADMIN')
 
   // Initialiser le header axios si token existant
   if (token.value) {
@@ -58,22 +59,20 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function login(email, motDePasse) {
-    // Réponse: RestResponse<AuthResponseDto> → { data: { accessToken, roles, nomComplet, ... } }
-    const response = await api.post('/auth/login', { email, motDePasse })
+    // POST /api/v1/auth/login via authService — Réponse: RestResponse<AuthResponseDto> → response.data.data
+    const response = await authService.login(email, motDePasse)
     const data = response.data.data
+    // Champ exact du backend: accessToken (AuthResponseDto)
     token.value = data.accessToken
     localStorage.setItem('token', token.value)
     api.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
-
-    // roles est un Set<String> sérialisé en array JSON
+    // roles est un Set<String> sérialisé en array JSON — valeurs: ADMIN, CLIENT, EMPLOYE
     const roles = Array.isArray(data.roles) ? data.roles : []
     role.value = sanitizeRole(roles.length ? roles[0] : null)
     localStorage.setItem('role', role.value)
-
     user.value = data
-
-    // Redirection selon le rôle
-    if (role.value === 'ADMIN' || role.value === 'SUPER_ADMIN') {
+    // Redirection selon le rôle (RoleType enum: ADMIN, CLIENT, EMPLOYE)
+    if (role.value === 'ADMIN') {
       router.push('/admin/dashboard')
     } else {
       router.push('/annonces')
@@ -82,7 +81,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function logout() {
     try {
-      await api.post('/auth/logout')
+      await authService.logout()
     } catch {
       // Ignorer les erreurs serveur
     } finally {
@@ -99,7 +98,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function fetchProfile() {
     try {
       // Réponse: RestResponse<AuthResponseDto> → { data: { id, nomComplet, email, telephone, roles, accessToken, ... } }
-      const response = await api.get('/auth/profile')
+      const response = await authService.getProfile()
       user.value = response.data.data
       // roles est un Set<String> côté backend, sérialisé en array JSON
       const roles = Array.isArray(response.data.data?.roles) ? response.data.data.roles : []

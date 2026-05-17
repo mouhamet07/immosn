@@ -31,10 +31,11 @@ async function handleSubmit() {
   if (!validate()) return
   loading.value = true
   try {
-    // Le store gère la redirection selon le rôle (ADMIN → /admin/dashboard, CLIENT → /annonces)
+    // POST /api/v1/auth/login — champs exacts: email, motDePasse (AuthLoginRequestDto)
     await authStore.login(form.email, form.motDePasse)
   } catch (err) {
-    errors.global = err.response?.data?.message || 'Email ou mot de passe incorrect.'
+    // Extraire le message depuis RestResponse<AuthResponseDto>
+    errors.global = err.response?.data?.message || err.response?.data?.data?.message || 'Email ou mot de passe incorrect.'
   } finally {
     loading.value = false
   }
