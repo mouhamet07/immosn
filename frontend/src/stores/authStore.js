@@ -59,15 +59,16 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login(email, motDePasse) {
     const response = await api.post('/auth/login', { email, motDePasse })
-    token.value = response.data.token
+    token.value = response.data.accessToken
     localStorage.setItem('token', token.value)
     api.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
 
-    // Extraire le rôle depuis le JWT et le sanitiser
+    // Extraire le rôle depuis le JWT ou la réponse et le sanitiser
     const payload = parseJwt(token.value)
-    role.value = sanitizeRole(payload?.role || response.data.role)
-    localStorage.setItem('role', role.value)
-
+    const tokenRoles = Array.isArray(payload?.roles) ? payload.roles : []
+    const responseRoles = Array.isArray(response.data.roles) ? response.data.roles : []
+    const firstRole = tokenRoles.length ? tokenRoles[0] : responseRoles.length ? responseRoles[0] : null
+    role.value = sanitizeRole(firstRole)
     await fetchProfile()
 
     // Redirection selon le rôle
@@ -96,11 +97,11 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function fetchProfile() {
     try {
-      const response = await api.get('/users/profile')
+      const response = await api.get('/auth/profile')
       user.value = response.data
       // Synchroniser le rôle depuis le profil si disponible
-      if (response.data.role) {
-        role.value = sanitizeRole(response.data.role)
+      if (Array.isArray(response.data.roles) && response.data.roles.length > 0) {
+        role.value = sanitizeRole(response.data.roles[0])
         localStorage.setItem('role', role.value)
       }
     } catch {
@@ -112,10 +113,6 @@ export const useAuthStore = defineStore('auth', () => {
     if (token.value) {
       await fetchProfile()
     }
-    // DEV ONLY — simuler un admin connecté, à retirer quand le backend auth est prêt
-    user.value = { id: 1, nomComplet: 'Mamadou Diallo', email: 'admin@immosn.sn', telephone: '+221 77 000 00 00', role: 'ADMIN' }
-    token.value = 'fake-token'
-    role.value = 'ADMIN'
   }
 
   return { user, token, role, isAuthenticated, isAdmin, login, logout, fetchProfile, init }

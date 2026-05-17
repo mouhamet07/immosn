@@ -1,11 +1,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import authService from '@/services/authService'
+import api from '@/services/api'
 import StatsCard from '@/components/admin/StatsCard.vue'
 import ConfirmModal from '@/components/admin/ConfirmModal.vue'
 import ToastNotification from '@/components/admin/ToastNotification.vue'
 import { usePagination } from '@/composables/usePagination'
-import api from '@/services/api'
 
 const router = useRouter()
 const toast = ref(null)
@@ -32,8 +33,10 @@ function initials(name) {
 
 onMounted(async () => {
   try {
-    const res = await api.get('/admins')
-    admins.value = res.data
+    const response = await authService.getAdmins(0, 100)
+    // Structure PagedResponse: { data, totalElements, totalPages, ... }
+    const pagedAdmins = response.data
+    admins.value = pagedAdmins.data
   } catch (err) {
     console.warn('[AdministrateursView] Backend indisponible.', err)
   } finally {
