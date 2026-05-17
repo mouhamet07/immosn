@@ -58,21 +58,22 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function login(email, motDePasse) {
+    // Réponse: RestResponse<AuthResponseDto> → { data: { accessToken, roles, nomComplet, ... } }
     const response = await api.post('/auth/login', { email, motDePasse })
-    token.value = response.data.accessToken
+    const data = response.data.data
+    token.value = data.accessToken
     localStorage.setItem('token', token.value)
     api.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
 
-    // Extraire le rôle depuis le JWT ou la réponse et le sanitiser
-    const payload = parseJwt(token.value)
-    const tokenRoles = Array.isArray(payload?.roles) ? payload.roles : []
-    const responseRoles = Array.isArray(response.data.roles) ? response.data.roles : []
-    const firstRole = tokenRoles.length ? tokenRoles[0] : responseRoles.length ? responseRoles[0] : null
-    role.value = sanitizeRole(firstRole)
-    await fetchProfile()
+    // roles est un Set<String> sérialisé en array JSON
+    const roles = Array.isArray(data.roles) ? data.roles : []
+    role.value = sanitizeRole(roles.length ? roles[0] : null)
+    localStorage.setItem('role', role.value)
+
+    user.value = data
 
     // Redirection selon le rôle
-    if (role.value === 'ADMIN') {
+    if (role.value === 'ADMIN' || role.value === 'SUPER_ADMIN') {
       router.push('/admin/dashboard')
     } else {
       router.push('/annonces')
@@ -97,11 +98,13 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function fetchProfile() {
     try {
+      // Réponse: RestResponse<AuthResponseDto> → { data: { id, nomComplet, email, telephone, roles, accessToken, ... } }
       const response = await api.get('/auth/profile')
-      user.value = response.data
-      // Synchroniser le rôle depuis le profil si disponible
-      if (Array.isArray(response.data.roles) && response.data.roles.length > 0) {
-        role.value = sanitizeRole(response.data.roles[0])
+      user.value = response.data.data
+      // roles est un Set<String> côté backend, sérialisé en array JSON
+      const roles = Array.isArray(response.data.data?.roles) ? response.data.data.roles : []
+      if (roles.length > 0) {
+        role.value = sanitizeRole(roles[0])
         localStorage.setItem('role', role.value)
       }
     } catch {
@@ -113,6 +116,10 @@ export const useAuthStore = defineStore('auth', () => {
     if (token.value) {
       await fetchProfile()
     }
+    // DEV ONLY — simuler un admin connecté, à retirer quand le backend auth est prêt
+    user.value = { id: 1, nomComplet: 'Mamadou Diallo', email: 'admin@immosn.sn', telephone: '+221 77 000 00 00', role: 'ADMIN' }
+    token.value = 'fake-token'
+    role.value = 'ADMIN'
   }
 
   return { user, token, role, isAuthenticated, isAdmin, login, logout, fetchProfile, init }

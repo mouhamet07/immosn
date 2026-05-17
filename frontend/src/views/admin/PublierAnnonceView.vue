@@ -88,10 +88,10 @@ async function submit() {
       commoditeIds: form.commoditeIds,
       images:       form.images,
     })
-    toast.value.show('Annonce publiée avec succès.', 'success')
+    toast.value.show('Annonce publiée avec succès ✓', 'success')
     setTimeout(() => router.push('/admin/annonces'), 1200)
   } catch (err) {
-    toast.value.show(err.response?.data?.message || 'Erreur lors de la publication.', 'error')
+    toast.value.show(err.response?.data?.message || 'Données invalides. Vérifiez les champs saisis.', 'error')
   } finally {
     loading.value = false
   }
