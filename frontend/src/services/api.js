@@ -3,6 +3,7 @@ import router from '@/router'
 
 const api = axios.create({
   baseURL: 'http://localhost:8080/api/v1',
+  //baseURL: 'http://localhost/api/v1',
   headers: { 'Content-Type': 'application/json' },
 })
 

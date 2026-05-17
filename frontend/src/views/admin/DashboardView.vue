@@ -1,6 +1,7 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import authService from '@/services/authService'
 import StatsCard from '@/components/admin/StatsCard.vue'
 
 const router = useRouter()
@@ -10,7 +11,7 @@ const stats = ref([
   { label: 'Annonces actives',  value: 6,  color: 'primary' },
   { label: 'Visites ce mois',   value: 0,  color: 'neutral' },
   { label: 'Contrats signés',   value: 0,  color: 'neutral' },
-  { label: 'Administrateurs',   value: 6,  color: 'primary' },
+  { label: 'Administrateurs',   value: 0,  color: 'primary' },
 ])
 
 const recentAnnonces = ref([
@@ -19,6 +20,25 @@ const recentAnnonces = ref([
   { id: 3, titre: 'Bureau Mermoz',            quartier: 'Mermoz',    prix: '30 000 000',  statut: 'EN_ATTENTE' },
   { id: 4, titre: 'Penthouse Ngor',           quartier: 'Ngor',      prix: '200 000 000', statut: 'ACTIF' },
 ])
+
+const admins = ref([])
+const loadingAdmins = ref(true)
+
+// Charger la liste des administrateurs
+onMounted(async () => {
+  try {
+    const response = await authService.getAdmins(0, 10)
+    // Structure PagedResponse: { data, totalElements, totalPages, ... }
+    const pagedAdmins = response.data
+    admins.value = pagedAdmins.data
+    // Mettre à jour le stat des administrateurs avec le nombre total
+    stats.value[3].value = pagedAdmins.totalElements
+  } catch (error) {
+    console.error('Erreur lors du chargement des administrateurs:', error)
+  } finally {
+    loadingAdmins.value = false
+  }
+})
 </script>
 
 <template>
@@ -80,6 +100,39 @@ const recentAnnonces = ref([
                   {{ a.statut === 'EN_ATTENTE' ? 'En attente' : 'Actif' }}
                 </span>
               </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Administrateurs -->
+    <div class="dashboard__section">
+      <div class="section-header">
+        <h2 class="section-header__title">Administrateurs</h2>
+        <RouterLink to="/admin/administrateurs" class="section-header__link">Voir tout →</RouterLink>
+      </div>
+
+      <div class="recent-table-wrap">
+        <div v-if="loadingAdmins" class="loading-text">Chargement des administrateurs...</div>
+        <table v-else class="recent-table">
+          <thead>
+            <tr>
+              <th>Nom complet</th>
+              <th>Email</th>
+              <th>Téléphone</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="admin in admins.slice(0, 5)"
+              :key="admin.id"
+              class="recent-table__row"
+              @click="router.push(`/admin/administrateurs`)"
+            >
+              <td class="td-title">{{ admin.nomComplet }}</td>
+              <td class="td-muted">{{ admin.email }}</td>
+              <td class="td-muted">{{ admin.telephone }}</td>
             </tr>
           </tbody>
         </table>
@@ -199,6 +252,13 @@ const recentAnnonces = ref([
 .recent-table td { padding: 0.85rem 1.25rem; vertical-align: middle; }
 .td-title { font-weight: 600; color: var(--color-text); }
 .td-muted { color: var(--color-text-muted); }
+
+.loading-text {
+  padding: 2rem 1.25rem;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
 
 .badge {
   display: inline-block;

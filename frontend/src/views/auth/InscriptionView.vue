@@ -6,9 +6,11 @@ import AppFooter from '@/components/AppFooter.vue'
 
 const router = useRouter()
 
+// Champs exacts du AuthRegisterRequestDto: nomComplet, email, telephone, motDePasse
 const form = reactive({
   nomComplet: '',
   email: '',
+  telephone: '',
   motDePasse: '',
   acceptConditions: false,
 })
@@ -18,13 +20,26 @@ const loading = ref(false)
 
 async function handleSubmit() {
   errorMessage.value = ''
-  if (!form.nomComplet.trim() || !form.email.includes('@') || form.motDePasse.length < 6) {
-    errorMessage.value = 'Veuillez remplir tous les champs correctement.'
+  if (!form.nomComplet.trim()) {
+    errorMessage.value = 'Le nom complet est requis.'
+    return
+  }
+  if (!form.email.includes('@')) {
+    errorMessage.value = 'Adresse e-mail invalide.'
+    return
+  }
+  if (!form.telephone.trim()) {
+    errorMessage.value = 'Le numéro de téléphone est requis.'
+    return
+  }
+  if (form.motDePasse.length < 8) {
+    errorMessage.value = 'Le mot de passe doit contenir au moins 8 caractères.'
     return
   }
   loading.value = true
   try {
-    await authService.register(form.nomComplet, form.email, '', form.motDePasse)
+    // Envoyer exactement les champs du AuthRegisterRequestDto — jamais acceptConditions
+    await authService.register(form.nomComplet, form.email, form.telephone, form.motDePasse)
     router.push({ name: 'connexion' })
   } catch (err) {
     errorMessage.value = err.response?.data?.message || 'Une erreur est survenue. Réessayez.'
@@ -79,6 +94,19 @@ async function handleSubmit() {
                 required
                 class="inscription__input"
                 placeholder="abdoulaye@example.sn"
+              />
+            </div>
+
+            <div class="inscription__field">
+              <label class="inscription__label">
+                TÉLÉPHONE <span class="inscription__required">*</span>
+              </label>
+              <input
+                v-model="form.telephone"
+                type="tel"
+                required
+                class="inscription__input"
+                placeholder="+221 77 000 00 00"
               />
             </div>
 

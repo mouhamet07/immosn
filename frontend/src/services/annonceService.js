@@ -1,9 +1,5 @@
 import api from './api'
 
-/**
- * Valide qu'un ID est un entier positif avant de l'injecter dans une URL.
- * Prévient les attaques SSRF par manipulation de l'URL.
- */
 function validateId(id) {
   const parsed = Number(id)
   if (!Number.isInteger(parsed) || parsed <= 0) {
@@ -13,37 +9,44 @@ function validateId(id) {
 }
 
 export default {
-  // Récupérer toutes les annonces avec filtres optionnels
+  // GET /api/v1/annonces — liste paginée des annonces actives (client)
   getAllAnnonces(filters = {}) {
-    return api.get('/annonces', { params: filters })
+    const params = {}
+    if (filters.page !== undefined) params.page = filters.page
+    if (filters.size !== undefined) params.size = filters.size
+    if (filters.typeBienId) params.typeBienId = filters.typeBienId
+    if (filters.adresse) params.adresse = filters.adresse
+    if (filters.prixMin) params.prixMin = filters.prixMin
+    if (filters.prixMax) params.prixMax = filters.prixMax
+    return api.get('/annonces', { params })
   },
 
-  // Récupérer toutes les annonces admin avec les annonces archivées
+  // GET /api/v1/annonces/admin — liste complète admin (inclut archivées)
   getAllAnnoncesAdmin(filters = {}) {
     return api.get('/annonces/admin', { params: filters })
   },
 
-  // Récupérer le détail d'une annonce par ID
+  // GET /api/v1/annonces/{id}
   getAnnonceById(id) {
     return api.get(`/annonces/${validateId(id)}`)
   },
 
-  // Créer une annonce (ADMIN uniquement)
+  // POST /api/v1/annonces — champs exacts: libelle, description, nbrPieces, surface, prix, adresse, typeBienId, commoditeIds, images
   createAnnonce(data) {
     return api.post('/annonces', data)
   },
 
-  // Modifier une annonce (ADMIN uniquement)
+  // PUT /api/v1/annonces/{id}
   updateAnnonce(id, data) {
     return api.put(`/annonces/${validateId(id)}`, data)
   },
 
-  // Archiver une annonce (ADMIN uniquement)
+  // DELETE /api/v1/annonces/{id} — soft delete (archived = true)
   archiveAnnonce(id) {
     return api.delete(`/annonces/${validateId(id)}`)
   },
 
-  // Restaurer une annonce archivée (ADMIN uniquement)
+  // PATCH /api/v1/annonces/{id}/restore
   restoreAnnonce(id) {
     return api.patch(`/annonces/${validateId(id)}/restore`)
   },
