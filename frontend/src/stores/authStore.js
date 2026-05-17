@@ -27,7 +27,7 @@ function isTokenExpired(token) {
  * Valide que le rôle reçu fait partie des valeurs autorisées.
  * Empêche l'injection d'une valeur arbitraire depuis le JWT ou le localStorage.
  */
-const ALLOWED_ROLES = ['CLIENT', 'ADMIN', 'SUPER_ADMIN']
+const ALLOWED_ROLES = ['CLIENT', 'ADMIN', 'EMPLOYE']
 function sanitizeRole(role) {
   return ALLOWED_ROLES.includes(role) ? role : 'CLIENT'
 }
@@ -50,7 +50,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const isAuthenticated = computed(() => !!token.value)
-  const isAdmin = computed(() => role.value === 'ADMIN' || role.value === 'SUPER_ADMIN')
+  const isAdmin = computed(() => role.value === 'ADMIN')
 
   // Initialiser le header axios si token existant
   if (token.value) {
@@ -58,22 +58,20 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function login(email, motDePasse) {
-    // Réponse: RestResponse<AuthResponseDto> → { data: { accessToken, roles, nomComplet, ... } }
+    // POST /api/v1/auth/login — Réponse: RestResponse<AuthResponseDto> → response.data.data
     const response = await api.post('/auth/login', { email, motDePasse })
     const data = response.data.data
+    // Champ exact du backend: accessToken (AuthResponseDto)
     token.value = data.accessToken
     localStorage.setItem('token', token.value)
     api.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
-
-    // roles est un Set<String> sérialisé en array JSON
+    // roles est un Set<String> sérialisé en array JSON — valeurs: ADMIN, CLIENT, EMPLOYE
     const roles = Array.isArray(data.roles) ? data.roles : []
     role.value = sanitizeRole(roles.length ? roles[0] : null)
     localStorage.setItem('role', role.value)
-
     user.value = data
-
-    // Redirection selon le rôle
-    if (role.value === 'ADMIN' || role.value === 'SUPER_ADMIN') {
+    // Redirection selon le rôle (RoleType enum: ADMIN, CLIENT, EMPLOYE)
+    if (role.value === 'ADMIN') {
       router.push('/admin/dashboard')
     } else {
       router.push('/annonces')
