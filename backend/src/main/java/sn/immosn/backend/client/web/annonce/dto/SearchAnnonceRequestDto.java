@@ -1,0 +1,27 @@
+package sn.immosn.backend.client.web.annonce.dto;
+
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Positive;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+public record SearchAnnonceRequestDto(
+
+    Long typeBienId,
+
+    @Positive BigDecimal prixMin,
+    @Positive BigDecimal prixMax,
+
+    String adresse,
+
+    @Min(1) Integer nbrPieces,
+
+    List<Long> commoditeIds,
+
+    @Min(0) Integer page,
+    @Min(1) Integer size,
+
+    String sortBy,      // createdAt | prix
+    String sortDir      // ASC | DESC
+) {}

@@ -12,10 +12,15 @@ import sn.immosn.backend.annonce.data.repository.AnnonceRepository;
 import sn.immosn.backend.annonce.data.repository.CommoditeRepository;
 import sn.immosn.backend.annonce.data.repository.TypeBienAnnonceRepository;
 import sn.immosn.backend.annonce.service.AnnonceService;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import sn.immosn.backend.annonce.data.repository.AnnonceSpecification;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceCreateRequestDto;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceListDto;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceResponseDto;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceUpdateRequestDto;
+import sn.immosn.backend.client.web.annonce.dto.SearchAnnonceRequestDto;
 import sn.immosn.backend.client.web.annonce.mapper.AnnonceMapper;
 import sn.immosn.backend.shared.exception.EntityNotFoundException;
 
@@ -120,6 +125,18 @@ public class AnnonceServiceImpl implements AnnonceService {
                 .map(annonceMapper::toListDto);
     }
     
+    @Override
+    public Page<AnnonceListDto> searchAnnonces(SearchAnnonceRequestDto request) {
+        int page = request.page() != null ? request.page() : 0;
+        int size = request.size() != null ? request.size() : 9;
+        String sortBy = (request.sortBy() != null && !request.sortBy().isBlank()) ? request.sortBy() : "createdAt";
+        Sort.Direction dir = "ASC".equalsIgnoreCase(request.sortDir()) ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(dir, sortBy));
+        Specification<Annonce> spec = AnnonceSpecification.fromRequest(request);
+        return annonceRepository.findAll(spec, pageable).map(annonceMapper::toListDto);
+    }
+
     @Override
     public AnnonceResponseDto getAnnonceByIdAdmin(Long id) {
         Annonce annonce = annonceRepository

@@ -1,21 +1,65 @@
 services:
+
+  # ── Base de données MySQL ────────────────────────────────
+  db:
+    image: mysql:8.0
+    container_name: immosn-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE:      ${DB_NAME:-immosn}
+      MYSQL_USER:          ${DB_USER:-immosn}
+      MYSQL_PASSWORD:      ${DB_PASSWORD:-immosn123}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend Spring Boot ───────────────────────────────────
   backend:
     build: ./backend
+    container_name: immosn-backend
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: mysql
+      DB_HOST:         db
+      DB_PORT:         3306
+      DB_NAME:         ${DB_NAME:-immosn}
+      DB_USER:         ${DB_USER:-immosn}
+      DB_PASSWORD:     ${DB_PASSWORD:-immosn123}
+      JWT_SECRET:      ${JWT_SECRET:-ChangeThisSecretKeyInProductionImmosn2024}
+      JWT_EXPIRATION:  ${JWT_EXPIRATION:-86400000}
     ports:
       - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
     networks:
       - app-network
 
+  # ── Nginx (frontend + reverse proxy) ────────────────────
   nginx:
     build:
       context: .
       dockerfile: nginx/Dockerfile
+    container_name: immosn-nginx
+    restart: unless-stopped
     ports:
       - "80:80"
     depends_on:
       - backend
     networks:
       - app-network
+
+volumes:
+  mysql_data:
 
 networks:
   app-network:

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\mouha\\\\Desktop\\\\immosn\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Sort-Object)",
+      "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\mouha\\\\Desktop\\\\immosn\" -Recurse | Where-Object { $_.PSIsContainer } | Select-Object -ExpandProperty FullName | Sort-Object)",
+      "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\mouha\\\\Desktop\\\\immosn\" -Depth 1 | Where-Object { -not $_.PSIsContainer } | Select-Object -ExpandProperty Name)"
+    ]
+  }
+}

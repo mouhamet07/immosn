@@ -7,6 +7,7 @@ import sn.immosn.backend.client.web.annonce.dto.AnnonceCreateRequestDto;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceListDto;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceResponseDto;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceUpdateRequestDto;
+import sn.immosn.backend.client.web.annonce.dto.SearchAnnonceRequestDto;
 
 public interface AnnonceService {
     // ── Création ──────────────────────────────────────────
@@ -22,6 +23,9 @@ public interface AnnonceService {
     // ── Soft delete ───────────────────────────────────────
     void archiveAnnonce(Long id);    // archived = true  (DELETE logique)
     void restoreAnnonce(Long id);    // archived = false (optionnel Sprint 1)
+
+    // ── Recherche avancée (Sprint 2) ───────────────────────
+    Page<AnnonceListDto> searchAnnonces(SearchAnnonceRequestDto request);
 
     // ── Admin : liste incluant archivées ──────────────────
     Page<AnnonceListDto> getAllAnnoncesAdmin(Pageable pageable);

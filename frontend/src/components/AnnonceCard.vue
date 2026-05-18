@@ -1,33 +1,38 @@
 <script setup>
 import placeholderImg from '@/assets/Penthouse.png'
-import { ref } from 'vue'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import Badge from './Badge.vue'
+import { useFavorisStore } from '@/stores/favorisStore'
+import { useAuthStore }   from '@/stores/authStore'
 
 const props = defineProps({
-  id: { type: Number, required: true },
-  title: { type: String, required: true },
-  prix: { type: Number, required: true },
-  images: { type: Array, default: () => [] },
-  nbrChambres: { type: Number, default: 0 },
-  nbrSallesBain: { type: Number, default: 0 },
-  surface: { type: Number, default: 0 },
-  badge: { type: String, default: '' }, // 'Exclusivité' | 'Nouveau' | ''
-  isFavoris: { type: Boolean, default: false },
-  adresse: { type: String, default: '' },
+  id:           { type: Number, required: true },
+  title:        { type: String, required: true },
+  prix:         { type: Number, required: true },
+  images:       { type: Array,  default: () => [] },
+  nbrChambres:  { type: Number, default: 0 },
+  nbrSallesBain:{ type: Number, default: 0 },
+  surface:      { type: Number, default: 0 },
+  badge:        { type: String, default: '' },
+  adresse:      { type: String, default: '' },
 })
 
-const router = useRouter()
-const favoris = ref(props.isFavoris)
+const router       = useRouter()
+const favorisStore = useFavorisStore()
+const authStore    = useAuthStore()
 
-// Formater le prix en FCFA
+const isFavori = computed(() => favorisStore.isFavori(props.id))
+const showFavBtn = computed(() => authStore.isAuthenticated && authStore.role === 'CLIENT')
+
 function formatPrix(prix) {
   return new Intl.NumberFormat('fr-SN').format(prix) + ' FCFA'
 }
 
-function toggleFavoris(e) {
+async function toggleFavoris(e) {
   e.stopPropagation()
-  favoris.value = !favoris.value
+  if (!showFavBtn.value) return
+  await favorisStore.toggle(props.id)
 }
 
 function goToDetail() {
@@ -45,8 +50,14 @@ function goToDetail() {
         class="card__image"
       />
       <Badge v-if="badge" :label="badge" class="card__badge" />
-      <button class="card__favoris" :class="{ 'card__favoris--active': favoris }" @click="toggleFavoris">
-        {{ favoris ? '❤️' : '🤍' }}
+      <button
+        v-if="showFavBtn"
+        class="card__favoris"
+        :class="{ 'card__favoris--active': isFavori }"
+        :title="isFavori ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+        @click="toggleFavoris"
+      >
+        {{ isFavori ? '❤️' : '🤍' }}
       </button>
     </div>
 

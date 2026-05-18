@@ -5,15 +5,15 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import sn.immosn.backend.annonce.data.entity.Annonce;
 
-// AnnonceRepository.java
 @Repository
-public interface AnnonceRepository extends JpaRepository<Annonce, Long> {
+public interface AnnonceRepository extends JpaRepository<Annonce, Long>, JpaSpecificationExecutor<Annonce> {
 
     // Liste paginée des annonces actives (soft delete : archived = false)
     Page<Annonce> findByIsArchivedFalse(Pageable pageable);

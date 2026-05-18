@@ -27,6 +27,7 @@ import sn.immosn.backend.client.web.annonce.dto.AnnonceCreateRequestDto;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceListDto;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceResponseDto;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceUpdateRequestDto;
+import sn.immosn.backend.client.web.annonce.dto.SearchAnnonceRequestDto;
 import sn.immosn.backend.shared.response.PagedResponse;
 import sn.immosn.backend.shared.response.RestResponse;
 
@@ -127,6 +128,19 @@ public class AnnonceController {
         return ResponseEntity
             .status(HttpStatus.NO_CONTENT)
             .body(RestResponse.success(null, HttpStatus.NO_CONTENT));
+    }
+
+    /**
+     * POST /api/v1/annonces/search
+     * Recherche avancée avec filtres combinables (Sprint 2 – PB05/PB08)
+     * Body: SearchAnnonceRequestDto — tous les champs sont optionnels
+     */
+    @PostMapping("/search")
+    public ResponseEntity<PagedResponse<AnnonceListDto>> search(
+            @RequestBody @Valid SearchAnnonceRequestDto request) {
+        return ResponseEntity
+            .status(HttpStatus.OK)
+            .body(PagedResponse.fromPage(annonceService.searchAnnonces(request)));
     }
 
     /**

@@ -4,6 +4,7 @@ import java.util.List;
 import java.math.BigDecimal;
 
 public record AnnonceUpdateRequestDto(
+    String id,
     String libelle,
     String description,
     Integer nbrPieces,
