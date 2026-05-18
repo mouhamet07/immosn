@@ -3,21 +3,22 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import AnnonceCard from '@/components/AnnonceCard.vue'
 import ButtonPrimary from '@/components/ButtonPrimary.vue'
 import annonceService from '@/services/annonceService'
+import typeBienService from '@/services/typeBienService'
 
 const annonces = ref([])
 const loading = ref(false)
 const error = ref('')
+const typesBien = ref([])
 
 // Pagination backend (PagedResponse)
 const currentPage = ref(0)
 const totalPages = ref(1)
 const pageNumbers = computed(() => Array.from({ length: totalPages.value }, (_, i) => i + 1))
 
-// Filtres
+// Filtres — typeBienId envoie l'ID, pas le libellé
 const filtres = reactive({
-  typeBien: '',
-  budget: '',
-  chambres: '',
+  typeBienId: '',
+  adresse: '',
 })
 
 async function fetchAnnonces(page = 0) {
@@ -44,7 +45,16 @@ function goToPage(page) {
   }
 }
 
-onMounted(() => fetchAnnonces(0))
+onMounted(async () => {
+  // Charger les types de bien depuis l'API pour le dropdown
+  try {
+    const res = await typeBienService.getAllTypesBien()
+    typesBien.value = res.data.data
+  } catch {
+    typesBien.value = []
+  }
+  fetchAnnonces(0)
+})
 </script>
 
 <template>
@@ -61,48 +71,18 @@ onMounted(() => fetchAnnonces(0))
       <!-- Barre de filtres -->
       <div class="liste-filtres">
         <div class="liste-filtres__group">
-          <label class="liste-filtres__label">QUARTIER</label>
-          <select v-model="filtres.quartier" class="liste-filtres__select">
-            <option value="">Tous les quartiers</option>
-            <option value="almadies">Almadies</option>
-            <option value="plateau">Plateau</option>
-            <option value="mermoz">Mermoz</option>
-            <option value="ngor">Ngor</option>
-            <option value="sacre-coeur">Sacré-Cœur</option>
-          </select>
-        </div>
-
-        <div class="liste-filtres__group">
           <label class="liste-filtres__label">TYPE DE BIEN</label>
-          <select v-model="filtres.typeBien" class="liste-filtres__select">
+          <select v-model="filtres.typeBienId" class="liste-filtres__select">
             <option value="">Tous les types</option>
-            <option value="APPARTEMENT">Appartement</option>
-            <option value="MAISON">Maison</option>
-            <option value="STUDIO">Studio</option>
-            <option value="VILLA">Villa</option>
+            <option v-for="type in typesBien" :key="type.id" :value="type.id">
+              {{ type.libelle }}
+            </option>
           </select>
         </div>
 
         <div class="liste-filtres__group">
-          <label class="liste-filtres__label">BUDGET (FCFA)</label>
-          <select v-model="filtres.budget" class="liste-filtres__select">
-            <option value="">Toute gamme</option>
-            <option value="0-500000">0 – 500 000</option>
-            <option value="500000-2000000">500 000 – 2 000 000</option>
-            <option value="2000000-10000000">2 000 000 – 10 000 000</option>
-            <option value="10000000+">10 000 000+</option>
-          </select>
-        </div>
-
-        <div class="liste-filtres__group">
-          <label class="liste-filtres__label">CHAMBRES</label>
-          <select v-model="filtres.chambres" class="liste-filtres__select">
-            <option value="">Tout</option>
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4+</option>
-          </select>
+          <label class="liste-filtres__label">ADRESSE / QUARTIER</label>
+          <input v-model="filtres.adresse" type="text" class="liste-filtres__select" placeholder="ex. Almadies" />
         </div>
 
         <ButtonPrimary @click="fetchAnnonces">Rechercher</ButtonPrimary>
