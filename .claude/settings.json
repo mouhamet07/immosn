@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker info *)",
+      "Bash(Start-Process \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe\")",
+      "PowerShell(docker context ls 2>&1)",
+      "PowerShell(docker context use default)",
+      "PowerShell(Get-Process \"Docker Desktop\" -ErrorAction SilentlyContinue)"
+    ]
+  }
+}

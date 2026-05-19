@@ -18,7 +18,6 @@ import sn.immosn.backend.shared.response.RestResponse;
 @RestController
 @RequestMapping("/api/v1/leads")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173")
 @PreAuthorize("hasRole('ADMIN')")
 public class LeadController {
 

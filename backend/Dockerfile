@@ -1,15 +1,22 @@
+# ── Étape 1 : Build Maven ───────────────────────────────────
 FROM maven:3.9.9-eclipse-temurin-21 AS build
 
 WORKDIR /app
 
-COPY mvnw .
-COPY .mvn .mvn
+# Copier le pom.xml seul d'abord (cache des dépendances Maven)
 COPY pom.xml .
+RUN mvn dependency:go-offline -B
+
+# Copier les sources et builder
 COPY src src
+RUN mvn -B package -DskipTests
 
-RUN chmod +x ./mvnw && ./mvnw -B package -DskipTests
-
+# ── Étape 2 : Runtime JRE ──────────────────────────────────
 FROM eclipse-temurin:21-jre
+
+# Installer wget pour le healthcheck Docker (curl absent de l'image JRE)
+RUN apt-get update && apt-get install -y --no-install-recommends wget \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -17,4 +24,8 @@ COPY --from=build /app/target/backend-0.0.1-SNAPSHOT.jar app.jar
 
 EXPOSE 8080
 
-CMD ["java", "-jar", "app.jar"]
+# JVM tuning pour container
+ENTRYPOINT ["java", \
+  "-XX:+UseContainerSupport", \
+  "-XX:MaxRAMPercentage=75.0", \
+  "-jar", "app.jar"]

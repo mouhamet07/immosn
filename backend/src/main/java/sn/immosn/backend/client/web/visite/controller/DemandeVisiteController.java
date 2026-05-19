@@ -20,7 +20,6 @@ import java.security.Principal;
 @RestController
 @RequestMapping("/api/v1/visites")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173")
 public class DemandeVisiteController {
 
     private final DemandeVisiteService service;

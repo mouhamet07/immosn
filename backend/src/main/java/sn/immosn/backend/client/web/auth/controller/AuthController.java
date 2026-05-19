@@ -1,12 +1,10 @@
 package sn.immosn.backend.client.web.auth.controller;
 
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -22,7 +20,6 @@ import sn.immosn.backend.shared.response.RestResponse;
 import sn.immosn.backend.auth.data.entity.User;
 import sn.immosn.backend.auth.service.AuthService;
 
-@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {

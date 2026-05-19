@@ -1,7 +1,7 @@
 package sn.immosn.backend.auth.data.entity;
 
 public enum RoleType {
-    ADMIN,
     CLIENT,
-    EMPLOYE
+    ADMIN,
+    SUPER_ADMIN
 }

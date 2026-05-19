@@ -20,7 +20,6 @@ import java.security.Principal;
 @RestController
 @RequestMapping("/api/v1/discussions")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173")
 public class DiscussionController {
 
     private final DiscussionService discussionService;

@@ -1,0 +1,35 @@
+@baseUrl = http://localhost:8080/api/v1/signalements
+@clientToken = <client-jwt>
+@adminToken = <admin-jwt>
+
+### Create signalement (CLIENT)
+POST {{baseUrl}}
+Content-Type: application/json
+Authorization: Bearer {{clientToken}}
+
+{
+  "contratId": 1,
+  "contenu": "Le contrat contient une erreur sur le montant."
+}
+
+### List client signalements
+GET {{baseUrl}}/client?page=0&size=10&statut=OPEN
+Authorization: Bearer {{clientToken}}
+
+### List all signalements (ADMIN)
+GET {{baseUrl}}/admin?page=0&size=20&statut=OPEN
+Authorization: Bearer {{adminToken}}
+
+### Update signalement statut (ADMIN)
+PUT {{baseUrl}}/1/status
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "statut": "RESOLVED",
+  "reponseAdmin": "Problème traité, merci."
+}
+
+### Mark signalement as read (ADMIN)
+PUT {{baseUrl}}/1/read
+Authorization: Bearer {{adminToken}}

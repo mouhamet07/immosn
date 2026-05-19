@@ -1,27 +1,32 @@
 package sn.immosn.backend.annonce.service.Impl;
 
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import sn.immosn.backend.annonce.data.entity.Annonce;
 import sn.immosn.backend.annonce.data.entity.AnnonceCommodite;
 import sn.immosn.backend.annonce.data.entity.Commodite;
 import sn.immosn.backend.annonce.data.entity.TypeBienAnnonce;
 import sn.immosn.backend.annonce.data.repository.AnnonceRepository;
+import sn.immosn.backend.annonce.data.repository.AnnonceSpecification;
 import sn.immosn.backend.annonce.data.repository.CommoditeRepository;
 import sn.immosn.backend.annonce.data.repository.TypeBienAnnonceRepository;
 import sn.immosn.backend.annonce.service.AnnonceService;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
-import sn.immosn.backend.annonce.data.repository.AnnonceSpecification;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceCreateRequestDto;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceListDto;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceResponseDto;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceUpdateRequestDto;
 import sn.immosn.backend.client.web.annonce.dto.SearchAnnonceRequestDto;
 import sn.immosn.backend.client.web.annonce.mapper.AnnonceMapper;
+import sn.immosn.backend.contrat.data.entity.StatutContrat;
+import sn.immosn.backend.contrat.data.repository.ContratRepository;
 import sn.immosn.backend.shared.exception.EntityNotFoundException;
 
 import java.util.List;
@@ -30,118 +35,142 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AnnonceServiceImpl implements AnnonceService {
 
-    private final AnnonceRepository annonceRepository;
-    private final CommoditeRepository commoditeRepository;
+    private static final Logger log = LoggerFactory.getLogger(AnnonceServiceImpl.class);
+
+    private final AnnonceRepository         annonceRepository;
+    private final CommoditeRepository       commoditeRepository;
     private final TypeBienAnnonceRepository typeBienAnnonceRepository;
-    private final AnnonceMapper annonceMapper;
+    private final AnnonceMapper             annonceMapper;
+    private final ContratRepository         contratRepository;
 
     @Override
+    @Transactional
     public AnnonceResponseDto createAnnonce(AnnonceCreateRequestDto requestDto) {
+        log.info("Création d'une annonce : libelle={}", requestDto.libelle());
+
         TypeBienAnnonce typeBien = typeBienAnnonceRepository
-                .findByIdAndIsArchivedFalse(requestDto.typeBienId())
-                .orElseThrow(() -> new EntityNotFoundException("Type de bien non trouvé"));
+            .findByIdAndIsArchivedFalse(requestDto.typeBienId())
+            .orElseThrow(() -> new EntityNotFoundException("Type de bien non trouvé : id=" + requestDto.typeBienId()));
 
         List<Commodite> commodites = requestDto.commoditeIds() != null
-                ? commoditeRepository.findByIdInAndIsArchivedFalse(requestDto.commoditeIds())
-                : List.of();
+            ? commoditeRepository.findByIdInAndIsArchivedFalse(requestDto.commoditeIds())
+            : List.of();
 
         Annonce annonce = annonceMapper.toEntity(requestDto, typeBien, commodites);
-        Annonce savedAnnonce = annonceRepository.save(annonce);
-        return annonceMapper.toResponse(savedAnnonce);
+        Annonce saved   = annonceRepository.save(annonce);
+
+        log.info("Annonce créée : id={}", saved.getId());
+        return annonceMapper.toResponse(saved);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public AnnonceResponseDto getAnnonceById(Long id) {
-        Annonce annonce = annonceRepository
-            .findByIdAndIsArchivedFalse(id)
-            .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée avec l'ID: " + id));
+        Annonce annonce = annonceRepository.findByIdAndIsArchivedFalse(id)
+            .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée : id=" + id));
         return annonceMapper.toResponse(annonce);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<AnnonceListDto> getAllAnnonces(Pageable pageable) {
-        return annonceRepository
-                .findByIsArchivedFalse(pageable)
-                .map(annonceMapper::toListDto);
+        return annonceRepository.findByIsArchivedFalse(pageable).map(annonceMapper::toListDto);
     }
 
     @Override
+    @Transactional
     public AnnonceResponseDto updateAnnonce(Long id, AnnonceUpdateRequestDto requestDto) {
-        Annonce annonce = annonceRepository
-            .findByIdAndIsArchivedFalse(id)
-            .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée"));
+        log.info("Modification annonce : id={}", id);
 
-        if (requestDto.libelle() != null) annonce.setLibelle(requestDto.libelle());
+        Annonce annonce = annonceRepository.findByIdAndIsArchivedFalse(id)
+            .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée : id=" + id));
+
+        if (requestDto.libelle()     != null) annonce.setLibelle(requestDto.libelle());
         if (requestDto.description() != null) annonce.setDescription(requestDto.description());
-        if (requestDto.nbrPieces() != null) annonce.setNbrPieces(requestDto.nbrPieces());
-        if (requestDto.surface() != null) annonce.setSurface(requestDto.surface());
-        if (requestDto.prix() != null) annonce.setPrix(requestDto.prix());
-        if (requestDto.adresse() != null) annonce.setAdresse(requestDto.adresse());
-        if (requestDto.images() != null) annonce.setImages(requestDto.images());
+        if (requestDto.nbrPieces()   != null) annonce.setNbrPieces(requestDto.nbrPieces());
+        if (requestDto.surface()     != null) annonce.setSurface(requestDto.surface());
+        if (requestDto.prix()        != null) annonce.setPrix(requestDto.prix());
+        if (requestDto.adresse()     != null) annonce.setAdresse(requestDto.adresse());
+        if (requestDto.images()      != null) annonce.setImages(requestDto.images());
 
         if (requestDto.typeBienId() != null) {
             TypeBienAnnonce typeBien = typeBienAnnonceRepository
-                    .findByIdAndIsArchivedFalse(requestDto.typeBienId())
-                    .orElseThrow(() -> new EntityNotFoundException("Type de bien non trouvé"));
+                .findByIdAndIsArchivedFalse(requestDto.typeBienId())
+                .orElseThrow(() -> new EntityNotFoundException("Type de bien non trouvé"));
             annonce.setTypeBien(typeBien);
         }
 
         if (requestDto.commoditeIds() != null) {
             List<Commodite> commodites = commoditeRepository.findByIdInAndIsArchivedFalse(requestDto.commoditeIds());
             annonce.getAnnonceCommodites().clear();
-            for (Commodite commodite : commodites) {
-                AnnonceCommodite ac = AnnonceCommodite.builder()
-                        .annonce(annonce)
-                        .commodite(commodite)
-                        .build();
-                annonce.getAnnonceCommodites().add(ac);
-            }
+            commodites.forEach(c -> annonce.getAnnonceCommodites().add(
+                AnnonceCommodite.builder().annonce(annonce).commodite(c).build()
+            ));
         }
 
-        Annonce updatedAnnonce = annonceRepository.save(annonce);
-        return annonceMapper.toResponse(updatedAnnonce);
+        Annonce updated = annonceRepository.save(annonce);
+        log.info("Annonce modifiée : id={}", updated.getId());
+        return annonceMapper.toResponse(updated);
     }
 
+    /**
+     * Archivage (soft-delete).
+     * RÈGLE MÉTIER : impossible d'archiver si un contrat ACTIF est lié à cette annonce.
+     */
     @Override
+    @Transactional
     public void archiveAnnonce(Long id) {
         Annonce annonce = annonceRepository.findByIdAndIsArchivedFalse(id)
-                .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée avec l'ID: " + id));
+            .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée : id=" + id));
+
+        long contratsActifs = contratRepository.countByAnnonceIdAndStatut(id, StatutContrat.ACTIF);
+        if (contratsActifs > 0) {
+            log.warn("Archivage refusé pour annonce id={} : {} contrat(s) actif(s)", id, contratsActifs);
+            throw new IllegalStateException(
+                "Impossible d'archiver cette annonce : " + contratsActifs +
+                " contrat(s) actif(s) y est(sont) lié(s). Résiliez les contrats avant d'archiver."
+            );
+        }
+
         annonce.setArchived(true);
         annonceRepository.save(annonce);
+        log.info("Annonce archivée : id={}", id);
     }
 
     @Override
+    @Transactional
     public void restoreAnnonce(Long id) {
         Annonce annonce = annonceRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée avec l'ID: " + id));
+            .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée : id=" + id));
         annonce.setArchived(false);
         annonceRepository.save(annonce);
+        log.info("Annonce restaurée : id={}", id);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<AnnonceListDto> getAllAnnoncesAdmin(Pageable pageable) {
-        return annonceRepository
-                .findAll(pageable)
-                .map(annonceMapper::toListDto);
+        return annonceRepository.findAll(pageable).map(annonceMapper::toListDto);
     }
-    
+
     @Override
+    @Transactional(readOnly = true)
+    public AnnonceResponseDto getAnnonceByIdAdmin(Long id) {
+        Annonce annonce = annonceRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée : id=" + id));
+        return annonceMapper.toResponse(annonce);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Page<AnnonceListDto> searchAnnonces(SearchAnnonceRequestDto request) {
-        int page = request.page() != null ? request.page() : 0;
-        int size = request.size() != null ? request.size() : 9;
-        String sortBy = (request.sortBy() != null && !request.sortBy().isBlank()) ? request.sortBy() : "createdAt";
+        int    page  = request.page()   != null ? request.page()   : 0;
+        int    size  = request.size()   != null ? request.size()   : 9;
+        String sort  = (request.sortBy() != null && !request.sortBy().isBlank()) ? request.sortBy() : "createdAt";
         Sort.Direction dir = "ASC".equalsIgnoreCase(request.sortDir()) ? Sort.Direction.ASC : Sort.Direction.DESC;
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by(dir, sortBy));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(dir, sort));
         Specification<Annonce> spec = AnnonceSpecification.fromRequest(request);
         return annonceRepository.findAll(spec, pageable).map(annonceMapper::toListDto);
-    }
-
-    @Override
-    public AnnonceResponseDto getAnnonceByIdAdmin(Long id) {
-        Annonce annonce = annonceRepository
-            .findById(id)
-            .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée avec l'ID: " + id));
-        return annonceMapper.toResponse(annonce);
     }
 }

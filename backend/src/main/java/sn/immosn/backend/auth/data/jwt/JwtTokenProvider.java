@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -60,14 +62,21 @@ public class JwtTokenProvider {
         return claims.getSubject();
     }
 
-    public Date getExpirationDateFromToken(String token) {
+    /**
+     * Retourne la date d'expiration du token sous forme de LocalDateTime.
+     * Remplace l'ancienne version retournant Date (@Temporal déprécié depuis JPA 3.2).
+     */
+    public LocalDateTime getExpirationDateFromToken(String token) {
         SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
         Claims claims = Jwts.parserBuilder()
                 .setSigningKey(key)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
-        return claims.getExpiration();
+        return claims.getExpiration()
+                .toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDateTime();
     }
 
     public boolean validateToken(String token) {

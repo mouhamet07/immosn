@@ -1,8 +1,7 @@
 package sn.immosn.backend.config;
 
-import sn.immosn.backend.auth.data.jwt.JwtAuthentificationFilter;
-import sn.immosn.backend.auth.data.jwt.JwtTokenProvider;
-import sn.immosn.backend.auth.service.AuthUserDetailService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -17,76 +16,42 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import sn.immosn.backend.auth.data.jwt.JwtAuthentificationFilter;
+import sn.immosn.backend.auth.data.jwt.JwtTokenProvider;
+import sn.immosn.backend.auth.service.AuthUserDetailService;
 
+import java.util.List;
+
+/**
+ * Configuration de sécurité centralisée — deny-by-default.
+ *
+ * Règles RBAC :
+ *   CLIENT      → lecture annonces, favoris, discussions, visites, contrats propres
+ *   ADMIN       → gestion annonces, visites, leads, contrats, signalements, messages
+ *   SUPER_ADMIN → tout ADMIN + gestion des comptes ADMIN
+ *
+ * IMPORTANT : aucun @CrossOrigin sur les controllers — CORS configuré ici uniquement.
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtTokenProvider jwtTokenProvider;
-    private final AuthUserDetailService authUserDetailService ;
+    private final JwtTokenProvider       jwtTokenProvider;
+    private final AuthUserDetailService  authUserDetailService;
 
-    public SecurityConfig(JwtTokenProvider jwtTokenProvider, AuthUserDetailService authUserDetailService) {
-        this.jwtTokenProvider = jwtTokenProvider;
-        this.authUserDetailService = authUserDetailService;
-    }
+    @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:80}")
+    private List<String> allowedOrigins;
+
+    // ── Beans ──────────────────────────────────────────────────────────────
 
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
-    }
-
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-            .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(authz -> authz
-                // Auth : public
-                .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/logout").permitAll()
-                .requestMatchers("/h2-console/**").permitAll()
-                // Lecture annonces/referentiels : public
-                .requestMatchers(HttpMethod.GET, "/api/v1/annonces/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/v1/annonces/search").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/commodites/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/type-bien/**").permitAll()
-                // Mutations annonces : admin seulement
-                .requestMatchers(HttpMethod.POST, "/api/v1/annonces").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/v1/annonces/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/v1/annonces/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PATCH, "/api/v1/annonces/**").hasRole("ADMIN")
-                // Gestion référentiels : admin seulement
-                .requestMatchers(HttpMethod.POST, "/api/v1/commodites/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/v1/commodites/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/v1/commodites/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.POST, "/api/v1/type-bien/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/v1/type-bien/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/v1/type-bien/**").hasRole("ADMIN")
-                // Auth admin : admin seulement
-                .requestMatchers("/api/v1/auth/admin", "/api/v1/auth/admins").hasRole("ADMIN")
-                // Profil : authentifié
-                .requestMatchers("/api/v1/auth/profile").authenticated()
-                // Discussions : authentifié
-                .requestMatchers("/api/v1/discussions/**").authenticated()
-                // Sprint 3 — Visites : authentifié (granularité via @PreAuthorize)
-                .requestMatchers("/api/v1/visites/**").authenticated()
-                // Sprint 3 — Leads : ADMIN only
-                .requestMatchers("/api/v1/leads/**").hasRole("ADMIN")
-                // Sprint 3 — Contrats : authentifié
-                .requestMatchers("/api/v1/contrats/**").authenticated()
-                // Sprint 3 — Signalements : authentifié
-                .requestMatchers("/api/v1/signalements/**").authenticated()
-                // Sprint 4 — Dashboard admin : ADMIN only
-                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                // Sprint 4 — Favoris : CLIENT authentifié
-                .requestMatchers("/api/v1/favoris/**").authenticated()
-                .anyRequest().authenticated()
-            )
-                .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable()))
-                .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtAuthentificationFilter(), UsernamePasswordAuthenticationFilter.class);
-
-        return http.build();
     }
 
     @Bean
@@ -96,13 +61,99 @@ public class SecurityConfig {
 
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider(authUserDetailService);
-        authProvider.setPasswordEncoder(passwordEncoder());
-        return authProvider;
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(authUserDetailService);
+        provider.setPasswordEncoder(passwordEncoder());
+        return provider;
     }
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
+    }
+
+    // ── CORS centralisé ────────────────────────────────────────────────────
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(allowedOrigins);
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
+        config.setAllowCredentials(true);
+        config.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/api/**", config);
+        return source;
+    }
+
+    // ── Filter chain — deny-by-default ─────────────────────────────────────
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+            .csrf(csrf -> csrf.disable())
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .headers(headers -> headers.frameOptions(frame -> frame.deny()))
+            .authorizeHttpRequests(authz -> authz
+
+                // ── Auth : public ───────────────────────────────────────
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").permitAll()
+
+                // ── Lecture annonces + référentiels : public ────────────
+                .requestMatchers(HttpMethod.GET,  "/api/v1/annonces").permitAll()
+                .requestMatchers(HttpMethod.GET,  "/api/v1/annonces/{id}").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/annonces/search").permitAll()
+                .requestMatchers(HttpMethod.GET,  "/api/v1/commodites").permitAll()
+                .requestMatchers(HttpMethod.GET,  "/api/v1/type-bien").permitAll()
+
+                // ── Mutations annonces : ADMIN ou SUPER_ADMIN ───────────
+                .requestMatchers(HttpMethod.POST,   "/api/v1/annonces").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.PUT,    "/api/v1/annonces/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/v1/annonces/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.PATCH,  "/api/v1/annonces/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+
+                // ── Référentiels (mutations) : ADMIN ou SUPER_ADMIN ─────
+                .requestMatchers(HttpMethod.POST,   "/api/v1/commodites/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.PUT,    "/api/v1/commodites/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/v1/commodites/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.PATCH,  "/api/v1/commodites/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.POST,   "/api/v1/type-bien/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.PUT,    "/api/v1/type-bien/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/v1/type-bien/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.PATCH,  "/api/v1/type-bien/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+
+                // ── Gestion ADMIN : SUPER_ADMIN UNIQUEMENT ──────────────
+                // ADMIN ne peut PAS créer d'autres admins
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/admin").hasRole("SUPER_ADMIN")
+                .requestMatchers(HttpMethod.GET,  "/api/v1/auth/admins").hasRole("SUPER_ADMIN")
+
+                // ── Dashboard : ADMIN ou SUPER_ADMIN ────────────────────
+                .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+
+                // ── Leads : ADMIN ou SUPER_ADMIN ────────────────────────
+                .requestMatchers("/api/v1/leads/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+
+                // ── Endpoints authentifiés (granularité via @PreAuthorize)
+                .requestMatchers("/api/v1/auth/profile").authenticated()
+                .requestMatchers("/api/v1/discussions/**").authenticated()
+                .requestMatchers("/api/v1/visites/**").authenticated()
+                .requestMatchers("/api/v1/contrats/**").authenticated()
+                .requestMatchers("/api/v1/signalements/**").authenticated()
+                .requestMatchers("/api/v1/favoris/**").authenticated()
+
+                // ── H2 console : développement uniquement ───────────────
+                .requestMatchers("/h2-console/**").permitAll()
+
+                // ── Deny-by-default : tout le reste exige authentification
+                .anyRequest().authenticated()
+            )
+            .authenticationProvider(authenticationProvider())
+            .addFilterBefore(jwtAuthentificationFilter(), UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
     }
 }

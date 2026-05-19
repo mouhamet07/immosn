@@ -1,65 +1,53 @@
+# ══════════════════════════════════════════════════════════
+# ImmoSN — Docker Compose production (PostgreSQL Neon)
+#
+# Prérequis : fichier .env à la racine avec DATABASE_URL et JWT_SECRET
+#   cp .env.example .env && nano .env
+#
+# Utilisation :
+#   docker compose up --build -d
+# ══════════════════════════════════════════════════════════
+
 services:
 
-  # ── Base de données MySQL ────────────────────────────────
-  db:
-    image: mysql:8.0
-    container_name: immosn-db
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
-      MYSQL_DATABASE:      ${DB_NAME:-immosn}
-      MYSQL_USER:          ${DB_USER:-immosn}
-      MYSQL_PASSWORD:      ${DB_PASSWORD:-immosn123}
-    volumes:
-      - mysql_data:/var/lib/mysql
-    ports:
-      - "3306:3306"
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # ── Backend Spring Boot ───────────────────────────────────
+  # ── Backend Spring Boot (Neon PostgreSQL) ────────────────
   backend:
     build: ./backend
     container_name: immosn-backend
     restart: unless-stopped
+    env_file: .env
     environment:
-      SPRING_PROFILES_ACTIVE: mysql
-      DB_HOST:         db
-      DB_PORT:         3306
-      DB_NAME:         ${DB_NAME:-immosn}
-      DB_USER:         ${DB_USER:-immosn}
-      DB_PASSWORD:     ${DB_PASSWORD:-immosn123}
-      JWT_SECRET:      ${JWT_SECRET:-ChangeThisSecretKeyInProductionImmosn2024}
-      JWT_EXPIRATION:  ${JWT_EXPIRATION:-86400000}
+      SPRING_PROFILES_ACTIVE: neon
+      SERVER_PORT: 8080
     ports:
       - "8080:8080"
-    depends_on:
-      db:
-        condition: service_healthy
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/v1/annonces"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   # ── Nginx (frontend + reverse proxy) ────────────────────
   nginx:
     build:
       context: .
       dockerfile: nginx/Dockerfile
+      args:
+        VITE_API_URL:                   /api/v1
+        VITE_CLOUDINARY_CLOUD_NAME:     ${VITE_CLOUDINARY_CLOUD_NAME:-}
+        VITE_CLOUDINARY_UPLOAD_PRESET:  ${VITE_CLOUDINARY_UPLOAD_PRESET:-}
     container_name: immosn-nginx
     restart: unless-stopped
     ports:
       - "80:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - app-network
-
-volumes:
-  mysql_data:
 
 networks:
   app-network:

@@ -1,6 +1,8 @@
 package sn.immosn.backend.favoris.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -14,13 +16,17 @@ import sn.immosn.backend.favoris.data.repository.AnnonceFavorisRepository;
 import sn.immosn.backend.favoris.service.FavorisService;
 import sn.immosn.backend.shared.exception.EntityNotFoundException;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class FavorisServiceImpl implements FavorisService {
 
+    private static final Logger log = LoggerFactory.getLogger(FavorisServiceImpl.class);
+
     private final AnnonceFavorisRepository favorisRepository;
-    private final AnnonceRepository annonceRepository;
-    private final UserRepository userRepository;
+    private final AnnonceRepository        annonceRepository;
+    private final UserRepository           userRepository;
 
     @Override
     @Transactional
@@ -28,11 +34,12 @@ public class FavorisServiceImpl implements FavorisService {
         var client  = userRepository.findByEmail(clientEmail)
             .orElseThrow(() -> new EntityNotFoundException("Utilisateur non trouvé"));
         var annonce = annonceRepository.findByIdAndIsArchivedFalse(annonceId)
-            .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée"));
+            .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée : id=" + annonceId));
 
         boolean exists = favorisRepository.existsByClientIdAndAnnonceId(client.getId(), annonceId);
         if (exists) {
             favorisRepository.deleteByClientIdAndAnnonceId(client.getId(), annonceId);
+            log.debug("Favori retiré : clientId={}, annonceId={}", client.getId(), annonceId);
             return new FavorisStatusDto(annonceId, false);
         } else {
             AnnonceFavoris fav = AnnonceFavoris.builder()
@@ -40,6 +47,7 @@ public class FavorisServiceImpl implements FavorisService {
                 .annonce(annonce)
                 .build();
             favorisRepository.save(fav);
+            log.debug("Favori ajouté : clientId={}, annonceId={}", client.getId(), annonceId);
             return new FavorisStatusDto(annonceId, true);
         }
     }
@@ -77,5 +85,22 @@ public class FavorisServiceImpl implements FavorisService {
             .orElseThrow(() -> new EntityNotFoundException("Utilisateur non trouvé"));
         boolean isFav = favorisRepository.existsByClientIdAndAnnonceId(client.getId(), annonceId);
         return new FavorisStatusDto(annonceId, isFav);
+    }
+
+    /**
+     * Retourne tous les IDs d'annonces favorites sans limite fixe.
+     * Remplace l'ancienne approche qui chargeait les 100 premiers IDs en dur.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<Long> getAllFavorisIds(String clientEmail) {
+        var client = userRepository.findByEmail(clientEmail)
+            .orElseThrow(() -> new EntityNotFoundException("Utilisateur non trouvé"));
+
+        return favorisRepository
+            .findAllByClientId(client.getId())
+            .stream()
+            .map(fav -> fav.getAnnonce().getId())
+            .toList();
     }
 }

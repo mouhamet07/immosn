@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -21,6 +22,7 @@ import sn.immosn.backend.client.web.annonce.dto.AnnonceListDto;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceResponseDto;
 import sn.immosn.backend.client.web.annonce.dto.SearchAnnonceRequestDto;
 import sn.immosn.backend.client.web.annonce.mapper.AnnonceMapper;
+import sn.immosn.backend.contrat.data.repository.ContratRepository;
 import sn.immosn.backend.shared.exception.EntityNotFoundException;
 
 import java.math.BigDecimal;
@@ -36,10 +38,11 @@ import static org.mockito.Mockito.*;
 @DisplayName("AnnonceService — Tests unitaires")
 class AnnonceServiceTest {
 
-    @Mock AnnonceRepository        annonceRepository;
-    @Mock CommoditeRepository      commoditeRepository;
+    @Mock AnnonceRepository         annonceRepository;
+    @Mock CommoditeRepository       commoditeRepository;
     @Mock TypeBienAnnonceRepository typeBienAnnonceRepository;
-    @Mock AnnonceMapper            annonceMapper;
+    @Mock AnnonceMapper             annonceMapper;
+    @Mock ContratRepository         contratRepository; // requis par AnnonceServiceImpl (vérif archivage)
 
     @InjectMocks
     AnnonceServiceImpl annonceService;
@@ -175,12 +178,18 @@ class AnnonceServiceTest {
             null, null, null, "Almadies", null, null, 0, 9, "createdAt", "DESC"
         );
         Page<Annonce> page = new PageImpl<>(List.of(annonceActive));
-        when(annonceRepository.findAll(any(Specification.class), any(PageRequest.class))).thenReturn(page);
+        // Utiliser ArgumentMatchers.<Type>any() pour éviter les unchecked cast warnings
+        when(annonceRepository.findAll(
+            ArgumentMatchers.<Specification<Annonce>>any(),
+            any(PageRequest.class))
+        ).thenReturn(page);
         when(annonceMapper.toListDto(annonceActive)).thenReturn(listDto);
 
         Page<AnnonceListDto> result = annonceService.searchAnnonces(req);
 
         assertThat(result.getContent()).hasSize(1);
-        verify(annonceRepository).findAll(any(Specification.class), any(PageRequest.class));
+        verify(annonceRepository).findAll(
+            ArgumentMatchers.<Specification<Annonce>>any(),
+            any(PageRequest.class));
     }
 }

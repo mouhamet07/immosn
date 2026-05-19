@@ -5,15 +5,16 @@ import { useAuthStore } from './authStore'
 
 /**
  * Store Pinia des favoris.
+ *
  * Maintient un Set<Long> des IDs d'annonces favorites du client connecté.
- * Permet à AnnonceCard et DetailAnnonceView de connaître l'état favori sans appel réseau supplémentaire.
+ * Les IDs sont chargés via GET /api/v1/favoris/ids (sans limite fixe),
+ * ce qui permet à AnnonceCard d'afficher l'état ❤️ sans appel réseau par carte.
  */
 export const useFavorisStore = defineStore('favoris', () => {
-  // Set des IDs d'annonces favorites (Long)
   const favorisIds = ref(new Set())
-  const loaded = ref(false)
+  const loaded     = ref(false)
 
-  /** Charger les IDs favoris depuis l'API (première page — 100 max) */
+  /** Charge tous les IDs favoris depuis le backend (sans limite hardcodée) */
   async function loadFavoris() {
     const authStore = useAuthStore()
     if (!authStore.isAuthenticated || authStore.role !== 'CLIENT') {
@@ -21,10 +22,11 @@ export const useFavorisStore = defineStore('favoris', () => {
       loaded.value = true
       return
     }
+
     try {
-      const res = await favorisService.getClientFavoris(0, 100)
-      const ids = (res.data.data ?? []).map(f => f.annonceId)
-      favorisIds.value = new Set(ids)
+      // GET /api/v1/favoris/ids → RestResponse<List<Long>>
+      const res = await favorisService.getFavorisIds()
+      favorisIds.value = new Set(res.data.data ?? [])
     } catch {
       favorisIds.value = new Set()
     } finally {
@@ -32,26 +34,29 @@ export const useFavorisStore = defineStore('favoris', () => {
     }
   }
 
-  /** Toggle favori — optimistic update */
+  /** Toggle favori avec mise à jour optimiste + rollback sur erreur */
   async function toggle(annonceId) {
     const authStore = useAuthStore()
     if (!authStore.isAuthenticated) return false
 
-    const was = favorisIds.value.has(annonceId)
-    // Mise à jour optimiste
-    if (was) favorisIds.value.delete(annonceId)
-    else      favorisIds.value.add(annonceId)
+    const numId = Number(annonceId)
+    const was   = favorisIds.value.has(numId)
+
+    // Optimistic update
+    if (was) favorisIds.value.delete(numId)
+    else      favorisIds.value.add(numId)
 
     try {
-      const res = await favorisService.toggle(annonceId)
+      const res  = await favorisService.toggle(numId)
       const isFav = res.data.data?.isFavoris ?? !was
-      if (isFav) favorisIds.value.add(annonceId)
-      else       favorisIds.value.delete(annonceId)
+      // Synchroniser avec la réponse serveur
+      if (isFav) favorisIds.value.add(numId)
+      else       favorisIds.value.delete(numId)
       return isFav
     } catch {
-      // Rollback si erreur
-      if (was) favorisIds.value.add(annonceId)
-      else     favorisIds.value.delete(annonceId)
+      // Rollback si erreur réseau
+      if (was) favorisIds.value.add(numId)
+      else     favorisIds.value.delete(numId)
       return was
     }
   }
@@ -62,7 +67,7 @@ export const useFavorisStore = defineStore('favoris', () => {
 
   function reset() {
     favorisIds.value = new Set()
-    loaded.value = false
+    loaded.value     = false
   }
 
   return { favorisIds, loaded, loadFavoris, toggle, isFavori, reset }

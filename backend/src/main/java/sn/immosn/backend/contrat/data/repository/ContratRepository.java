@@ -23,4 +23,11 @@ public interface ContratRepository extends JpaRepository<Contrat, Long> {
     Optional<Contrat> findByIdAndClientId(Long id, Long clientId);
 
     long countByStatut(StatutContrat statut);
+
+    // Vérifie les contrats actifs liés à une annonce (bloque l'archivage)
+    long countByAnnonceIdAndStatut(Long annonceId, StatutContrat statut);
+
+    // Job d'expiration : contrats dont dateFin < aujourd'hui et statut ACTIF
+    java.util.List<Contrat> findByStatutAndDateFinBefore(
+        StatutContrat statut, java.time.LocalDate date);
 }

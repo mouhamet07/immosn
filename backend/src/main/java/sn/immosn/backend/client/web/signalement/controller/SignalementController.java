@@ -20,7 +20,6 @@ import java.security.Principal;
 @RestController
 @RequestMapping("/api/v1/signalements")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173")
 public class SignalementController {
 
     private final SignalementService service;

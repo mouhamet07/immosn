@@ -14,11 +14,11 @@ import sn.immosn.backend.shared.response.PagedResponse;
 import sn.immosn.backend.shared.response.RestResponse;
 
 import java.security.Principal;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/favoris")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173")
 @PreAuthorize("hasRole('CLIENT')")
 public class FavorisController {
 
@@ -47,6 +47,17 @@ public class FavorisController {
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         return ResponseEntity.ok(
             PagedResponse.fromPage(favorisService.getClientFavoris(principal.getName(), pageable)));
+    }
+
+    /**
+     * GET /api/v1/favoris/ids
+     * Retourne uniquement les IDs d'annonces favorites du client connecté.
+     * Utilisé par le store Pinia pour l'état local du bouton ❤️ — sans limite fixe.
+     */
+    @GetMapping("/ids")
+    public ResponseEntity<RestResponse<List<Long>>> getFavorisIds(Principal principal) {
+        List<Long> ids = favorisService.getAllFavorisIds(principal.getName());
+        return ResponseEntity.ok(RestResponse.success(ids, HttpStatus.OK));
     }
 
     /**

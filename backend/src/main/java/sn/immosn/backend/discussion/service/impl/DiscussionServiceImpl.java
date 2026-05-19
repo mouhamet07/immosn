@@ -1,6 +1,8 @@
 package sn.immosn.backend.discussion.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -23,20 +25,26 @@ import sn.immosn.backend.shared.exception.EntityNotFoundException;
 @RequiredArgsConstructor
 public class DiscussionServiceImpl implements DiscussionService {
 
-    private final DiscussionRepository discussionRepository;
-    private final MessageRepository messageRepository;
-    private final AnnonceRepository annonceRepository;
-    private final UserRepository userRepository;
-    private final DiscussionMapper discussionMapper;
+    private static final Logger log = LoggerFactory.getLogger(DiscussionServiceImpl.class);
 
+    private final DiscussionRepository discussionRepository;
+    private final MessageRepository    messageRepository;
+    private final AnnonceRepository    annonceRepository;
+    private final UserRepository       userRepository;
+    private final DiscussionMapper     discussionMapper;
+
+    /**
+     * Crée une discussion ou retourne l'existante (idempotent).
+     * La contrainte UNIQUE (client_id, annonce_id) en base garantit l'unicité même en cas de concurrent.
+     */
     @Override
     @Transactional
     public DiscussionResponseDto createOrGetDiscussion(DiscussionCreateRequestDto request, String clientEmail) {
-        User client = loadUser(clientEmail);
+        User    client  = loadUser(clientEmail);
         Annonce annonce = annonceRepository.findByIdAndIsArchivedFalse(request.annonceId())
-            .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée"));
+            .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée : id=" + request.annonceId()));
 
-        // Réutiliser la discussion existante si elle existe
+        // Idempotent : récupère l'existante ou crée une nouvelle
         Discussion discussion = discussionRepository
             .findByClientIdAndAnnonceId(client.getId(), annonce.getId())
             .orElseGet(() -> {
@@ -44,10 +52,13 @@ public class DiscussionServiceImpl implements DiscussionService {
                     .client(client)
                     .annonce(annonce)
                     .build();
-                return discussionRepository.save(d);
+                Discussion saved = discussionRepository.save(d);
+                log.info("Discussion créée : id={}, clientId={}, annonceId={}",
+                    saved.getId(), client.getId(), annonce.getId());
+                return saved;
             });
 
-        // Ajouter le premier message
+        // Ajouter le message
         Message message = Message.builder()
             .contenu(request.premierMessage())
             .senderRole(SenderRole.CLIENT)
@@ -115,16 +126,17 @@ public class DiscussionServiceImpl implements DiscussionService {
             .build();
 
         Message saved = messageRepository.save(message);
+        log.debug("Message envoyé : discussionId={}, senderRole={}", discussionId, role);
         return discussionMapper.toMessageDto(saved);
     }
 
     private User loadUser(String email) {
         return userRepository.findByEmail(email)
-            .orElseThrow(() -> new EntityNotFoundException("Utilisateur non trouvé"));
+            .orElseThrow(() -> new EntityNotFoundException("Utilisateur non trouvé : email=" + email));
     }
 
     private Discussion loadDiscussion(Long id) {
         return discussionRepository.findById(id)
-            .orElseThrow(() -> new EntityNotFoundException("Discussion non trouvée avec l'ID: " + id));
+            .orElseThrow(() -> new EntityNotFoundException("Discussion non trouvée : id=" + id));
     }
 }

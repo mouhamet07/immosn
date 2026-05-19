@@ -19,7 +19,6 @@ import sn.immosn.backend.visite.data.entity.StatutDemandeVisite;
 import sn.immosn.backend.visite.data.repository.DemandeVisiteRepository;
 import sn.immosn.backend.visite.service.DemandeVisiteService;
 
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor

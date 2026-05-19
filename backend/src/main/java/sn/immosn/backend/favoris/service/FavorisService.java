@@ -5,14 +5,22 @@ import org.springframework.data.domain.Pageable;
 import sn.immosn.backend.client.web.favoris.dto.FavorisResponseDto;
 import sn.immosn.backend.client.web.favoris.dto.FavorisStatusDto;
 
+import java.util.List;
+
 public interface FavorisService {
 
-    /** Ajouter une annonce aux favoris — idempotent (ne lève pas d'erreur si déjà présent) */
+    /** Toggle favori — idempotent (ajoute si absent, retire si présent) */
     FavorisStatusDto toggle(Long annonceId, String clientEmail);
 
-    /** Liste des favoris du client connecté, paginée */
+    /** Liste paginée des favoris avec détails (pour FavorisView) */
     Page<FavorisResponseDto> getClientFavoris(String clientEmail, Pageable pageable);
 
-    /** Vérifier si une annonce est dans les favoris du client */
+    /** Vérifie si une annonce spécifique est en favori */
     FavorisStatusDto checkFavoris(Long annonceId, String clientEmail);
+
+    /**
+     * Retourne tous les IDs d'annonces favorites du client.
+     * Utilisé par le store Pinia pour pré-charger l'état ❤️ sans limite fixe.
+     */
+    List<Long> getAllFavorisIds(String clientEmail);
 }

@@ -22,8 +22,7 @@ import static org.mockito.Mockito.*;
 
 /**
  * Tests unitaires du contrôleur Auth.
- * NOTE : les tests d'intégration (@SpringBootTest + MockMvc) nécessitent
- * un reload Maven pour activer spring-boot-starter-test (voir pom.xml).
+ * AuthResponseDto est un POJO Lombok → utiliser les getters (getEmail(), getAccessToken()…).
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AuthController — Tests unitaires")
@@ -34,6 +33,7 @@ class AuthControllerTest {
     @InjectMocks AuthController authController;
 
     private AuthResponseDto buildResponse(String email) {
+        // AuthResponseDto est un POJO avec @AllArgsConstructor Lombok
         return new AuthResponseDto(
             1L, "Test User", email, "+221770000001",
             LocalDateTime.now(), false, "jwt-token-xxx", "Bearer", Set.of("CLIENT")
@@ -55,7 +55,8 @@ class AuthControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().success()).isTrue();
-        assertThat(response.getBody().data().email()).isEqualTo("user@immosn.sn");
+        // AuthResponseDto est un POJO → getEmail() (pas email())
+        assertThat(response.getBody().data().getEmail()).isEqualTo("user@immosn.sn");
         verify(authService).register(req);
     }
 
@@ -70,7 +71,8 @@ class AuthControllerTest {
         var response = authController.login(req);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody().data().accessToken()).isEqualTo("jwt-token-xxx");
+        // AuthResponseDto est un POJO → getAccessToken() (pas accessToken())
+        assertThat(response.getBody().data().getAccessToken()).isEqualTo("jwt-token-xxx");
         verify(authService).login(req);
     }
 
