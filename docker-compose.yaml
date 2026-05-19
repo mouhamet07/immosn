@@ -1,11 +1,13 @@
 # ══════════════════════════════════════════════════════════
 # ImmoSN — Docker Compose production (PostgreSQL Neon)
 #
-# Prérequis : fichier .env à la racine avec DATABASE_URL et JWT_SECRET
-#   cp .env.example .env && nano .env
+# Prérequis : fichier .env à la racine
+#   cp .env.example .env
+#   # Renseigner DB_HOST, DB_NAME, DB_USER, DB_PASSWORD, JWT_SECRET
 #
 # Utilisation :
 #   docker compose up --build -d
+#   docker compose logs -f backend   # surveiller le démarrage
 # ══════════════════════════════════════════════════════════
 
 services:
@@ -19,14 +21,29 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: neon
       SERVER_PORT: 8080
-    ports:
-      - "8080:8080"
+      # Surcharger explicitement pour éviter toute ambiguïté avec l'env hôte
+      DB_HOST: ${DB_HOST}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
+      DDL_AUTO: ${DDL_AUTO:-update}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost}
+      SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL:-superadmin@immosn.sn}
+      SUPER_ADMIN_PASSWORD: ${SUPER_ADMIN_PASSWORD}
+      SUPER_ADMIN_NOM: ${SUPER_ADMIN_NOM:-Super Administrateur}
+      SUPER_ADMIN_TELEPHONE: ${SUPER_ADMIN_TELEPHONE:-+221770000000}
+      CONTRAT_EXPIRATION_CRON: ${CONTRAT_EXPIRATION_CRON:-0 5 0 * * *}
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/v1/annonces"]
-      interval: 30s
-      timeout: 10s
+      # --spider envoie HEAD — SecurityConfig n'autorise que GET → 403 → exit=8 unhealthy
+      # -O /dev/null envoie GET → 200 → exit=0 healthy
+      test: ["CMD", "wget", "--quiet", "--tries=1", "-O", "/dev/null", "http://localhost:8080/api/v1/annonces"]
+      interval: 20s
+      timeout: 15s
       retries: 5
       start_period: 60s
 

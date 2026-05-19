@@ -5,7 +5,20 @@
       "Bash(Start-Process \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe\")",
       "PowerShell(docker context ls 2>&1)",
       "PowerShell(docker context use default)",
-      "PowerShell(Get-Process \"Docker Desktop\" -ErrorAction SilentlyContinue)"
+      "PowerShell(Get-Process \"Docker Desktop\" -ErrorAction SilentlyContinue)",
+      "Bash(echo \"DOCKER_ERROR: $?\")",
+      "Bash(python -c \"import sys,json; h=json.load\\(sys.stdin\\); print\\('Status:', h['Status']\\); [print\\(f'[{l[\\\\\"Start\\\\\"]}] Exit={l[\\\\\"ExitCode\\\\\"]} Output={l[\\\\\"Output\\\\\"][:300]}'\\) for l in h.get\\('Log',[]\\)]\")",
+      "Bash(python -c \"import sys,json; s=json.load\\(sys.stdin\\); print\\('Status:', s.get\\('Status'\\)\\); print\\('Error:', s.get\\('Error'\\)\\); print\\('ExitCode:', s.get\\('ExitCode'\\)\\)\")",
+      "Bash(docker exec *)",
+      "Bash(echo \"Exit: $?\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code} — %{url_effective}\\\\n\" \"http://localhost/\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code} — %{url_effective}\\\\n\" \"http://localhost/api/v1/annonces\")",
+      "Bash(curl -s \"http://localhost/\")",
+      "Bash(curl -s \"http://localhost/api/v1/annonces\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('totalElements:', d['totalElements'], '| pages:', d['totalPages'], '| OK: API fonctionnelle'\\)\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"http://localhost/admin/dashboard\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"http://localhost/connexion\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"http://localhost/api/v1/auth/login\" -X POST -H \"Content-Type: application/json\" -d '{\"email\":\"test@test.com\",\"motDePasse\":\"wrong\"}')"
     ]
   }
 }

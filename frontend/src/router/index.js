@@ -110,7 +110,7 @@ router.beforeEach((to) => {
     return { name: 'annonces' }
   }
 
-  if (to.meta.role === 'CLIENT' && authStore.role === 'ADMIN') {
+  if (to.meta.role === 'CLIENT' && (authStore.role === 'ADMIN' || authStore.role === 'SUPER_ADMIN')) {
     return { name: 'admin-dashboard' }
   }
 

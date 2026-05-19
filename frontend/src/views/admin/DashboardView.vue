@@ -1,6 +1,28 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, defineComponent, h } from 'vue'
 import dashboardService from '@/services/dashboardService'
+
+// Composant icône SVG inline — remplace les emojis
+const SVGS = {
+  building:  `<path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-4h6v4"/>`,
+  user:      `<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>`,
+  calendar:  `<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>`,
+  document:  `<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>`,
+  target:    `<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>`,
+  alert:     `<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>`,
+  chat:      `<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>`,
+  people:    `<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>`,
+}
+const DashIcon = defineComponent({
+  props: { name: String },
+  setup(props) {
+    return () => h('svg', {
+      viewBox: '0 0 24 24', fill: 'none',
+      stroke: 'currentColor', 'stroke-width': '2',
+      innerHTML: SVGS[props.name] ?? SVGS.document,
+    })
+  },
+})
 
 const loading = ref(true)
 const error   = ref('')
@@ -23,20 +45,20 @@ const statCards = computed(() => {
   if (!stats.value) return []
   const s = stats.value
   return [
-    { icon: '🏠', label: 'Annonces actives',    value: s.annoncesActives,      total: s.totalAnnonces,        color: 'primary', to: '/admin/annonces' },
-    { icon: '👤', label: 'Clients',              value: s.totalClients,         total: null,                   color: 'blue',    to: null },
-    { icon: '📅', label: 'Visites en attente',   value: s.visitesEnAttente,     total: s.totalVisites,         color: 'orange',  to: '/admin/visites' },
-    { icon: '📄', label: 'Contrats actifs',      value: s.contratsActifs,       total: s.totalContrats,        color: 'green',   to: '/admin/contrats' },
-    { icon: '🎯', label: 'Leads en cours',       value: s.leadsEnCours,         total: s.totalLeads,           color: 'purple',  to: '/admin/leads' },
-    { icon: '🔧', label: 'Signalements ouverts', value: s.signalementsOuverts,  total: s.totalSignalements,    color: 'red',     to: '/admin/signalements' },
-    { icon: '💬', label: 'Discussions',          value: s.totalDiscussions,     total: null,                   color: 'teal',    to: '/admin/messages' },
-    { icon: '👥', label: 'Administrateurs',      value: s.totalAdmins,          total: null,                   color: 'gray',    to: '/admin/administrateurs' },
+    { icon: 'building',     label: 'Annonces actives',    value: s.annoncesActives,      total: s.totalAnnonces,        color: 'primary', to: '/admin/annonces' },
+    { icon: 'user',         label: 'Clients',              value: s.totalClients,         total: null,                   color: 'blue',    to: null },
+    { icon: 'calendar',     label: 'Visites en attente',   value: s.visitesEnAttente,     total: s.totalVisites,         color: 'orange',  to: '/admin/visites' },
+    { icon: 'document',     label: 'Contrats actifs',      value: s.contratsActifs,       total: s.totalContrats,        color: 'green',   to: '/admin/contrats' },
+    { icon: 'target',       label: 'Leads en cours',       value: s.leadsEnCours,         total: s.totalLeads,           color: 'purple',  to: '/admin/leads' },
+    { icon: 'alert',        label: 'Signalements ouverts', value: s.signalementsOuverts,  total: s.totalSignalements,    color: 'red',     to: '/admin/signalements' },
+    { icon: 'chat',         label: 'Discussions',          value: s.totalDiscussions,     total: null,                   color: 'teal',    to: '/admin/messages' },
+    { icon: 'people',       label: 'Administrateurs',      value: s.totalAdmins,          total: null,                   color: 'gray',    to: '/admin/administrateurs' },
   ]
 })
 
 const recentActivities = computed(() => stats.value?.activitesRecentes ?? [])
 
-const ACTIVITY_ICONS  = { ANNONCE: '🏠', VISITE: '📅', CONTRAT: '📄', SIGNALEMENT: '🔧', CLIENT: '👤' }
+const ACTIVITY_ICONS  = { ANNONCE: 'building', VISITE: 'calendar', CONTRAT: 'document', SIGNALEMENT: 'alert', CLIENT: 'user' }
 const STATUT_COLORS   = {
   ACTIVE: 'badge--success', EN_ATTENTE: 'badge--warning', ACCEPTEE: 'badge--success',
   REFUSEE: 'badge--danger', ACTIF: 'badge--success', RESILIE: 'badge--danger',
@@ -61,12 +83,12 @@ function formatDate(dt) {
 }
 
 const shortcuts = [
-  { icon: '🏠', label: 'Publier une annonce', to: '/admin/annonces/publier' },
-  { icon: '📅', label: 'Gérer les visites',   to: '/admin/visites' },
-  { icon: '🎯', label: 'Voir les leads',       to: '/admin/leads' },
-  { icon: '📄', label: 'Voir les contrats',    to: '/admin/contrats' },
-  { icon: '🔧', label: 'Signalements SAV',     to: '/admin/signalements' },
-  { icon: '💬', label: 'Messagerie',           to: '/admin/messages' },
+  { icon: 'building', label: 'Publier une annonce', to: '/admin/annonces/publier' },
+  { icon: 'calendar', label: 'Gérer les visites',   to: '/admin/visites' },
+  { icon: 'target',   label: 'Voir les leads',       to: '/admin/leads' },
+  { icon: 'document', label: 'Voir les contrats',    to: '/admin/contrats' },
+  { icon: 'alert',    label: 'Signalements SAV',     to: '/admin/signalements' },
+  { icon: 'chat',     label: 'Messagerie',           to: '/admin/messages' },
 ]
 </script>
 
@@ -102,7 +124,9 @@ const shortcuts = [
           class="stat-card"
           :class="`stat-card--${card.color}`"
         >
-          <div class="stat-card__icon">{{ card.icon }}</div>
+          <div class="stat-card__icon">
+            <DashIcon :name="card.icon" />
+          </div>
           <div class="stat-card__body">
             <div class="stat-card__row">
               <span class="stat-card__value">{{ card.value?.toLocaleString('fr-FR') }}</span>
@@ -124,7 +148,9 @@ const shortcuts = [
           <p v-if="!recentActivities.length" class="dash__empty">Aucune activité récente.</p>
           <ul v-else class="activity-list">
             <li v-for="(a, i) in recentActivities" :key="i" class="activity-item">
-              <span class="activity-item__icon">{{ ACTIVITY_ICONS[a.type] ?? '📋' }}</span>
+              <span class="activity-item__icon">
+                <DashIcon :name="ACTIVITY_ICONS[a.type] ?? 'document'" />
+              </span>
               <div class="activity-item__body">
                 <p class="activity-item__title">{{ a.titre }}</p>
                 <p class="activity-item__desc">{{ a.description }}</p>
@@ -146,7 +172,9 @@ const shortcuts = [
           </div>
           <div class="shortcuts-grid">
             <RouterLink v-for="s in shortcuts" :key="s.to" :to="s.to" class="shortcut-card">
-              <span class="shortcut-card__icon">{{ s.icon }}</span>
+              <span class="shortcut-card__icon">
+                <DashIcon :name="s.icon" />
+              </span>
               <span class="shortcut-card__label">{{ s.label }}</span>
             </RouterLink>
           </div>
@@ -180,7 +208,8 @@ const shortcuts = [
   transition: transform .15s, box-shadow .15s;
 }
 .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-card-hover); }
-.stat-card__icon  { font-size: 1.75rem; flex-shrink: 0; }
+.stat-card__icon  { width: 2rem; height: 2rem; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.stat-card__icon svg { width: 1.5rem; height: 1.5rem; }
 .stat-card__body  { min-width: 0; }
 .stat-card__row   { display: flex; align-items: baseline; gap: .25rem; }
 .stat-card__value { font-size: 1.4rem; font-weight: 800; color: var(--color-text); line-height: 1; }
@@ -210,7 +239,8 @@ const shortcuts = [
 .activity-item { display: flex; align-items: center; gap: .9rem; padding: .85rem 1.25rem; border-bottom: 1px solid var(--color-border); transition: background .12s; }
 .activity-item:last-child { border-bottom: none; }
 .activity-item:hover { background: var(--color-background); }
-.activity-item__icon { font-size: 1.1rem; flex-shrink: 0; width: 24px; text-align: center; }
+.activity-item__icon { flex-shrink: 0; width: 24px; display: flex; align-items: center; justify-content: center; }
+.activity-item__icon svg { width: 16px; height: 16px; stroke: var(--color-text-muted); }
 .activity-item__body { flex: 1; min-width: 0; }
 .activity-item__title { font-size: .88rem; font-weight: 600; color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .activity-item__desc  { font-size: .75rem; color: var(--color-text); opacity: .5; }
@@ -227,7 +257,8 @@ const shortcuts = [
 .shortcut-card:nth-child(even) { border-right: none; }
 .shortcut-card:nth-last-child(-n+2) { border-bottom: none; }
 .shortcut-card:hover { background: var(--color-background); }
-.shortcut-card__icon  { font-size: 1.4rem; }
+.shortcut-card__icon  { width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center; color: var(--color-primary); }
+.shortcut-card__icon svg { width: 1.25rem; height: 1.25rem; }
 .shortcut-card__label { font-size: .75rem; font-weight: 600; color: var(--color-text); text-align: center; line-height: 1.3; }
 
 /* Badges */

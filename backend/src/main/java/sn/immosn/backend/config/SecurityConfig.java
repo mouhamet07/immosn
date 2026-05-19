@@ -47,6 +47,9 @@ public class SecurityConfig {
     @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:80}")
     private List<String> allowedOrigins;
 
+    @Value("${spring.h2.console.enabled:false}")
+    private boolean h2ConsoleEnabled;
+
     // ── Beans ──────────────────────────────────────────────────────────────
 
     @Bean
@@ -95,7 +98,13 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .headers(headers -> headers.frameOptions(frame -> frame.deny()))
+            .headers(headers -> headers.frameOptions(frame -> {
+                if (h2ConsoleEnabled) {
+                    frame.sameOrigin();
+                } else {
+                    frame.deny();
+                }
+            }))
             .authorizeHttpRequests(authz -> authz
 
                 // ── Auth : public ───────────────────────────────────────
