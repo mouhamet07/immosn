@@ -117,7 +117,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET,  "/api/v1/annonces/{id}").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/annonces/search").permitAll()
                 .requestMatchers(HttpMethod.GET,  "/api/v1/commodites").permitAll()
-                .requestMatchers(HttpMethod.GET,  "/api/v1/type-bien").permitAll()
+                .requestMatchers(HttpMethod.GET,  "/api/v1/commodites/paged").permitAll()
+                .requestMatchers(HttpMethod.GET,  "/api/v1/types-bien").permitAll()
+                .requestMatchers(HttpMethod.GET,  "/api/v1/types-bien/paged").permitAll()
 
                 // ── Mutations annonces : ADMIN ou SUPER_ADMIN ───────────
                 .requestMatchers(HttpMethod.POST,   "/api/v1/annonces").hasAnyRole("ADMIN", "SUPER_ADMIN")
@@ -130,10 +132,10 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT,    "/api/v1/commodites/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/commodites/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers(HttpMethod.PATCH,  "/api/v1/commodites/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                .requestMatchers(HttpMethod.POST,   "/api/v1/type-bien/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                .requestMatchers(HttpMethod.PUT,    "/api/v1/type-bien/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/v1/type-bien/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                .requestMatchers(HttpMethod.PATCH,  "/api/v1/type-bien/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.POST,   "/api/v1/types-bien/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.PUT,    "/api/v1/types-bien/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/v1/types-bien/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.PATCH,  "/api/v1/types-bien/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
 
                 // ── Gestion ADMIN : SUPER_ADMIN UNIQUEMENT ──────────────
                 // ADMIN ne peut PAS créer d'autres admins

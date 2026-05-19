@@ -21,15 +21,15 @@ async function handleLogout() {
     <!-- Liens de navigation -->
     <ul class="navbar__links">
       <li><RouterLink to="/annonces" class="navbar__link">Annonces</RouterLink></li>
-      <li><RouterLink to="/visites" class="navbar__link">Visites</RouterLink></li>
-      <li><RouterLink to="/contrats" class="navbar__link">Contrats</RouterLink></li>
-      <li><RouterLink to="/signalements" class="navbar__link">Signalements</RouterLink></li>
+      <li><RouterLink to="/mes-visites" class="navbar__link">Visites</RouterLink></li>
+      <li><RouterLink to="/mes-contrats" class="navbar__link">Contrats</RouterLink></li>
+      <li><RouterLink to="/discussions" class="navbar__link">Messages</RouterLink></li>
+      <li><RouterLink to="/mes-signalements" class="navbar__link">Signalements</RouterLink></li>
     </ul>
 
     <!-- Actions droite -->
     <div class="navbar__actions">
-      <button class="navbar__icon-btn" title="Favoris">❤️</button>
-      <button class="navbar__icon-btn" title="Notifications">🔔</button>
+      <RouterLink to="/favoris" class="navbar__icon-btn" title="Favoris">❤️</RouterLink>
 
       <template v-if="authStore.isAuthenticated">
         <RouterLink to="/profil" class="navbar__avatar" title="Profil">

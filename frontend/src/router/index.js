@@ -88,6 +88,8 @@ const router = createRouter({
         // Sprint 3 — Signalements admin
         { path: 'signalements', name: 'admin-signalements', component: () => import('@/views/admin/SignalementsAdminView.vue') },
 
+        { path: 'types-biens',  name: 'admin-types-biens',  component: () => import('@/views/admin/TypesBienView.vue') },
+        { path: 'commodites',   name: 'admin-commodites',   component: () => import('@/views/admin/CommoditesView.vue') },
         { path: 'administrateurs',         name: 'admin-admins',        component: () => import('@/views/admin/AdministrateursView.vue') },
         { path: 'administrateurs/ajouter', name: 'admin-ajouter-admin', component: () => import('@/views/admin/AjouterAdminView.vue') },
         { path: 'profil',    name: 'admin-profil',     component: () => import('@/views/admin/ProfilAdminView.vue') },

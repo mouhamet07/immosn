@@ -6,6 +6,7 @@ import ToastNotification from '@/components/admin/ToastNotification.vue'
 import annonceService from '@/services/annonceService'
 import commoditeService from '@/services/commoditeService'
 import typeBienService from '@/services/typeBienService'
+import { uploadImages } from '@/services/cloudinaryService'
 
 const router = useRouter()
 const toast = ref(null)
@@ -47,7 +48,10 @@ onMounted(async () => {
   }
 })
 
+// Fichiers File bruts conservés pour l'upload Cloudinary
+const photoFiles    = ref([])
 const photoPreviews = ref([])
+const uploadProgress = ref({ done: 0, total: 0 })
 
 function toggleCommodite(id) {
   const idx = form.commoditeIds.indexOf(id)
@@ -58,25 +62,34 @@ function toggleCommodite(id) {
 function handleFileUpload(e) {
   const files = Array.from(e.target.files)
   files.forEach(file => {
+    photoFiles.value.push(file)
     const reader = new FileReader()
-    reader.onload = ev => {
-      form.images.push(ev.target.result)
-      photoPreviews.value.push(ev.target.result)
-    }
+    reader.onload = ev => photoPreviews.value.push(ev.target.result)
     reader.readAsDataURL(file)
   })
 }
 
 function removePhoto(i) {
-  form.images.splice(i, 1)
+  photoFiles.value.splice(i, 1)
   photoPreviews.value.splice(i, 1)
 }
 
 const loading = ref(false)
 
 async function submit() {
+  if (!form.typeBienId) {
+    toast.value.show('Veuillez sélectionner un type de bien.', 'error')
+    return
+  }
   loading.value = true
   try {
+    let imageUrls = []
+    if (photoFiles.value.length) {
+      uploadProgress.value = { done: 0, total: photoFiles.value.length }
+      imageUrls = await uploadImages(photoFiles.value, (done, total) => {
+        uploadProgress.value = { done, total }
+      })
+    }
     await annonceService.createAnnonce({
       libelle:      form.libelle,
       description:  form.description,
@@ -86,14 +99,15 @@ async function submit() {
       adresse:      form.adresse,
       typeBienId:   form.typeBienId,
       commoditeIds: form.commoditeIds,
-      images:       form.images,
+      images:       imageUrls,
     })
     toast.value.show('Annonce publiée avec succès ✓', 'success')
     setTimeout(() => router.push('/admin/annonces'), 1200)
   } catch (err) {
-    toast.value.show(err.response?.data?.message || 'Données invalides. Vérifiez les champs saisis.', 'error')
+    toast.value.show(err.response?.data?.message || err.message || 'Données invalides. Vérifiez les champs saisis.', 'error')
   } finally {
     loading.value = false
+    uploadProgress.value = { done: 0, total: 0 }
   }
 }
 </script>
@@ -230,7 +244,11 @@ async function submit() {
             Continuer vers la fiche finale
           </button>
           <button v-else type="button" class="btn-next" :disabled="loading" @click="submit">
-            {{ loading ? 'Publication...' : "Publier l'annonce" }}
+            <template v-if="loading && uploadProgress.total > 0">
+              Upload {{ uploadProgress.done }}/{{ uploadProgress.total }}...
+            </template>
+            <template v-else-if="loading">Publication...</template>
+            <template v-else>Publier l'annonce</template>
           </button>
         </div>
       </div>
