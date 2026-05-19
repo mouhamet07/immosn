@@ -138,9 +138,10 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PATCH,  "/api/v1/types-bien/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
 
                 // ── Gestion ADMIN : SUPER_ADMIN UNIQUEMENT ──────────────
-                // ADMIN ne peut PAS créer d'autres admins
-                .requestMatchers(HttpMethod.POST, "/api/v1/auth/admin").hasRole("SUPER_ADMIN")
-                .requestMatchers(HttpMethod.GET,  "/api/v1/auth/admins").hasRole("SUPER_ADMIN")
+                // ADMIN ne peut PAS créer d'autres admins ni les archiver
+                .requestMatchers(HttpMethod.POST,  "/api/v1/auth/admin").hasRole("SUPER_ADMIN")
+                .requestMatchers(HttpMethod.GET,   "/api/v1/auth/admins").hasRole("SUPER_ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/api/v1/auth/admins/**").hasRole("SUPER_ADMIN")
 
                 // ── Dashboard : ADMIN ou SUPER_ADMIN ────────────────────
                 .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")

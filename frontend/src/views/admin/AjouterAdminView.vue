@@ -2,34 +2,39 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import ToastNotification from '@/components/admin/ToastNotification.vue'
-import api from '@/services/api'
+import authService from '@/services/authService'
 
 const router = useRouter()
 const toast = ref(null)
 
 const form = reactive({
-  nomComplet:  '',
-  email:       '',
-  permission:  'ADMIN',
-  motDePasse:  '',
+  nomComplet: '',
+  email:      '',
+  telephone:  '',
+  motDePasse: '',
 })
 
 const showPassword = ref(false)
 const loading = ref(false)
-const errors = reactive({ nomComplet: '', email: '', motDePasse: '' })
+const errors = reactive({ nomComplet: '', email: '', telephone: '', motDePasse: '' })
 
 function validate() {
   let valid = true
   errors.nomComplet = ''
   errors.email      = ''
+  errors.telephone  = ''
   errors.motDePasse = ''
 
   if (!form.nomComplet.trim()) {
     errors.nomComplet = 'Le nom complet est requis.'
     valid = false
   }
-  if (!form.email.includes('@')) {
+  if (!form.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
     errors.email = 'Adresse e-mail invalide.'
+    valid = false
+  }
+  if (!form.telephone.trim()) {
+    errors.telephone = 'Le numéro de téléphone est requis.'
     valid = false
   }
   if (form.motDePasse.length < 8) {
@@ -43,16 +48,17 @@ async function handleSubmit() {
   if (!validate()) return
   loading.value = true
   try {
-    await api.post('/admins', {
+    await authService.createAdmin({
       nomComplet: form.nomComplet,
       email:      form.email,
-      role:       form.permission,
+      telephone:  form.telephone,
       motDePasse: form.motDePasse,
     })
     toast.value.show('Administrateur ajouté avec succès.', 'success')
     setTimeout(() => router.push('/admin/administrateurs'), 1200)
   } catch (err) {
-    toast.value.show(err.response?.data?.message || 'Erreur lors de la création.', 'error')
+    const msg = err.response?.data?.message || err.response?.data?.data?.email || 'Erreur lors de la création.'
+    toast.value.show(msg, 'error')
   } finally {
     loading.value = false
   }
@@ -104,13 +110,17 @@ async function handleSubmit() {
           <span v-if="errors.email" class="field__error">{{ errors.email }}</span>
         </div>
 
-        <!-- Niveau de permission -->
+        <!-- Téléphone -->
         <div class="field">
-          <label class="field__label">NIVEAU DE PERMISSION <span class="required">*</span></label>
-          <select v-model="form.permission" class="field__input">
-            <option value="ADMIN">Admin</option>
-            <option value="SUPER_ADMIN">Super Admin</option>
-          </select>
+          <label class="field__label">TÉLÉPHONE <span class="required">*</span></label>
+          <input
+            v-model="form.telephone"
+            type="tel"
+            class="field__input"
+            :class="{ 'field__input--error': errors.telephone }"
+            placeholder="ex. +221 77 000 00 00"
+          />
+          <span v-if="errors.telephone" class="field__error">{{ errors.telephone }}</span>
         </div>
 
         <!-- Mot de passe -->
@@ -124,8 +134,9 @@ async function handleSubmit() {
               :class="{ 'field__input--error': errors.motDePasse }"
               placeholder="••••••••"
             />
-            <button type="button" class="field__eye" @click="showPassword = !showPassword">
-              {{ showPassword ? '🙈' : '👁️' }}
+            <button type="button" class="field__eye" @click="showPassword = !showPassword" :title="showPassword ? 'Masquer' : 'Afficher'">
+              <svg v-if="showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
           </div>
           <span v-if="errors.motDePasse" class="field__error">{{ errors.motDePasse }}</span>
@@ -146,7 +157,9 @@ async function handleSubmit() {
       <!-- Info box -->
       <div class="info-box">
         <div class="info-box__header">
-          <span class="info-box__icon">ℹ️</span>
+          <span class="info-box__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </span>
           <h3 class="info-box__title">Privilèges d'administration</h3>
         </div>
         <p class="info-box__text">

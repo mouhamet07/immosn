@@ -14,7 +14,7 @@ import sn.immosn.backend.shared.response.RestResponse;
 @RestController
 @RequestMapping("/api/v1/admin/dashboard")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
 public class DashboardController {
 
     private final DashboardService dashboardService;

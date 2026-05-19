@@ -1,10 +1,11 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import ConfirmModal from '@/components/admin/ConfirmModal.vue'
 import ToastNotification from '@/components/admin/ToastNotification.vue'
 import { usePagination } from '@/composables/usePagination'
 import annonceService from '@/services/annonceService'
+import typeBienService from '@/services/typeBienService'
 
 const router = useRouter()
 const toast = ref(null)
@@ -12,6 +13,17 @@ const toast = ref(null)
 const annonces = ref([])
 const loading = ref(true)
 const confirmId = ref(null)
+
+// Filtre actif/archivé/tous
+const filtreStatut = ref('tous') // 'tous' | 'actif' | 'archive'
+const annoncesFiltrees = computed(() => {
+  if (filtreStatut.value === 'actif')   return annonces.value.filter(a => !a.archived)
+  if (filtreStatut.value === 'archive') return annonces.value.filter(a => a.archived)
+  return annonces.value
+})
+
+// Types de biens chargés pour le select dans la modal
+const typesBien = ref([])
 
 // Modal de modification
 const editModal = ref(false)
@@ -29,7 +41,7 @@ const editForm = ref({
   images: [],
 })
 
-const { currentPage, totalPages, paginated, rangeLabel, prev, next } = usePagination(annonces, 6)
+const { currentPage, totalPages, paginated, rangeLabel, prev, next } = usePagination(annoncesFiltrees, 6)
 
 function formatPrix(p) {
   return new Intl.NumberFormat('fr-FR').format(p) + ' FCFA'
@@ -39,14 +51,16 @@ function formatDate(d) {
   return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-// Récupérer toutes les annonces admin — GET /api/v1/annonces/admin
 onMounted(async () => {
   try {
-    const res = await annonceService.getAllAnnoncesAdmin()
-    // Structure PagedResponse: { data, totalElements, ... }
-    annonces.value = res.data.data
+    const [resAnnonces, resTypes] = await Promise.all([
+      annonceService.getAllAnnoncesAdmin(),
+      typeBienService.getAllTypesBien(),
+    ])
+    annonces.value = resAnnonces.data.data
+    typesBien.value = resTypes.data.data ?? []
   } catch {
-    toast.value.show('Erreur lors du chargement des annonces.', 'error')
+    toast.value?.show('Erreur lors du chargement des annonces.', 'error')
   } finally {
     loading.value = false
   }
@@ -97,14 +111,15 @@ async function sauvegarderModification() {
   }
 }
 
-// Archiver une annonce — DELETE /api/v1/annonces/{id}
+// Archiver une annonce — met à jour l'état local sans retirer de la liste
 async function archiver() {
   try {
     await annonceService.archiveAnnonce(confirmId.value)
-    annonces.value = annonces.value.filter(a => a.id !== confirmId.value)
+    const idx = annonces.value.findIndex(a => a.id === confirmId.value)
+    if (idx !== -1) annonces.value[idx].archived = true
     toast.value.show('Annonce archivée.', 'success')
-  } catch {
-    toast.value.show("Erreur lors de l'archivage.", 'error')
+  } catch (err) {
+    toast.value.show(err.response?.data?.message || "Erreur lors de l'archivage.", 'error')
   } finally {
     confirmId.value = null
   }
@@ -117,8 +132,8 @@ async function restaurer(id) {
     const idx = annonces.value.findIndex(a => a.id === id)
     if (idx !== -1) annonces.value[idx].archived = false
     toast.value.show('Annonce restaurée avec succès.', 'success')
-  } catch {
-    toast.value.show('Erreur lors de la restauration.', 'error')
+  } catch (err) {
+    toast.value.show(err.response?.data?.message || 'Erreur lors de la restauration.', 'error')
   }
 }
 </script>
@@ -164,8 +179,13 @@ async function restaurer(id) {
               <input v-model="editForm.nbrPieces" type="number" class="field__input" />
             </div>
             <div class="field">
-              <label class="field__label">TYPE DE BIEN (ID)</label>
-              <input v-model="editForm.typeBienId" type="number" class="field__input" />
+              <label class="field__label">TYPE DE BIEN <span class="req">*</span></label>
+              <select v-model="editForm.typeBienId" class="field__input">
+                <option :value="null">Sélectionner un type...</option>
+                <option v-for="type in typesBien" :key="type.id" :value="type.id">
+                  {{ type.libelle }}
+                </option>
+              </select>
             </div>
           </div>
           <div class="field">
@@ -189,9 +209,16 @@ async function restaurer(id) {
         <h1 class="page-header__title">Annonces</h1>
         <p class="page-header__subtitle">Gérez toutes les annonces de la plateforme.</p>
       </div>
-      <button class="btn-add" @click="router.push('/admin/annonces/publier')">
-        + Publier une annonce
-      </button>
+      <div class="page-header__actions">
+        <div class="filter-tabs">
+          <button class="filter-tab" :class="{ 'filter-tab--active': filtreStatut === 'tous' }"    @click="filtreStatut = 'tous'">Toutes</button>
+          <button class="filter-tab" :class="{ 'filter-tab--active': filtreStatut === 'actif' }"   @click="filtreStatut = 'actif'">Actives</button>
+          <button class="filter-tab" :class="{ 'filter-tab--active': filtreStatut === 'archive' }" @click="filtreStatut = 'archive'">Archivées</button>
+        </div>
+        <button class="btn-add" @click="router.push('/admin/annonces/publier')">
+          + Publier une annonce
+        </button>
+      </div>
     </div>
 
     <!-- Skeleton -->
@@ -255,7 +282,7 @@ async function restaurer(id) {
           <tr v-if="paginated.length === 0">
             <td colspan="7" class="empty-state">
               <div class="empty-state__content">
-                <span>🏠</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40" style="color:#9ca3af"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-4h6v4"/></svg>
                 <p>Aucune annonce trouvée.</p>
               </div>
             </td>
@@ -287,6 +314,36 @@ async function restaurer(id) {
 
 .page-header__title { font-size: 1.5rem; font-weight: 800; color: var(--color-text); }
 .page-header__subtitle { font-size: 0.88rem; color: var(--color-text); opacity: 0.6; margin-top: 0.25rem; }
+
+.page-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.filter-tabs {
+  display: flex;
+  background: var(--color-background);
+  border: 1px solid var(--color-border-solid);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+
+.filter-tab {
+  padding: 0.35rem 0.85rem;
+  border-radius: 4px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.filter-tab:hover { color: var(--color-text); }
+.filter-tab--active { background: var(--color-card); color: var(--color-text); font-weight: 600; box-shadow: 0 1px 4px rgba(45,55,72,.1); }
 
 .btn-add {
   background: var(--color-primary);

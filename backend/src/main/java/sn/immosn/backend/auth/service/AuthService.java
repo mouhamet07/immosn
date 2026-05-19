@@ -113,6 +113,17 @@ public class AuthService {
             .map(user -> authMapper.toAuthResponseDto(user, null));
     }
 
+    // ── Archivage utilisateur (SUPER_ADMIN) ─────────────────
+
+    @Transactional
+    public void archiveUser(Long id) {
+        User user = userRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Utilisateur introuvable : " + id));
+        user.setArchived(true);
+        userRepository.save(user);
+        log.info("Utilisateur archivé par SUPER_ADMIN : id={}", id);
+    }
+
     // ── Helpers ─────────────────────────────────────────────
 
     private Role loadRole(RoleType type) {

@@ -108,7 +108,7 @@ const shortcuts = [
 
     <div v-if="loading" class="dash__loading">
       <div class="spinner"></div>
-      <p>Chargement des statistiques…</p>
+      <p>Chargement des statistiques&hellip;</p>
     </div>
 
     <div v-else-if="error" class="dash__error">{{ error }}</div>
