@@ -13,11 +13,27 @@ import java.util.Optional;
 @Repository
 public interface DiscussionRepository extends JpaRepository<Discussion, Long> {
 
-    // Discussions d'un client spécifique, triées par date décroissante
-    Page<Discussion> findByClientIdOrderByCreatedAtDesc(Long clientId, Pageable pageable);
+    // Discussions d'un client, triées par date du dernier message (plus récent en premier)
+    @Query("""
+        SELECT d FROM Discussion d
+        WHERE d.client.id = :clientId
+        ORDER BY (
+            SELECT COALESCE(MAX(m.createdAt), d.createdAt)
+            FROM Message m WHERE m.discussion = d
+        ) DESC
+        """)
+    Page<Discussion> findByClientIdOrderByLastMessageDesc(
+            @Param("clientId") Long clientId, Pageable pageable);
 
-    // Toutes les discussions (admin), triées par date décroissante
-    Page<Discussion> findAllByOrderByCreatedAtDesc(Pageable pageable);
+    // Toutes les discussions (admin), triées par date du dernier message (plus récent en premier)
+    @Query("""
+        SELECT d FROM Discussion d
+        ORDER BY (
+            SELECT COALESCE(MAX(m.createdAt), d.createdAt)
+            FROM Message m WHERE m.discussion = d
+        ) DESC
+        """)
+    Page<Discussion> findAllOrderByLastMessageDesc(Pageable pageable);
 
     // Vérifier si une discussion existe déjà entre un client et une annonce
     Optional<Discussion> findByClientIdAndAnnonceId(Long clientId, Long annonceId);

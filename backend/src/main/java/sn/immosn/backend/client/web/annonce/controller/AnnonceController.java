@@ -82,6 +82,10 @@ public class AnnonceController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<RestResponse<AnnonceResponseDto>> getById(@PathVariable Long id) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant d'annonce invalide", null));
+        }
         return ResponseEntity
             .status(HttpStatus.OK)
             .body(RestResponse.success(annonceService.getAnnonceById(id), HttpStatus.OK));
@@ -96,6 +100,10 @@ public class AnnonceController {
     public ResponseEntity<RestResponse<AnnonceResponseDto>> update(
         @PathVariable Long id,
         @RequestBody @Valid AnnonceUpdateRequestDto request) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant d'annonce invalide", null));
+        }
         return ResponseEntity
             .status(HttpStatus.OK)
             .body(RestResponse.success(annonceService.updateAnnonce(id, request), HttpStatus.OK));
@@ -109,6 +117,10 @@ public class AnnonceController {
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<RestResponse<Void>> archive(@PathVariable Long id) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant d'annonce invalide", null));
+        }
         annonceService.archiveAnnonce(id);
         return ResponseEntity
             .status(HttpStatus.NO_CONTENT)
@@ -122,6 +134,10 @@ public class AnnonceController {
      */
     @PatchMapping("/{id}/restore")
     public ResponseEntity<RestResponse<Void>> restore(@PathVariable Long id) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant d'annonce invalide", null));
+        }
         annonceService.restoreAnnonce(id);
         return ResponseEntity
             .status(HttpStatus.NO_CONTENT)

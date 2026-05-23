@@ -15,4 +15,5 @@ public interface TypeBienAnnonceService {
     TypeBienResponseDto getTypeBienById(Long id);
     TypeBienResponseDto updateTypeBien(Long id, TypeBienRequestDto request);
     void archiveTypeBien(Long id);
+    TypeBienResponseDto restoreTypeBien(Long id);
 }

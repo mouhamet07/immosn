@@ -16,8 +16,10 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     // Messages d'une discussion, triés chronologiquement
     List<Message> findByDiscussionIdOrderByCreatedAtAsc(Long discussionId);
 
-    // Marquer tous les messages non lus comme lus (par rôle opposé)
-    @Modifying
+    // Marquer tous les messages non lus comme lus (par rôle opposé).
+    // clearAutomatically = true : invalide le cache L1 Hibernate après le bulk UPDATE
+    // pour que le rechargement ultérieur reflète les nouvelles valeurs isRead.
+    @Modifying(clearAutomatically = true)
     @Query("""
         UPDATE Message m SET m.isRead = true
         WHERE m.discussion.id = :discussionId

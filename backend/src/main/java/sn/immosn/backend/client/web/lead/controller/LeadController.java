@@ -40,6 +40,10 @@ public class LeadController {
 
     @GetMapping("/{id}")
     public ResponseEntity<RestResponse<LeadResponseDto>> getById(@PathVariable Long id) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de lead invalide", null));
+        }
         return ResponseEntity.ok(RestResponse.success(service.getById(id), HttpStatus.OK));
     }
 
@@ -47,6 +51,10 @@ public class LeadController {
     public ResponseEntity<RestResponse<LeadResponseDto>> updateStatut(
             @PathVariable Long id,
             @RequestBody @Valid UpdateStatutLeadDto dto) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de lead invalide", null));
+        }
         return ResponseEntity.ok(RestResponse.success(service.updateStatut(id, dto), HttpStatus.OK));
     }
 }

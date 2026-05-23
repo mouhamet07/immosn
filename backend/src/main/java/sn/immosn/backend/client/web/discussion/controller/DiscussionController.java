@@ -33,6 +33,10 @@ public class DiscussionController {
     public ResponseEntity<RestResponse<DiscussionResponseDto>> createOrGet(
             @RequestBody @Valid DiscussionCreateRequestDto request,
             Principal principal) {
+        if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(RestResponse.error("Vous devez être connecté", HttpStatus.UNAUTHORIZED));
+        }
         DiscussionResponseDto dto = discussionService.createOrGetDiscussion(request, principal.getName());
         return ResponseEntity
             .status(HttpStatus.CREATED)
@@ -56,10 +60,10 @@ public class DiscussionController {
 
     /**
      * GET /api/v1/discussions/admin
-     * Toutes les discussions (ADMIN uniquement)
+     * Toutes les discussions (ADMIN ou SUPER_ADMIN)
      */
     @GetMapping("/admin")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<PagedResponse<DiscussionListDto>> getAllDiscussions(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
@@ -76,6 +80,14 @@ public class DiscussionController {
     public ResponseEntity<RestResponse<DiscussionResponseDto>> getMessages(
             @PathVariable Long id,
             Principal principal) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de discussion invalide", null));
+        }
+        if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(RestResponse.error("Vous devez être connecté", HttpStatus.UNAUTHORIZED));
+        }
         boolean isAdmin = isAdmin(principal);
         DiscussionResponseDto dto = discussionService.getDiscussion(id, principal.getName(), isAdmin);
         return ResponseEntity.ok(RestResponse.success(dto, HttpStatus.OK));
@@ -90,6 +102,14 @@ public class DiscussionController {
             @PathVariable Long id,
             @RequestBody @Valid MessageCreateRequestDto request,
             Principal principal) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de discussion invalide", null));
+        }
+        if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(RestResponse.error("Vous devez être connecté", HttpStatus.UNAUTHORIZED));
+        }
         boolean isAdmin = isAdmin(principal);
         MessageResponseDto dto = discussionService.sendMessage(id, request, principal.getName(), isAdmin);
         return ResponseEntity
@@ -98,9 +118,9 @@ public class DiscussionController {
     }
 
     private boolean isAdmin(Principal principal) {
-        org.springframework.security.core.Authentication auth =
-            (org.springframework.security.core.Authentication) principal;
+        var auth = (org.springframework.security.core.Authentication) principal;
         return auth.getAuthorities().stream()
-            .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+            .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")
+                       || a.getAuthority().equals("ROLE_SUPER_ADMIN"));
     }
 }

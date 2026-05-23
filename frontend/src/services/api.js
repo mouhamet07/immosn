@@ -28,10 +28,13 @@ api.interceptors.response.use(
     const message = error.response?.data?.message ?? error.message
 
     if (status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('role')
-      delete api.defaults.headers.common['Authorization']
-      router.push({ name: 'connexion' })
+      const isLoginRequest = error.config?.url?.includes('/auth/login')
+      if (!isLoginRequest) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('role')
+        delete api.defaults.headers.common['Authorization']
+        router.push({ name: 'connexion' })
+      }
     }
 
     // Enrichir l'erreur avec un message lisible

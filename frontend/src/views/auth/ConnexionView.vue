@@ -35,7 +35,9 @@ async function handleSubmit() {
     await authStore.login(form.email, form.motDePasse)
   } catch (err) {
     // Extraire le message depuis RestResponse<AuthResponseDto>
-    errors.global = err.response?.data?.message || err.response?.data?.data?.message || 'Email ou mot de passe incorrect.'
+    errors.global = err.response?.status === 401
+      ? 'Email ou mot de passe incorrect.'
+      : (err.response?.data?.message || 'Une erreur est survenue. Veuillez réessayer.')
   } finally {
     loading.value = false
   }

@@ -31,6 +31,10 @@ public class FavorisController {
     @PostMapping("/{annonceId}/toggle")
     public ResponseEntity<RestResponse<FavorisStatusDto>> toggle(
             @PathVariable Long annonceId, Principal principal) {
+        if (annonceId == null || annonceId <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant d'annonce invalide", null));
+        }
         FavorisStatusDto result = favorisService.toggle(annonceId, principal.getName());
         return ResponseEntity.ok(RestResponse.success(result, HttpStatus.OK));
     }
@@ -67,6 +71,10 @@ public class FavorisController {
     @GetMapping("/{annonceId}/check")
     public ResponseEntity<RestResponse<FavorisStatusDto>> check(
             @PathVariable Long annonceId, Principal principal) {
+        if (annonceId == null || annonceId <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant d'annonce invalide", null));
+        }
         return ResponseEntity.ok(
             RestResponse.success(favorisService.checkFavoris(annonceId, principal.getName()), HttpStatus.OK));
     }

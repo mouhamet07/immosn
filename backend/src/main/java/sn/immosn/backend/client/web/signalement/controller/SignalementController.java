@@ -62,6 +62,10 @@ public class SignalementController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<RestResponse<SignalementResponseDto>> updateStatut(
             @PathVariable Long id, @RequestBody @Valid UpdateStatutSignalementDto dto) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de signalement invalide", null));
+        }
         return ResponseEntity.ok(RestResponse.success(service.updateStatut(id, dto), HttpStatus.OK));
     }
 
@@ -69,6 +73,10 @@ public class SignalementController {
     @PutMapping("/{id}/read")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<RestResponse<Void>> markAsRead(@PathVariable Long id) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de signalement invalide", null));
+        }
         service.markAsRead(id);
         return ResponseEntity.status(HttpStatus.NO_CONTENT)
             .body(RestResponse.success(null, HttpStatus.NO_CONTENT));

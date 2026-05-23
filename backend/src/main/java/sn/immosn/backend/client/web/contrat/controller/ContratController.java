@@ -60,6 +60,14 @@ public class ContratController {
     @GetMapping("/{id}")
     public ResponseEntity<RestResponse<ContratResponseDto>> getById(
             @PathVariable Long id, Principal principal) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de contrat invalide", null));
+        }
+        if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(RestResponse.error("Vous devez être connecté", HttpStatus.UNAUTHORIZED));
+        }
         boolean isAdmin = isAdmin(principal);
         return ResponseEntity.ok(RestResponse.success(
             service.getById(id, principal.getName(), isAdmin), HttpStatus.OK));
@@ -70,6 +78,10 @@ public class ContratController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<RestResponse<ContratResponseDto>> update(
             @PathVariable Long id, @RequestBody @Valid ContratUpdateRequestDto request) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de contrat invalide", null));
+        }
         return ResponseEntity.ok(RestResponse.success(service.update(id, request), HttpStatus.OK));
     }
 
@@ -78,6 +90,14 @@ public class ContratController {
     @PreAuthorize("hasRole('CLIENT')")
     public ResponseEntity<RestResponse<ContratResponseDto>> demanderResiliation(
             @PathVariable Long id, @RequestBody ContratActionDto dto, Principal principal) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de contrat invalide", null));
+        }
+        if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(RestResponse.error("Vous devez être connecté", HttpStatus.UNAUTHORIZED));
+        }
         return ResponseEntity.ok(RestResponse.success(
             service.demanderResiliation(id, dto, principal.getName()), HttpStatus.OK));
     }
@@ -87,6 +107,14 @@ public class ContratController {
     @PreAuthorize("hasRole('CLIENT')")
     public ResponseEntity<RestResponse<ContratResponseDto>> demanderProlongation(
             @PathVariable Long id, @RequestBody ContratActionDto dto, Principal principal) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de contrat invalide", null));
+        }
+        if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(RestResponse.error("Vous devez être connecté", HttpStatus.UNAUTHORIZED));
+        }
         return ResponseEntity.ok(RestResponse.success(
             service.demanderProlongation(id, dto, principal.getName()), HttpStatus.OK));
     }
