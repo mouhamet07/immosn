@@ -8,6 +8,7 @@ const currentPage = ref(0)
 const totalPages  = ref(1)
 const totalItems  = ref(0)
 const PAGE_SIZE   = 10
+const filtreStatut = ref('actifs')
 
 // Modal création / édition
 const showModal    = ref(false)
@@ -30,7 +31,10 @@ function notify(message, type = 'success') {
 async function fetchItems(page = 0) {
   loading.value = true
   try {
-    const res = await commoditeService.getAllCommoditesPaged({ page, size: PAGE_SIZE })
+    const params = { page, size: PAGE_SIZE }
+    if (filtreStatut.value === 'actifs')   params.archived = false
+    if (filtreStatut.value === 'archives') params.archived = true
+    const res = await commoditeService.getAllCommoditesPaged(params)
     items.value       = res.data.data
     currentPage.value = res.data.currentPage
     totalPages.value  = res.data.totalPages
@@ -40,6 +44,16 @@ async function fetchItems(page = 0) {
     notify('Erreur lors du chargement.', 'error')
   } finally {
     loading.value = false
+  }
+}
+
+async function restaurer(id) {
+  try {
+    await commoditeService.restoreCommodite(id)
+    notify('Commodité restaurée ✓')
+    await fetchItems(currentPage.value)
+  } catch (err) {
+    notify(err.response?.data?.message || 'Erreur lors de la restauration.', 'error')
   }
 }
 
@@ -112,7 +126,13 @@ onMounted(() => fetchItems(0))
         <h1 class="cm-toolbar__title">Commodités</h1>
         <p class="cm-toolbar__count">{{ totalItems }} commodité{{ totalItems !== 1 ? 's' : '' }}</p>
       </div>
-      <button class="btn-primary" @click="openCreate">+ Nouvelle commodité</button>
+      <div class="cm-toolbar__right">
+        <div class="cm-filter">
+          <button class="cm-filter__btn" :class="{ 'cm-filter__btn--active': filtreStatut === 'actifs' }" @click="filtreStatut = 'actifs'; fetchItems(0)">Actifs</button>
+          <button class="cm-filter__btn" :class="{ 'cm-filter__btn--active': filtreStatut === 'tous' }" @click="filtreStatut = 'tous'; fetchItems(0)">Tous</button>
+        </div>
+        <button class="btn-primary" @click="openCreate">+ Nouvelle commodité</button>
+      </div>
     </div>
 
     <!-- Tableau -->
@@ -139,8 +159,11 @@ onMounted(() => fetchItems(0))
               </span>
             </td>
             <td class="cm-actions">
-              <button class="btn-edit" @click="openEdit(item)">Modifier</button>
-              <button class="btn-delete" @click="confirmDelete(item.id)">Archiver</button>
+              <template v-if="!item.isArchived">
+                <button class="btn-edit" @click="openEdit(item)">Modifier</button>
+                <button class="btn-delete" @click="confirmDelete(item.id)">Archiver</button>
+              </template>
+              <button v-else class="btn-restore" @click="restaurer(item.id)">Restaurer</button>
             </td>
           </tr>
         </tbody>
@@ -199,17 +222,19 @@ onMounted(() => fetchItems(0))
 /* Toast */
 .cm-toast {
   position: fixed;
-  top: 1.5rem;
-  right: 1.5rem;
-  padding: 0.75rem 1.25rem;
-  border-radius: 8px;
-  font-size: 0.88rem;
+  bottom: 2rem;
+  right: 2rem;
+  padding: 0.85rem 1.5rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
   font-weight: 600;
   z-index: 200;
-  box-shadow: 0 4px 16px rgba(0,0,0,.15);
+  box-shadow: 0 8px 24px rgba(0,0,0,.18);
+  min-width: 260px;
+  max-width: 380px;
 }
-.cm-toast--success { background: #22c55e; color: #fff; }
-.cm-toast--error   { background: #ef4444; color: #fff; }
+.cm-toast--success { background: var(--color-primary); color: #fff; }
+.cm-toast--error   { background: var(--color-accent); color: #fff; }
 .fade-enter-active, .fade-leave-active { transition: opacity .25s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 
@@ -219,9 +244,21 @@ onMounted(() => fetchItems(0))
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
+  flex-wrap: wrap;
 }
 .cm-toolbar__title { font-size: 1.5rem; font-weight: 800; color: var(--color-text); }
 .cm-toolbar__count { font-size: 0.85rem; color: #6b7280; margin-top: 0.2rem; }
+.cm-toolbar__right { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+
+.cm-filter { display: flex; border: 1px solid var(--color-border); border-radius: var(--radius-sm); overflow: hidden; }
+.cm-filter__btn {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.82rem; font-weight: 600;
+  background: var(--color-card); color: var(--color-text-muted);
+  border: none; cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+.cm-filter__btn:hover { background: var(--color-hover-row); color: var(--color-text); }
+.cm-filter__btn--active { background: var(--color-primary); color: #fff; }
 
 /* Card */
 .cm-card {
@@ -381,6 +418,19 @@ onMounted(() => fetchItems(0))
 }
 .btn-delete:hover:not(:disabled) { background: rgba(239,68,68,.1); }
 .btn-delete:disabled { opacity: .6; cursor: not-allowed; }
+
+.btn-restore {
+  padding: 0.35rem 0.75rem;
+  background: transparent;
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s;
+}
+.btn-restore:hover { background: rgba(74,124,111,.1); }
 
 .btn-cancel {
   padding: 0.55rem 1rem;

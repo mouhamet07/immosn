@@ -5,7 +5,7 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     // Redirection racine
-    { path: '/', redirect: '/connexion' },
+    { path: '/', redirect: '/annonces' },
 
     // Authentification (publiques)
     { path: '/inscription', name: 'inscription', component: () => import('@/views/auth/InscriptionView.vue') },
@@ -13,52 +13,17 @@ const router = createRouter({
 
     // ── Interface CLIENT ──────────────────────────────────────
     {
-      path: '/annonces',
+      path: '/',
       component: () => import('@/layouts/ClientLayout.vue'),
       children: [
-        { path: '',    name: 'annonces',       component: () => import('@/views/annonces/ListeAnnoncesView.vue') },
-        { path: ':id', name: 'detail-annonce', component: () => import('@/views/annonces/DetailAnnonceView.vue') },
-        {
-          path: '/profil',
-          name: 'profil',
-          component: () => import('@/views/profil/ProfilView.vue'),
-          meta: { requiresAuth: true, role: 'CLIENT' },
-        },
-        // Sprint 2 — Discussions client
-        {
-          path: '/discussions',
-          name: 'discussions',
-          component: () => import('@/views/discussions/DiscussionsView.vue'),
-          meta: { requiresAuth: true, role: 'CLIENT' },
-        },
-        // Sprint 3 — Visites client
-        {
-          path: '/mes-visites',
-          name: 'mes-visites',
-          component: () => import('@/views/visites/MesVisitesView.vue'),
-          meta: { requiresAuth: true, role: 'CLIENT' },
-        },
-        // Sprint 3 — Contrats client
-        {
-          path: '/mes-contrats',
-          name: 'mes-contrats',
-          component: () => import('@/views/contrats/MesContratsView.vue'),
-          meta: { requiresAuth: true, role: 'CLIENT' },
-        },
-        // Sprint 3 — Signalements client
-        {
-          path: '/mes-signalements',
-          name: 'mes-signalements',
-          component: () => import('@/views/signalements/MesSignalementsView.vue'),
-          meta: { requiresAuth: true, role: 'CLIENT' },
-        },
-        // Sprint 4 — Favoris client
-        {
-          path: '/favoris',
-          name: 'favoris',
-          component: () => import('@/views/favoris/FavorisView.vue'),
-          meta: { requiresAuth: true, role: 'CLIENT' },
-        },
+        { path: 'annonces',          name: 'annonces',          component: () => import('@/views/annonces/ListeAnnoncesView.vue') },
+        { path: 'annonces/:id',      name: 'detail-annonce',    component: () => import('@/views/annonces/DetailAnnonceView.vue') },
+        { path: 'profil',            name: 'profil',            component: () => import('@/views/profil/ProfilView.vue'),                   meta: { requiresAuth: true } },
+        { path: 'discussions',       name: 'discussions',       component: () => import('@/views/discussions/DiscussionsView.vue'),         meta: { requiresAuth: true } },
+        { path: 'mes-visites',       name: 'mes-visites',       component: () => import('@/views/visites/MesVisitesView.vue'),              meta: { requiresAuth: true } },
+        { path: 'mes-contrats',      name: 'mes-contrats',      component: () => import('@/views/contrats/MesContratsView.vue'),            meta: { requiresAuth: true } },
+        { path: 'mes-signalements',  name: 'mes-signalements',  component: () => import('@/views/signalements/MesSignalementsView.vue'),   meta: { requiresAuth: true } },
+        { path: 'favoris',           name: 'favoris',           component: () => import('@/views/favoris/FavorisView.vue'),                 meta: { requiresAuth: true } },
       ],
     },
 
@@ -68,31 +33,20 @@ const router = createRouter({
       component: () => import('@/layouts/AdminLayout.vue'),
       meta: { requiresAuth: true, role: 'ADMIN' },
       children: [
-        { path: '',          redirect: '/admin/dashboard' },
-        { path: 'dashboard', name: 'admin-dashboard',  component: () => import('@/views/admin/DashboardView.vue') },
-        { path: 'annonces',  name: 'admin-annonces',   component: () => import('@/views/admin/AnnoncesView.vue') },
-        { path: 'annonces/publier', name: 'admin-publier', component: () => import('@/views/admin/PublierAnnonceView.vue') },
-
-        // Sprint 2 — Messagerie admin
-        { path: 'messages',  name: 'admin-messages',   component: () => import('@/views/admin/DiscussionsAdminView.vue') },
-
-        // Sprint 3 — Visites admin
-        { path: 'visites',   name: 'admin-visites',    component: () => import('@/views/admin/VisitesAdminView.vue') },
-
-        // Sprint 3 — Leads admin
-        { path: 'leads',     name: 'admin-leads',      component: () => import('@/views/admin/LeadsAdminView.vue') },
-
-        // Sprint 3 — Contrats admin
-        { path: 'contrats',  name: 'admin-contrats',   component: () => import('@/views/admin/ContratsAdminView.vue') },
-
-        // Sprint 3 — Signalements admin
-        { path: 'signalements', name: 'admin-signalements', component: () => import('@/views/admin/SignalementsAdminView.vue') },
-
-        { path: 'types-biens',  name: 'admin-types-biens',  component: () => import('@/views/admin/TypesBienView.vue') },
-        { path: 'commodites',   name: 'admin-commodites',   component: () => import('@/views/admin/CommoditesView.vue') },
+        { path: '',                    redirect: '/admin/dashboard' },
+        { path: 'dashboard',           name: 'admin-dashboard',      component: () => import('@/views/admin/DashboardView.vue') },
+        { path: 'annonces',            name: 'admin-annonces',       component: () => import('@/views/admin/AnnoncesView.vue') },
+        { path: 'annonces/publier',    name: 'admin-publier',        component: () => import('@/views/admin/PublierAnnonceView.vue') },
+        { path: 'messages',            name: 'admin-messages',       component: () => import('@/views/admin/DiscussionsAdminView.vue') },
+        { path: 'visites',             name: 'admin-visites',        component: () => import('@/views/admin/VisitesAdminView.vue') },
+        { path: 'leads',               name: 'admin-leads',          component: () => import('@/views/admin/LeadsAdminView.vue') },
+        { path: 'contrats',            name: 'admin-contrats',       component: () => import('@/views/admin/ContratsAdminView.vue') },
+        { path: 'signalements',        name: 'admin-signalements',   component: () => import('@/views/admin/SignalementsAdminView.vue') },
+        { path: 'types-biens',         name: 'admin-types-biens',    component: () => import('@/views/admin/TypesBienView.vue') },
+        { path: 'commodites',          name: 'admin-commodites',     component: () => import('@/views/admin/CommoditesView.vue') },
         { path: 'administrateurs',         name: 'admin-admins',        component: () => import('@/views/admin/AdministrateursView.vue') },
         { path: 'administrateurs/ajouter', name: 'admin-ajouter-admin', component: () => import('@/views/admin/AjouterAdminView.vue') },
-        { path: 'profil',    name: 'admin-profil',     component: () => import('@/views/admin/ProfilAdminView.vue') },
+        { path: 'profil',              name: 'admin-profil',         component: () => import('@/views/admin/ProfilAdminView.vue') },
       ],
     },
   ],
@@ -110,10 +64,6 @@ router.beforeEach((to) => {
 
   if (to.meta.role === 'ADMIN' && authStore.role !== 'ADMIN' && authStore.role !== 'SUPER_ADMIN') {
     return { name: 'annonces' }
-  }
-
-  if (to.meta.role === 'CLIENT' && (authStore.role === 'ADMIN' || authStore.role === 'SUPER_ADMIN')) {
-    return { name: 'admin-dashboard' }
   }
 
   return true

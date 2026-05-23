@@ -84,7 +84,9 @@ async function submit() {
   loading.value = true
   try {
     let imageUrls = []
-    if (photoFiles.value.length) {
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
+    if (photoFiles.value.length && cloudName && uploadPreset) {
       uploadProgress.value = { done: 0, total: photoFiles.value.length }
       imageUrls = await uploadImages(photoFiles.value, (done, total) => {
         uploadProgress.value = { done, total }
@@ -104,7 +106,7 @@ async function submit() {
     toast.value.show('Annonce publiée avec succès ✓', 'success')
     setTimeout(() => router.push('/admin/annonces'), 1200)
   } catch (err) {
-    toast.value.show(err.response?.data?.message || err.message || 'Données invalides. Vérifiez les champs saisis.', 'error')
+    toast.value.show(err.userMessage || err.response?.data?.message || 'Données invalides. Vérifiez les champs saisis.', 'error')
   } finally {
     loading.value = false
     uploadProgress.value = { done: 0, total: 0 }

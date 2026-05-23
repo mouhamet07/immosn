@@ -36,4 +36,9 @@ export default {
   archiveAdmin(id) {
     return api.patch(`/auth/admins/${id}/archive`)
   },
+
+  // PATCH /api/v1/auth/admins/{id}/restore — restaurer un admin archivé (SUPER_ADMIN uniquement)
+  restoreAdmin(id) {
+    return api.patch(`/auth/admins/${id}/restore`)
+  },
 }
