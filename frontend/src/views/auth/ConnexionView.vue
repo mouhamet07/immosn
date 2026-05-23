@@ -130,7 +130,7 @@ async function handleSubmit() {
   width: 45%;
   height: 100%;
   background: url('@/assets/Luxury Home.png') center/cover no-repeat;
-  opacity: 0.15;
+  opacity: 0.35;
   z-index: 0;
 }
 
@@ -190,8 +190,10 @@ async function handleSubmit() {
 }
 
 .connexion__title {
-  font-size: 1.5rem;
-  font-weight: 800;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.7rem;
+  font-weight: 700;
   color: var(--color-text);
   margin-bottom: 0.4rem;
 }

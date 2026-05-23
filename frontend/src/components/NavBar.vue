@@ -1,9 +1,12 @@
 <script setup>
 import { useAuthStore } from '@/stores/authStore'
 import { useRouter } from 'vue-router'
+import SvgIcon from '@/components/SvgIcon.vue'
+import { useFavorisStore } from '@/stores/favorisStore'
 
-const authStore = useAuthStore()
-const router = useRouter()
+const authStore    = useAuthStore()
+const favorisStore = useFavorisStore()
+const router       = useRouter()
 
 async function handleLogout() {
   await authStore.logout()
@@ -29,11 +32,14 @@ async function handleLogout() {
 
     <!-- Actions droite -->
     <div class="navbar__actions">
-      <RouterLink to="/favoris" class="navbar__icon-btn" title="Favoris">❤️</RouterLink>
+      <RouterLink to="/favoris" class="navbar__icon-btn" title="Favoris">
+        <SvgIcon name="heart" :size="20" />
+      </RouterLink>
 
       <template v-if="authStore.isAuthenticated">
         <RouterLink to="/profil" class="navbar__avatar" title="Profil">
-          {{ authStore.user?.nomComplet?.charAt(0)?.toUpperCase() || '👤' }}
+          <span v-if="authStore.user?.nomComplet">{{ authStore.user.nomComplet.charAt(0).toUpperCase() }}</span>
+          <SvgIcon v-else name="user" :size="18" />
         </RouterLink>
         <button class="navbar__btn-logout" @click="handleLogout">Déconnexion</button>
       </template>
@@ -101,14 +107,18 @@ async function handleLogout() {
 
 .navbar__icon-btn {
   background: transparent;
-  font-size: 1.1rem;
-  padding: 0.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem;
   border-radius: 50%;
-  transition: background 0.2s;
+  color: var(--color-text-muted);
+  transition: background var(--transition), color var(--transition);
 }
 
 .navbar__icon-btn:hover {
   background: var(--color-border);
+  color: var(--color-primary);
 }
 
 .navbar__avatar {
