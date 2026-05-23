@@ -6,17 +6,17 @@ const authStore = useAuthStore()
 const route = useRoute()
 
 const navLinks = [
-  { to: '/admin/dashboard',     label: 'Dashboard',       icon: 'grid' },
-  { to: '/admin/annonces',      label: 'Annonces',        icon: 'building' },
-  { to: '/admin/messages',      label: 'Messages',        icon: 'chat' },
-  { to: '/admin/visites',       label: 'Visites',         icon: 'calendar' },
-  { to: '/admin/leads',         label: 'Leads',           icon: 'target' },
-  { to: '/admin/contrats',      label: 'Contrats',        icon: 'document' },
-  { to: '/admin/signalements',  label: 'Signalements',    icon: 'alert' },
-  { to: '/admin/types-biens',   label: 'Types de biens',  icon: 'tag' },
-  { to: '/admin/commodites',    label: 'Commodités',      icon: 'list' },
-  { to: '/admin/administrateurs', label: 'Admins',        icon: 'people' },
-  { to: '/admin/profil',        label: 'Paramètres',      icon: 'gear' },
+  { to: '/admin/dashboard',       label: 'Dashboard',      icon: 'grid' },
+  { to: '/admin/annonces',        label: 'Annonces',       icon: 'building' },
+  { to: '/admin/messages',        label: 'Messages',       icon: 'chat' },
+  { to: '/admin/visites',         label: 'Visites',        icon: 'calendar' },
+  { to: '/admin/leads',           label: 'Leads',          icon: 'target' },
+  { to: '/admin/contrats',        label: 'Contrats',       icon: 'document' },
+  { to: '/admin/signalements',    label: 'Signalements',   icon: 'alert' },
+  { to: '/admin/types-biens',     label: 'Types de biens', icon: 'tag' },
+  { to: '/admin/commodites',      label: 'Commodités',     icon: 'list' },
+  { to: '/admin/administrateurs', label: 'Admins',         icon: 'people', superAdminOnly: true },
+  { to: '/admin/profil',          label: 'Paramètres',     icon: 'gear' },
 ]
 
 function isActive(path) {
@@ -37,6 +37,7 @@ function isActive(path) {
       <nav class="sidebar__nav">
         <RouterLink
           v-for="link in navLinks"
+          v-show="!link.superAdminOnly || authStore.role === 'SUPER_ADMIN'"
           :key="link.to"
           :to="link.to"
           class="sidebar__link"

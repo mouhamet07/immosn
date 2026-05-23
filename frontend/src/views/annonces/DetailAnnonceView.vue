@@ -31,7 +31,9 @@ async function sendVisiteRequest() {
   if (!visiteDate.value) { visiteError.value = 'Veuillez choisir une date.'; return }
   visiteSending.value = true; visiteError.value = ''
   try {
-    await visiteService.create(annonce.value.id, visiteDate.value, visiteComment.value || null)
+    // datetime-local retourne "2026-05-24T10:30" — le backend attend "2026-05-24T10:30:00"
+    const dateFormatted = visiteDate.value.length === 16 ? visiteDate.value + ':00' : visiteDate.value
+    await visiteService.create(annonce.value.id, dateFormatted, visiteComment.value || null)
     visiteSuccess.value = true
   } catch (e) {
     visiteError.value = e.response?.data?.message || 'Erreur lors de l\'envoi.'

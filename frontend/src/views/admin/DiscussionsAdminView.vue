@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import discussionService from '@/services/discussionService'
 
 const discussions  = ref([])
@@ -20,10 +20,10 @@ async function fetchDiscussions(page = 0) {
   try {
     const res = await discussionService.getAllDiscussions(page, 20)
     const paged = res.data
-    discussions.value = paged.data
-    currentPage.value = paged.currentPage
-    totalPages.value  = paged.totalPages
-    totalItems.value  = paged.totalElements
+    discussions.value = paged.content ?? paged.data ?? []
+    currentPage.value = paged.currentPage ?? paged.number ?? 0
+    totalPages.value  = paged.totalPages ?? 1
+    totalItems.value  = paged.totalElements ?? 0
   } catch {
     discussions.value = []
   } finally {
@@ -68,11 +68,11 @@ function scrollBottom() {
   if (messagesRef.value) messagesRef.value.scrollTop = messagesRef.value.scrollHeight
 }
 
-const filteredDiscussions = computed => discussions.value.filter(d =>
+const filteredDiscussions = computed(() => discussions.value.filter(d =>
   !searchQuery.value ||
   d.annonceLibelle?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
   d.clientNom?.toLowerCase().includes(searchQuery.value.toLowerCase())
-)
+))
 
 function formatDate(dt) {
   return new Date(dt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })

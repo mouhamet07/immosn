@@ -24,10 +24,10 @@ async function fetchVisites(page = 0) {
   loading.value = true
   try {
     const res = await visiteService.getAllVisites(page, 20, filtreStatut.value || null)
-    visites.value     = res.data.data
-    currentPage.value = res.data.currentPage
-    totalPages.value  = res.data.totalPages
-    totalItems.value  = res.data.totalElements
+    visites.value     = res.data.content ?? res.data.data ?? []
+    currentPage.value = res.data.currentPage ?? res.data.number ?? 0
+    totalPages.value  = res.data.totalPages ?? 1
+    totalItems.value  = res.data.totalElements ?? 0
   } catch { visites.value = [] }
   finally { loading.value = false }
 }

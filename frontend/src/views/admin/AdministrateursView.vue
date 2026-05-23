@@ -61,9 +61,20 @@ async function revokeAccess() {
     if (idx !== -1) admins.value[idx].statut = 'INACTIF'
     toast.value.show('Accès révoqué avec succès.', 'success')
   } catch (err) {
-    toast.value.show(err.response?.data?.message || 'Erreur lors de la révocation.', 'error')
+    toast.value.show(err.userMessage || err.response?.data?.message || 'Erreur lors de la révocation.', 'error')
   } finally {
     confirmId.value = null
+  }
+}
+
+async function restoreAccess(id) {
+  try {
+    await authService.restoreAdmin(id)
+    const idx = admins.value.findIndex(a => a.id === id)
+    if (idx !== -1) admins.value[idx].statut = 'ACTIF'
+    toast.value.show('Accès restauré avec succès.', 'success')
+  } catch (err) {
+    toast.value.show(err.userMessage || err.response?.data?.message || 'Erreur lors de la restauration.', 'error')
   }
 }
 </script>
@@ -145,7 +156,10 @@ async function revokeAccess() {
                 <button class="action-btn" title="Modifier" @click="router.push(`/admin/administrateurs/ajouter?edit=${admin.id}`)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 </button>
-                <button class="action-btn action-btn--danger" title="Révoquer l'accès" @click="confirmId = admin.id">
+                <button v-if="admin.statut === 'INACTIF'" class="action-btn" title="Restaurer l'accès" @click="restoreAccess(admin.id)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
+                </button>
+                <button v-else class="action-btn action-btn--danger" title="Révoquer l'accès" @click="confirmId = admin.id">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
                 </button>
               </div>

@@ -23,7 +23,7 @@ onMounted(() => {
 async function saveInfo() {
   loadingInfo.value = true
   try {
-    await api.put(`/users/${authStore.user.id}`, {
+    await api.put('/auth/profile', {
       nomComplet: formInfo.nomComplet,
       email:      formInfo.email,
       telephone:  formInfo.telephone,
@@ -44,7 +44,7 @@ async function saveSecurite() {
   }
   loadingSecurite.value = true
   try {
-    await api.put(`/users/${authStore.user.id}`, {
+    await api.put('/auth/profile', {
       motDePasseActuel: formSecurite.motDePasseActuel,
       motDePasse:       formSecurite.nouveauMotDePasse,
     })
