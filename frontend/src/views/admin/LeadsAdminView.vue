@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { FileText } from 'lucide-vue-next'
 import leadService from '@/services/leadService'
 import contratService from '@/services/contratService'
 
@@ -115,7 +116,7 @@ onMounted(() => fetchLeads(0))
             <p class="la-card__addr">{{ lead.annonceAdresse }}</p>
           </div>
         </div>
-        <p v-if="lead.noteAdmin" class="la-card__note">📝 {{ lead.noteAdmin }}</p>
+        <p v-if="lead.noteAdmin" class="la-card__note"><FileText :size="13" /> {{ lead.noteAdmin }}</p>
         <div class="la-card__actions">
           <button v-if="lead.statut === 'EN_COURS'" class="la-btn la-btn--convert"
             @click="openConvert(lead)">Créer un contrat</button>
@@ -198,7 +199,7 @@ onMounted(() => fetchLeads(0))
 .la-card__email { font-size: .75rem; color: var(--color-text); opacity: .5; }
 .la-card__annonce { font-size: .82rem; color: var(--color-primary); font-weight: 600; text-decoration: none; display: block; margin-top: .2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .la-card__addr { font-size: .75rem; color: var(--color-text); opacity: .5; }
-.la-card__note { font-size: .78rem; color: var(--color-text); opacity: .65; font-style: italic; padding: .5rem .75rem; background: var(--color-background); border-radius: 6px; }
+.la-card__note { font-size: .78rem; color: var(--color-text); opacity: .65; font-style: italic; padding: .5rem .75rem; background: var(--color-background); border-radius: 6px; display: flex; align-items: center; gap: .35rem; }
 .la-card__actions { display: flex; gap: .5rem; flex-wrap: wrap; }
 
 .la-btn { padding: .35rem .8rem; border-radius: 6px; font-size: .78rem; font-weight: 600; border: none; cursor: pointer; transition: opacity .15s; }

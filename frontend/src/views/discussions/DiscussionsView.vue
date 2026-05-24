@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
+import { Home, MessageSquare, Send } from 'lucide-vue-next'
 import discussionService from '@/services/discussionService'
 
 const discussions   = ref([])
@@ -114,7 +115,7 @@ onMounted(() => fetchDiscussions(0))
           >
             <div class="disc-item__thumb">
               <img v-if="d.imagePrincipale" :src="d.imagePrincipale" :alt="d.annonceLibelle" />
-              <span v-else class="disc-item__thumb-placeholder">🏠</span>
+              <span v-else class="disc-item__thumb-placeholder"><Home :size="20" /></span>
             </div>
             <div class="disc-item__body">
               <p class="disc-item__title">{{ d.annonceLibelle }}</p>
@@ -141,7 +142,7 @@ onMounted(() => fetchDiscussions(0))
 
         <!-- Pas de discussion sélectionnée -->
         <div v-if="!selectedId" class="disc-chat__empty">
-          <div class="disc-chat__empty-icon">💬</div>
+          <div class="disc-chat__empty-icon"><MessageSquare :size="48" /></div>
           <p>Sélectionnez une discussion pour afficher les messages</p>
         </div>
 
@@ -189,7 +190,7 @@ onMounted(() => fetchDiscussions(0))
               :disabled="sending || !newMessage.trim()"
               @click="sendMessage"
             >
-              ➤
+              <Send :size="18" />
             </button>
           </div>
         </template>
@@ -279,7 +280,7 @@ onMounted(() => fetchDiscussions(0))
   justify-content: center;
 }
 .disc-item__thumb img { width: 100%; height: 100%; object-fit: cover; }
-.disc-item__thumb-placeholder { font-size: 1.2rem; }
+.disc-item__thumb-placeholder { color: var(--color-text-muted); opacity: 0.5; display: flex; align-items: center; justify-content: center; }
 
 .disc-item__body { flex: 1; min-width: 0; }
 .disc-item__title {
@@ -358,7 +359,7 @@ onMounted(() => fetchDiscussions(0))
   color: var(--color-text);
   opacity: 0.4;
 }
-.disc-chat__empty-icon { font-size: 3rem; }
+.disc-chat__empty-icon { color: var(--color-text-muted); opacity: 0.3; }
 .disc-chat__loading {
   flex: 1;
   display: flex;
