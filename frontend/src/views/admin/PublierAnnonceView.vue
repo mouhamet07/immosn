@@ -1,4 +1,5 @@
 <script setup>
+import { MapPin, Camera, X } from 'lucide-vue-next'
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import FormStepper from '@/components/admin/FormStepper.vue'
@@ -190,7 +191,7 @@ async function submit() {
         </div>
 
         <div class="map-placeholder">
-          <span class="map-placeholder__icon">📍</span>
+          <MapPin :size="28" class="map-placeholder__icon" />
           <span>Cliquer pour placer l'annonce sur la carte</span>
         </div>
       </section>
@@ -220,7 +221,7 @@ async function submit() {
 
         <label class="upload-zone">
           <input type="file" multiple accept="image/*" class="upload-zone__input" @change="handleFileUpload" />
-          <span class="upload-zone__icon">📷</span>
+          <Camera :size="32" class="upload-zone__icon" />
           <span class="upload-zone__text">Glissez-déposez vos photos ici</span>
           <span class="upload-zone__btn">Parcourir la galerie</span>
         </label>
@@ -228,7 +229,9 @@ async function submit() {
         <div v-if="photoPreviews.length" class="photo-previews">
           <div v-for="(src, i) in photoPreviews" :key="i" class="photo-thumb">
             <img :src="src" alt="preview" />
-            <button type="button" class="photo-thumb__remove" @click="removePhoto(i)">✕</button>
+            <button type="button" class="photo-thumb__remove" @click="removePhoto(i)">
+              <X :size="12" />
+            </button>
           </div>
         </div>
       </section>
@@ -386,7 +389,7 @@ async function submit() {
   cursor: pointer;
 }
 
-.map-placeholder__icon { font-size: 2rem; }
+.map-placeholder__icon { color: var(--color-primary); }
 
 .equipements-grid {
   display: grid;
@@ -427,7 +430,8 @@ async function submit() {
 
 .upload-zone:hover { border-color: var(--color-primary); }
 .upload-zone__input { display: none; }
-.upload-zone__icon { font-size: 2rem; }
+.upload-zone__icon { color: var(--color-text-muted); transition: color 150ms ease; }
+.upload-zone:hover .upload-zone__icon { color: var(--color-primary); }
 .upload-zone__text { font-size: 0.88rem; color: #6b7280; }
 
 .upload-zone__btn {
