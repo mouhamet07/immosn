@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ╔══════════════════════════════════════════════════════════════╗
+  ║  ImmoSN — Configuration Logback                             ║
+  ║                                                              ║
+  ║  Fichiers générés dans ${LOG_PATH} (défaut : ./logs) :       ║
+  ║    immosn-app.log     → tous les logs INFO+                  ║
+  ║    immosn-errors.log  → erreurs ERROR uniquement             ║
+  ║    archived/          → archives gzip (rotation quotidienne) ║
+  ║                                                              ║
+  ║  Profils Spring :                                            ║
+  ║    (aucun)  → développement local  — DEBUG app + console     ║
+  ║    neon     → production Neon      — INFO app + fichiers     ║
+  ║    mysql    → production MySQL     — INFO app + fichiers     ║
+  ╚══════════════════════════════════════════════════════════════╝
+-->
+<configuration scan="true" scanPeriod="60 seconds">
+
+    <!-- Hérite des couleurs et patterns par défaut de Spring Boot -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <!--
+      LOG_PATH est injecté automatiquement par Spring Boot
+      depuis la propriété : logging.file.path
+      ou la variable d'environnement : LOG_PATH
+      Fallback : dossier 'logs' à la racine du workdir
+    -->
+    <property name="LOG_PATH"    value="${LOG_PATH:-logs}"/>
+    <property name="LOG_ARCHIVE" value="${LOG_PATH:-logs}/archived"/>
+    <property name="APP_NAME"    value="immosn"/>
+
+    <!-- ══════════════════════════════════════════════════════════
+         APPENDER : CONSOLE
+         Colorisé grâce aux patterns Spring Boot
+         ══════════════════════════════════════════════════════════ -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wEx</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- ══════════════════════════════════════════════════════════
+         APPENDER : FILE — Tous les logs INFO+
+         Rotation quotidienne, archivage gzip, 30 jours
+         ══════════════════════════════════════════════════════════ -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/${APP_NAME}-app.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- Archivage compressé chaque jour à minuit -->
+            <fileNamePattern>${LOG_ARCHIVE}/${APP_NAME}-app-%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+            <!-- Conservation : 30 jours -->
+            <maxHistory>30</maxHistory>
+            <!-- Plafond total de taille (tous fichiers archivés confondus) -->
+            <totalSizeCap>1GB</totalSizeCap>
+            <!-- Ne pas purger les archives au démarrage -->
+            <cleanHistoryOnStart>false</cleanHistoryOnStart>
+        </rollingPolicy>
+    </appender>
+
+    <!-- ══════════════════════════════════════════════════════════
+         APPENDER : ERROR_FILE — Erreurs uniquement
+         Rotation quotidienne, archivage gzip, 90 jours
+         ══════════════════════════════════════════════════════════ -->
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/${APP_NAME}-errors.log</file>
+        <!-- Filtre strict : ERROR uniquement -->
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <encoder>
+            <!-- Stack trace complète pour les erreurs -->
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] ERROR %logger{36} - %msg%n%ex{full}%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_ARCHIVE}/${APP_NAME}-errors-%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+            <!-- Conservation : 90 jours pour les erreurs (audit, debugging) -->
+            <maxHistory>90</maxHistory>
+            <totalSizeCap>500MB</totalSizeCap>
+            <cleanHistoryOnStart>false</cleanHistoryOnStart>
+        </rollingPolicy>
+    </appender>
+
+    <!-- ══════════════════════════════════════════════════════════
+         WRAPPERS ASYNC — Écriture non-bloquante
+         Évite que l'I/O disque ralentisse les threads HTTP
+         ══════════════════════════════════════════════════════════ -->
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="FILE"/>
+        <!-- File d'attente de 512 événements -->
+        <queueSize>512</queueSize>
+        <!-- 0 = jamais de discard, même si la queue est pleine à 80% -->
+        <discardingThreshold>0</discardingThreshold>
+        <!-- Attend la fin du flush au shutdown de l'appli -->
+        <neverBlock>false</neverBlock>
+        <includeCallerData>false</includeCallerData>
+    </appender>
+
+    <appender name="ASYNC_ERROR" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="ERROR_FILE"/>
+        <queueSize>256</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <neverBlock>false</neverBlock>
+    </appender>
+
+    <!-- ══════════════════════════════════════════════════════════
+         LOGGERS TIERS — réduction du bruit par défaut
+         ══════════════════════════════════════════════════════════ -->
+    <logger name="org.hibernate.SQL"                  level="WARN"/>
+    <logger name="org.hibernate.orm.jdbc.bind"        level="WARN"/>
+    <logger name="org.hibernate.validator"            level="WARN"/>
+    <logger name="com.zaxxer.hikari"                  level="INFO"/>
+    <logger name="com.zaxxer.hikari.HikariConfig"     level="WARN"/>
+    <logger name="org.springframework.web"            level="WARN"/>
+    <logger name="org.springframework.security"       level="INFO"/>
+    <logger name="org.springframework.data.jpa"       level="WARN"/>
+
+    <!-- ══════════════════════════════════════════════════════════
+         PROFIL : développement local (aucun profil actif)
+         DEBUG activé sur le code applicatif + console colorisée
+         ══════════════════════════════════════════════════════════ -->
+    <springProfile name="!neon &amp; !mysql">
+
+        <!-- Package applicatif : DEBUG pour voir tous les détails -->
+        <logger name="sn.immosn" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_FILE"/>
+            <appender-ref ref="ASYNC_ERROR"/>
+        </logger>
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_FILE"/>
+            <appender-ref ref="ASYNC_ERROR"/>
+        </root>
+
+    </springProfile>
+
+    <!-- ══════════════════════════════════════════════════════════
+         PROFIL : production — Neon PostgreSQL
+         INFO uniquement, Hibernate et Spring réduits au minimum
+         ══════════════════════════════════════════════════════════ -->
+    <springProfile name="neon">
+
+        <logger name="sn.immosn" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_FILE"/>
+            <appender-ref ref="ASYNC_ERROR"/>
+        </logger>
+
+        <!-- Supprimer le bruit Hibernate/Spring en production -->
+        <logger name="org.springframework" level="WARN"/>
+        <logger name="org.hibernate"       level="WARN"/>
+        <logger name="com.zaxxer.hikari"   level="WARN"/>
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_FILE"/>
+            <appender-ref ref="ASYNC_ERROR"/>
+        </root>
+
+    </springProfile>
+
+    <!-- ══════════════════════════════════════════════════════════
+         PROFIL : production — MySQL
+         Identique au profil neon
+         ══════════════════════════════════════════════════════════ -->
+    <springProfile name="mysql">
+
+        <logger name="sn.immosn" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_FILE"/>
+            <appender-ref ref="ASYNC_ERROR"/>
+        </logger>
+
+        <logger name="org.springframework" level="WARN"/>
+        <logger name="org.hibernate"       level="WARN"/>
+        <logger name="com.zaxxer.hikari"   level="WARN"/>
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_FILE"/>
+            <appender-ref ref="ASYNC_ERROR"/>
+        </root>
+
+    </springProfile>
+
+</configuration>

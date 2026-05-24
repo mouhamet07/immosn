@@ -28,6 +28,12 @@ services:
       SUPER_ADMIN_NOM:        Super Administrateur
       SUPER_ADMIN_TELEPHONE:  "+221770000000"
       CONTRAT_EXPIRATION_CRON: "0 5 0 * * *"
+      # Logs persistants dans ./logs sur le host (accessible depuis le VPS)
+      LOG_PATH:               /app/logs
+    volumes:
+      # Persistance des logs : ./logs sur le host ↔ /app/logs dans le conteneur
+      # Les logs survivent aux redémarrages et suppressions de conteneur
+      - ./logs:/app/logs
     ports:
       - "8080:8080"
     networks:

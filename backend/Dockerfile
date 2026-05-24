@@ -22,6 +22,10 @@ WORKDIR /app
 
 COPY --from=build /app/target/backend-0.0.1-SNAPSHOT.jar app.jar
 
+# Créer le répertoire des logs avec les bons droits
+# Ce répertoire est monté en volume dans docker-compose pour la persistance
+RUN mkdir -p /app/logs/archived && chmod -R 755 /app/logs
+
 EXPOSE 8080
 
 # JVM tuning pour container

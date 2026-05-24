@@ -23,8 +23,10 @@ backend/*.jar
 .DS_Store
 Thumbs.db
 
-# LOGS
+# LOGS — exclure fichiers et dossier de logs persistants
 *.log
+logs/
+backend/logs/
 
 # DOCKER
 docker-data/
