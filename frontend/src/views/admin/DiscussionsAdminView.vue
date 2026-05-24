@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
+import { MessageSquare } from 'lucide-vue-next'
 import discussionService from '@/services/discussionService'
 
 const discussions  = ref([])
@@ -149,7 +150,7 @@ onMounted(() => fetchDiscussions(0))
       <section class="adm-chat">
 
         <div v-if="!selectedId" class="adm-chat__empty">
-          <span class="adm-chat__empty-icon">💬</span>
+          <MessageSquare :size="48" class="adm-chat__empty-icon" />
           <p>Sélectionnez une conversation</p>
         </div>
 
@@ -388,7 +389,7 @@ onMounted(() => fetchDiscussions(0))
   color: var(--color-text);
   opacity: 0.35;
 }
-.adm-chat__empty-icon { font-size: 3rem; }
+.adm-chat__empty-icon { color: var(--color-text-muted); opacity: 0.4; }
 .adm-chat__loading {
   flex: 1;
   display: flex;

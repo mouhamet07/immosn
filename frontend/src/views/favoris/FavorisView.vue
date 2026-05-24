@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { Heart } from 'lucide-vue-next'
 import { useFavorisStore } from '@/stores/favorisStore'
 import AnnonceCard from '@/components/AnnonceCard.vue'
 
@@ -66,9 +67,9 @@ onMounted(() => fetchFavoris(0))
 
       <!-- Vide -->
       <div v-else-if="!favoris.length" class="fav-empty">
-        <p class="fav-empty__icon">❤️</p>
+        <Heart :size="56" class="fav-empty__icon" />
         <p class="fav-empty__title">Aucun favori pour le moment</p>
-        <p class="fav-empty__sub">Cliquez sur ❤️ sur une annonce pour l'ajouter à vos favoris.</p>
+        <p class="fav-empty__sub">Cliquez sur l'icône cœur sur une annonce pour l'ajouter à vos favoris.</p>
         <RouterLink to="/annonces" class="fav-empty__link">Parcourir les annonces →</RouterLink>
       </div>
 
@@ -129,7 +130,7 @@ onMounted(() => fetchFavoris(0))
   display: flex; flex-direction: column; align-items: center; gap: .75rem;
   padding: 5rem 2rem; text-align: center;
 }
-.fav-empty__icon  { font-size: 3.5rem; opacity: .25; }
+.fav-empty__icon  { color: var(--color-accent); opacity: 0.25; }
 .fav-empty__title { font-size: 1.2rem; font-weight: 700; color: var(--color-text); }
 .fav-empty__sub   { font-size: .9rem; color: var(--color-text); opacity: .55; max-width: 340px; }
 .fav-empty__link  { color: var(--color-primary); font-weight: 600; font-size: .9rem; }
