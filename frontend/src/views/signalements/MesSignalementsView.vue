@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { Wrench } from 'lucide-vue-next'
 import signalementService from '@/services/signalementService'
 import contratService from '@/services/contratService'
 
@@ -86,7 +87,7 @@ onMounted(() => fetchSignalements(0))
       <div v-else-if="error" class="ms-error">{{ error }}</div>
 
       <div v-else-if="!signalements.length" class="ms-empty">
-        <p class="ms-empty__icon">🔧</p>
+        <Wrench :size="48" class="ms-empty__icon" />
         <p class="ms-empty__title">Aucun signalement</p>
         <button class="ms-empty__btn" @click="openForm">Créer un signalement</button>
       </div>
@@ -164,7 +165,7 @@ onMounted(() => fetchSignalements(0))
 .ms-loading { display: flex; justify-content: center; padding: 4rem; }
 .ms-error { text-align: center; padding: 2rem; color: var(--color-accent); }
 .ms-empty { display: flex; flex-direction: column; align-items: center; gap: .75rem; padding: 4rem; text-align: center; }
-.ms-empty__icon { font-size: 3rem; opacity: .3; }
+.ms-empty__icon { color: var(--color-text-muted); opacity: 0.3; }
 .ms-empty__title { font-size: 1rem; font-weight: 700; color: var(--color-text); opacity: .6; }
 .ms-empty__btn { padding: .5rem 1.2rem; background: var(--color-primary); color: #fff; border-radius: var(--radius-sm); border: none; cursor: pointer; font-size: .88rem; font-weight: 600; }
 

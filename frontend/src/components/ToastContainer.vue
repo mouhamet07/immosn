@@ -1,4 +1,5 @@
 <script setup>
+import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-vue-next'
 import { useToastStore } from '@/stores/toastStore'
 
 const toastStore = useToastStore()
@@ -17,13 +18,15 @@ const toastStore = useToastStore()
           @click="toastStore.remove(toast.id)"
         >
           <span class="toast__icon">
-            <span v-if="toast.type === 'success'">✅</span>
-            <span v-else-if="toast.type === 'error'">❌</span>
-            <span v-else-if="toast.type === 'warning'">⚠️</span>
-            <span v-else>ℹ️</span>
+            <CheckCircle v-if="toast.type === 'success'" :size="18" />
+            <XCircle v-else-if="toast.type === 'error'" :size="18" />
+            <AlertTriangle v-else-if="toast.type === 'warning'" :size="18" />
+            <Info v-else :size="18" />
           </span>
           <p class="toast__message">{{ toast.message }}</p>
-          <button class="toast__close" @click.stop="toastStore.remove(toast.id)" aria-label="Fermer">✕</button>
+          <button class="toast__close" @click.stop="toastStore.remove(toast.id)" aria-label="Fermer">
+            <X :size="14" />
+          </button>
         </div>
       </TransitionGroup>
     </div>

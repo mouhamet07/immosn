@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { FileText, Home, MapPin, Download } from 'lucide-vue-next'
 import contratService from '@/services/contratService'
 
 const router      = useRouter()
@@ -92,7 +93,7 @@ onMounted(() => fetchContrats(0))
       <div v-else-if="error" class="mc-error">{{ error }}</div>
 
       <div v-else-if="!contrats.length" class="mc-empty">
-        <p class="mc-empty__icon">📄</p>
+        <FileText :size="48" class="mc-empty__icon" />
         <p class="mc-empty__title">Aucun contrat trouvé</p>
       </div>
 
@@ -104,11 +105,11 @@ onMounted(() => fetchContrats(0))
           </div>
           <div class="mc-card__thumb">
             <img v-if="c.imagePrincipale" :src="c.imagePrincipale" :alt="c.annonceLibelle" />
-            <span v-else>🏠</span>
+            <span v-else><Home :size="24" /></span>
           </div>
           <div class="mc-card__body">
             <RouterLink :to="`/annonces/${c.annonceId}`" class="mc-card__title">{{ c.annonceLibelle }}</RouterLink>
-            <p class="mc-card__addr">📍 {{ c.annonceAdresse }}</p>
+            <p class="mc-card__addr"><MapPin :size="12" /> {{ c.annonceAdresse }}</p>
             <div class="mc-card__info">
               <div class="mc-card__info-item">
                 <span class="mc-card__info-label">Montant</span>
@@ -127,7 +128,7 @@ onMounted(() => fetchContrats(0))
           </div>
           <div class="mc-card__footer">
             <a v-if="c.documentUrl" :href="c.documentUrl" target="_blank" class="mc-card__doc">
-              📥 Télécharger le contrat
+              <Download :size="14" /> Télécharger le contrat
             </a>
             <div class="mc-card__actions">
               <RouterLink :to="`/contrats/${c.id}`" class="mc-card__btn mc-card__btn--outline">
@@ -203,7 +204,7 @@ onMounted(() => fetchContrats(0))
 .mc-loading { display: flex; justify-content: center; padding: 4rem; }
 .mc-error { text-align: center; padding: 2rem; color: var(--color-accent); }
 .mc-empty { display: flex; flex-direction: column; align-items: center; gap: .75rem; padding: 4rem; text-align: center; }
-.mc-empty__icon { font-size: 3rem; opacity: .3; }
+.mc-empty__icon { color: var(--color-text-muted); opacity: 0.3; }
 .mc-empty__title { font-size: 1rem; font-weight: 700; color: var(--color-text); opacity: .6; }
 
 .mc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem; }
@@ -228,7 +229,7 @@ onMounted(() => fetchContrats(0))
   display: block; margin-bottom: .25rem;
 }
 .mc-card__title:hover { color: var(--color-primary); }
-.mc-card__addr { font-size: .8rem; color: var(--color-text); opacity: .55; margin-bottom: .75rem; }
+.mc-card__addr { font-size: .8rem; color: var(--color-text); opacity: .55; margin-bottom: .75rem; display: flex; align-items: center; gap: .3rem; }
 
 .mc-card__info { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; margin-bottom: .75rem; }
 .mc-card__info-item { display: flex; flex-direction: column; gap: .1rem; }
@@ -239,7 +240,8 @@ onMounted(() => fetchContrats(0))
 
 .mc-card__footer { padding: .75rem 1rem; border-top: 1px solid var(--color-border); }
 .mc-card__doc {
-  display: block; font-size: .8rem; color: var(--color-primary); font-weight: 500;
+  display: flex; align-items: center; gap: .35rem;
+  font-size: .8rem; color: var(--color-primary); font-weight: 500;
   text-decoration: none; margin-bottom: .5rem;
 }
 .mc-card__actions { display: flex; gap: .5rem; flex-wrap: wrap; }

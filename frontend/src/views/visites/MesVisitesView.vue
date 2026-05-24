@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { Home, MapPin } from 'lucide-vue-next'
 import visiteService from '@/services/visiteService'
 
 const visites     = ref([])
@@ -97,7 +98,7 @@ onMounted(() => fetchVisites(0))
 
       <!-- Vide -->
       <div v-else-if="!visites.length" class="mv-empty">
-        <p class="mv-empty__icon">🏠</p>
+        <Home :size="48" class="mv-empty__icon" />
         <p class="mv-empty__title">Aucune demande trouvée</p>
         <RouterLink to="/annonces" class="mv-empty__link">Parcourir les annonces</RouterLink>
       </div>
@@ -107,7 +108,7 @@ onMounted(() => fetchVisites(0))
         <div v-for="v in visites" :key="v.id" class="mv-card">
           <div class="mv-card__thumb">
             <img v-if="v.imagePrincipale" :src="v.imagePrincipale" :alt="v.annonceLibelle" />
-            <span v-else class="mv-card__thumb-ph">🏠</span>
+            <span v-else class="mv-card__thumb-ph"><Home :size="28" /></span>
           </div>
           <div class="mv-card__body">
             <div class="mv-card__top">
@@ -115,7 +116,7 @@ onMounted(() => fetchVisites(0))
               <span class="mv-card__date">Demandé le {{ formatDate(v.createdAt) }}</span>
             </div>
             <RouterLink :to="`/annonces/${v.annonceId}`" class="mv-card__title">{{ v.annonceLibelle }}</RouterLink>
-            <p class="mv-card__addr">📍 {{ v.annonceAdresse }}</p>
+            <p class="mv-card__addr"><MapPin :size="12" /> {{ v.annonceAdresse }}</p>
             <div class="mv-card__visite">
               <span class="mv-card__visite-label">Date souhaitée :</span>
               <span class="mv-card__visite-val">{{ formatDate(v.dateVisite) }}</span>
@@ -181,7 +182,7 @@ onMounted(() => fetchVisites(0))
   display: flex; flex-direction: column; align-items: center; gap: .75rem;
   padding: 4rem; text-align: center;
 }
-.mv-empty__icon { font-size: 3rem; opacity: .3; }
+.mv-empty__icon { color: var(--color-text-muted); opacity: 0.3; }
 .mv-empty__title { font-size: 1rem; font-weight: 700; color: var(--color-text); opacity: .6; }
 .mv-empty__link { color: var(--color-primary); font-weight: 600; font-size: .88rem; }
 
@@ -212,7 +213,7 @@ onMounted(() => fetchVisites(0))
   text-decoration: none;
 }
 .mv-card__title:hover { color: var(--color-primary); }
-.mv-card__addr { font-size: .8rem; color: var(--color-text); opacity: .55; margin: .25rem 0; }
+.mv-card__addr { font-size: .8rem; color: var(--color-text); opacity: .55; margin: .25rem 0; display: flex; align-items: center; gap: .3rem; }
 .mv-card__visite { display: flex; gap: .5rem; font-size: .85rem; margin-top: .4rem; }
 .mv-card__visite-label { font-weight: 600; color: var(--color-text); opacity: .7; }
 .mv-card__visite-val { color: var(--color-primary); font-weight: 600; }
