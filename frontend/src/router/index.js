@@ -37,6 +37,7 @@ const router = createRouter({
         { path: 'dashboard',           name: 'admin-dashboard',      component: () => import('@/views/admin/DashboardView.vue') },
         { path: 'annonces',            name: 'admin-annonces',       component: () => import('@/views/admin/AnnoncesView.vue') },
         { path: 'annonces/publier',    name: 'admin-publier',        component: () => import('@/views/admin/PublierAnnonceView.vue') },
+        { path: 'annonces/:id',        name: 'admin-detail-annonce', component: () => import('@/views/admin/DetailAnnonceAdminView.vue') },
         { path: 'messages',            name: 'admin-messages',       component: () => import('@/views/admin/DiscussionsAdminView.vue') },
         { path: 'visites',             name: 'admin-visites',        component: () => import('@/views/admin/VisitesAdminView.vue') },
         { path: 'leads',               name: 'admin-leads',          component: () => import('@/views/admin/LeadsAdminView.vue') },
