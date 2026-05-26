@@ -46,7 +46,8 @@ function initials(name) {
 onMounted(async () => {
   try {
     const response = await authService.getAdmins(0, 100)
-    admins.value = (response.data?.data ?? []).map(normalize)
+    // PagedResponse — contenu dans response.data.content
+    admins.value = (response.data?.content ?? []).map(normalize)
   } catch (err) {
     toast.value?.show(err.response?.data?.message || 'Erreur lors du chargement des administrateurs.', 'error')
   } finally {
@@ -56,7 +57,8 @@ onMounted(async () => {
 
 async function revokeAccess() {
   try {
-    await authService.archiveAdmin(confirmId.value)
+    // PATCH /auth/admins/{id}/revoke — révoque le rôle ADMIN
+    await authService.revokeAdmin(confirmId.value)
     const idx = admins.value.findIndex(a => a.id === confirmId.value)
     if (idx !== -1) admins.value[idx].statut = 'INACTIF'
     toast.value.show('Accès révoqué avec succès.', 'success')
@@ -153,9 +155,6 @@ async function restoreAccess(id) {
             </td>
             <td>
               <div class="td-actions">
-                <button class="action-btn" title="Modifier" @click="router.push(`/admin/administrateurs/ajouter?edit=${admin.id}`)">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                </button>
                 <button v-if="admin.statut === 'INACTIF'" class="action-btn" title="Restaurer l'accès" @click="restoreAccess(admin.id)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
                 </button>

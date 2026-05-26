@@ -41,4 +41,9 @@ export default {
   restoreAdmin(id) {
     return api.patch(`/auth/admins/${id}/restore`)
   },
+
+  // PATCH /api/v1/auth/admins/{id}/revoke — révoquer le rôle ADMIN (SUPER_ADMIN uniquement)
+  revokeAdmin(id) {
+    return api.patch(`/auth/admins/${id}/revoke`)
+  },
 }
