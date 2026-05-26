@@ -1,10 +1,21 @@
 package sn.immosn.backend.auth.data.entity;
 
 import jakarta.persistence.*;
-import java.util.Date;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+import java.time.LocalDateTime;
+
+/**
+ * Token JWT blacklisté après déconnexion.
+ * Utilise LocalDateTime (Java 8+) — @Temporal est déprécié depuis JPA 3.2.
+ */
 @Entity
 @Table(name = "blacklisted_tokens")
+@Getter
+@Setter
+@NoArgsConstructor
 public class BlacklistedToken {
 
     @Id
@@ -15,34 +26,10 @@ public class BlacklistedToken {
     private String token;
 
     @Column(nullable = false)
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date expiryDate;
+    private LocalDateTime expiryDate;
 
-    public BlacklistedToken() {
-    }
-
-    public BlacklistedToken(String token, Date expiryDate) {
-        this.token = token;
-        this.expiryDate = expiryDate;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getToken() {
-        return token;
-    }
-
-    public void setToken(String token) {
-        this.token = token;
-    }
-
-    public Date getExpiryDate() {
-        return expiryDate;
-    }
-
-    public void setExpiryDate(Date expiryDate) {
+    public BlacklistedToken(String token, LocalDateTime expiryDate) {
+        this.token      = token;
         this.expiryDate = expiryDate;
     }
 }

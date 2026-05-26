@@ -12,7 +12,6 @@ const formInfo = reactive({
   nomComplet: '',
   email: '',
   telephone: '',
-  langue: 'fr',
 })
 
 // Formulaire sécurité
@@ -32,22 +31,26 @@ const errorSecurite = ref('')
 onMounted(() => {
   if (authStore.user) {
     formInfo.nomComplet = authStore.user.nomComplet || ''
-    formInfo.email = authStore.user.email || ''
-    formInfo.telephone = authStore.user.telephone || ''
+    formInfo.email      = authStore.user.email      || ''
+    formInfo.telephone  = authStore.user.telephone  || ''
   }
 })
 
 async function saveInfo() {
   loadingInfo.value = true
   successInfo.value = ''
-  errorInfo.value = ''
+  errorInfo.value   = ''
   try {
-    await api.put(`/users/${authStore.user.id}`, {
+    // PUT /api/v1/auth/profile — champs exacts de UpdateProfileRequestDto
+    const res = await api.put('/auth/profile', {
       nomComplet: formInfo.nomComplet,
-      email: formInfo.email,
-      telephone: formInfo.telephone,
+      email:      formInfo.email,
+      telephone:  formInfo.telephone,
     })
-    await authStore.fetchProfile()
+    // Mettre à jour le store avec les nouvelles données
+    const updated = res.data.data
+    authStore.user = { ...authStore.user, ...updated }
+    localStorage.setItem('user', JSON.stringify(authStore.user))
     successInfo.value = 'Informations mises à jour avec succès.'
   } catch (err) {
     errorInfo.value = err.response?.data?.message || 'Erreur lors de la mise à jour.'
@@ -63,13 +66,14 @@ async function saveSecurite() {
   }
   loadingSecurite.value = true
   successSecurite.value = ''
-  errorSecurite.value = ''
+  errorSecurite.value   = ''
   try {
-    await api.put(`/users/${authStore.user.id}`, {
-      motDePasseActuel: formSecurite.motDePasseActuel,
-      motDePasse: formSecurite.nouveauMotDePasse,
+    // PUT /api/v1/auth/profile — champs mot de passe de UpdateProfileRequestDto
+    await api.put('/auth/profile', {
+      motDePasseActuel:  formSecurite.motDePasseActuel,
+      nouveauMotDePasse: formSecurite.nouveauMotDePasse,
     })
-    formSecurite.motDePasseActuel = ''
+    formSecurite.motDePasseActuel  = ''
     formSecurite.nouveauMotDePasse = ''
     successSecurite.value = 'Mot de passe mis à jour avec succès.'
   } catch (err) {
@@ -93,18 +97,8 @@ async function saveSecurite() {
             <h2 class="profil-card__title">Informations de base</h2>
             <form class="profil-card__form" @submit.prevent="saveInfo">
               <InputField v-model="formInfo.nomComplet" label="Nom complet" placeholder="Abdoulaye Diop" required />
-              <InputField v-model="formInfo.email" label="Adresse e-mail" type="email" icon="✉️" required />
-              <InputField v-model="formInfo.telephone" label="Numéro de téléphone" placeholder="+221 77 000 00 00" icon="📞" />
-
-              <!-- Langue préférée -->
-              <div class="profil-select-wrapper">
-                <label class="profil-select-label">LANGUE PRÉFÉRÉE</label>
-                <select v-model="formInfo.langue" class="profil-select">
-                  <option value="fr">Français (Standard)</option>
-                  <option value="wo">Wolof</option>
-                  <option value="en">English</option>
-                </select>
-              </div>
+              <InputField v-model="formInfo.email" label="Adresse e-mail" type="email" required />
+              <InputField v-model="formInfo.telephone" label="Numéro de téléphone" placeholder="+221 77 000 00 00" />
 
               <div v-if="successInfo" class="profil-alert profil-alert--success">{{ successInfo }}</div>
               <div v-if="errorInfo" class="profil-alert profil-alert--error">{{ errorInfo }}</div>
@@ -117,8 +111,8 @@ async function saveSecurite() {
           <section class="profil-card">
             <h2 class="profil-card__title">Sécurité du compte</h2>
             <form class="profil-card__form" @submit.prevent="saveSecurite">
-              <InputField v-model="formSecurite.motDePasseActuel" label="Mot de passe actuel" type="password" icon="🔒" />
-              <InputField v-model="formSecurite.nouveauMotDePasse" label="Nouveau mot de passe" type="password" icon="🔑" />
+              <InputField v-model="formSecurite.motDePasseActuel" label="Mot de passe actuel" type="password" />
+              <InputField v-model="formSecurite.nouveauMotDePasse" label="Nouveau mot de passe" type="password" />
 
               <div v-if="successSecurite" class="profil-alert profil-alert--success">{{ successSecurite }}</div>
               <div v-if="errorSecurite" class="profil-alert profil-alert--error">{{ errorSecurite }}</div>
@@ -145,8 +139,8 @@ async function saveSecurite() {
           <section class="profil-card">
             <h2 class="profil-card__title">Besoin d'aide ?</h2>
             <ul class="profil-help">
-              <li><a href="#" class="profil-help__link">💬 Contacter le support</a></li>
-              <li><a href="#" class="profil-help__link">📖 Guide d'utilisation</a></li>
+              <li><a href="#" class="profil-help__link">Contacter le support</a></li>
+              <li><a href="#" class="profil-help__link">Guide d'utilisation</a></li>
             </ul>
           </section>
         </div>

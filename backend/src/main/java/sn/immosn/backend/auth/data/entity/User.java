@@ -36,6 +36,10 @@ public class User implements UserDetails {
     @Column(nullable = false)
     protected String telephone;
 
+    protected String adresse;
+
+    protected String photo;
+
     protected String password;
 
     @Column(nullable = false)

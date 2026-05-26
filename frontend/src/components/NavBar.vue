@@ -1,9 +1,12 @@
 <script setup>
 import { useAuthStore } from '@/stores/authStore'
 import { useRouter } from 'vue-router'
+import SvgIcon from '@/components/SvgIcon.vue'
+import { useFavorisStore } from '@/stores/favorisStore'
 
-const authStore = useAuthStore()
-const router = useRouter()
+const authStore    = useAuthStore()
+const favorisStore = useFavorisStore()
+const router       = useRouter()
 
 async function handleLogout() {
   await authStore.logout()
@@ -21,19 +24,22 @@ async function handleLogout() {
     <!-- Liens de navigation -->
     <ul class="navbar__links">
       <li><RouterLink to="/annonces" class="navbar__link">Annonces</RouterLink></li>
-      <li><RouterLink to="/visites" class="navbar__link">Visites</RouterLink></li>
-      <li><RouterLink to="/contrats" class="navbar__link">Contrats</RouterLink></li>
-      <li><RouterLink to="/signalements" class="navbar__link">Signalements</RouterLink></li>
+      <li><RouterLink to="/mes-visites" class="navbar__link">Visites</RouterLink></li>
+      <li><RouterLink to="/mes-contrats" class="navbar__link">Contrats</RouterLink></li>
+      <li><RouterLink to="/discussions" class="navbar__link">Messages</RouterLink></li>
+      <li><RouterLink to="/mes-signalements" class="navbar__link">Signalements</RouterLink></li>
     </ul>
 
     <!-- Actions droite -->
     <div class="navbar__actions">
-      <button class="navbar__icon-btn" title="Favoris">❤️</button>
-      <button class="navbar__icon-btn" title="Notifications">🔔</button>
+      <RouterLink to="/favoris" class="navbar__icon-btn" title="Favoris">
+        <SvgIcon name="heart" :size="20" />
+      </RouterLink>
 
       <template v-if="authStore.isAuthenticated">
         <RouterLink to="/profil" class="navbar__avatar" title="Profil">
-          {{ authStore.user?.nomComplet?.charAt(0)?.toUpperCase() || '👤' }}
+          <span v-if="authStore.user?.nomComplet">{{ authStore.user.nomComplet.charAt(0).toUpperCase() }}</span>
+          <SvgIcon v-else name="user" :size="18" />
         </RouterLink>
         <button class="navbar__btn-logout" @click="handleLogout">Déconnexion</button>
       </template>
@@ -101,14 +107,18 @@ async function handleLogout() {
 
 .navbar__icon-btn {
   background: transparent;
-  font-size: 1.1rem;
-  padding: 0.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem;
   border-radius: 50%;
-  transition: background 0.2s;
+  color: var(--color-text-muted);
+  transition: background var(--transition), color var(--transition);
 }
 
 .navbar__icon-btn:hover {
   background: var(--color-border);
+  color: var(--color-primary);
 }
 
 .navbar__avatar {

@@ -13,7 +13,7 @@ public class TypeBienAnnonceMapper {
         if (typeBienAnnonce == null) {
             return null;
         }
-        return new TypeBienResponseDto(typeBienAnnonce.getId(), typeBienAnnonce.getLibelle());
+        return new TypeBienResponseDto(typeBienAnnonce.getId(), typeBienAnnonce.getLibelle(), typeBienAnnonce.isArchived());
     }
 
     public TypeBienAnnonce toEntity(TypeBienRequestDto request) {

@@ -1,0 +1,6 @@
+@baseUrl = http://localhost:8080/api/v1/admin/dashboard
+@adminToken = <admin-jwt>
+
+### Get dashboard stats (ADMIN)
+GET {{baseUrl}}/stats
+Authorization: Bearer {{adminToken}}

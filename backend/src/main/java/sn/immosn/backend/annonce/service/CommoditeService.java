@@ -15,4 +15,5 @@ public interface CommoditeService {
     CommoditeResponseDto getCommoditeById(Long id);
     CommoditeResponseDto updateCommodite(Long id, CommoditeRequestDto request);
     void archiveCommodite(Long id);
+    CommoditeResponseDto restoreCommodite(Long id);
 }

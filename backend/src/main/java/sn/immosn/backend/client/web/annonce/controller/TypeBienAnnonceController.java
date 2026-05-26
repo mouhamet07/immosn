@@ -8,9 +8,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -27,7 +27,6 @@ import sn.immosn.backend.client.web.annonce.dto.TypeBienResponseDto;
 import sn.immosn.backend.shared.response.PagedResponse;
 import sn.immosn.backend.shared.response.RestResponse;
 
-@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/api/v1/types-bien")
 @RequiredArgsConstructor
@@ -82,6 +81,10 @@ public class TypeBienAnnonceController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<RestResponse<TypeBienResponseDto>> getById(@PathVariable Long id) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de type de bien invalide", null));
+        }
         return ResponseEntity
             .status(HttpStatus.OK)
             .body(RestResponse.success(typeBienService.getTypeBienById(id), HttpStatus.OK));
@@ -95,6 +98,10 @@ public class TypeBienAnnonceController {
     public ResponseEntity<RestResponse<TypeBienResponseDto>> update(
         @PathVariable Long id,
         @RequestBody @Valid TypeBienRequestDto req) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de type de bien invalide", null));
+        }
         return ResponseEntity
             .status(HttpStatus.OK)
             .body(RestResponse.success(typeBienService.updateTypeBien(id, req), HttpStatus.OK));
@@ -106,9 +113,28 @@ public class TypeBienAnnonceController {
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<RestResponse<Void>> archive(@PathVariable Long id) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de type de bien invalide", null));
+        }
         typeBienService.archiveTypeBien(id);
         return ResponseEntity
             .status(HttpStatus.NO_CONTENT)
             .body(RestResponse.success(null, HttpStatus.NO_CONTENT));
+    }
+
+    /**
+     * PATCH /api/v1/types-bien/{id}/restore
+     * Restaure un type de bien archivé — réservé ADMIN/SUPER_ADMIN
+     */
+    @PatchMapping("/{id}/restore")
+    public ResponseEntity<RestResponse<TypeBienResponseDto>> restore(@PathVariable Long id) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de type de bien invalide", null));
+        }
+        return ResponseEntity
+            .status(HttpStatus.OK)
+            .body(RestResponse.success(typeBienService.restoreTypeBien(id), HttpStatus.OK));
     }
 }

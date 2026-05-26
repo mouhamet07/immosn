@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record AnnonceListDto (
+    String id,
     String libelle,
     BigDecimal prix,
     String adresse,

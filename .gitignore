@@ -3,6 +3,7 @@ node_modules/
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+frontend/COURS_VUE_IMMOSN.md
 
 # JAVA / SPRING BOOT
 backend/target/
@@ -22,8 +23,12 @@ backend/*.jar
 .DS_Store
 Thumbs.db
 
-# LOGS
+# LOGS — exclure fichiers et dossier de logs persistants
 *.log
+logs/
+backend/logs/
 
 # DOCKER
 docker-data/
+
+.claude

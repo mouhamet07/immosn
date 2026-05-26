@@ -20,4 +20,30 @@ export default {
   getProfile() {
     return api.get('/auth/profile')
   },
+
+  // POST /api/v1/auth/admin — créer un admin (SUPER_ADMIN uniquement)
+  // Champs: nomComplet, email, telephone, motDePasse
+  createAdmin({ nomComplet, email, telephone, motDePasse }) {
+    return api.post('/auth/admin', { nomComplet, email, telephone, motDePasse })
+  },
+
+  // GET /api/v1/auth/admins — liste paginée des admins (SUPER_ADMIN uniquement)
+  getAdmins(page = 0, size = 20) {
+    return api.get('/auth/admins', { params: { page, size } })
+  },
+
+  // PATCH /api/v1/auth/admins/{id}/archive — archiver un admin (SUPER_ADMIN uniquement)
+  archiveAdmin(id) {
+    return api.patch(`/auth/admins/${id}/archive`)
+  },
+
+  // PATCH /api/v1/auth/admins/{id}/restore — restaurer un admin archivé (SUPER_ADMIN uniquement)
+  restoreAdmin(id) {
+    return api.patch(`/auth/admins/${id}/restore`)
+  },
+
+  // PATCH /api/v1/auth/admins/{id}/revoke — révoquer le rôle ADMIN (SUPER_ADMIN uniquement)
+  revokeAdmin(id) {
+    return api.patch(`/auth/admins/${id}/revoke`)
+  },
 }

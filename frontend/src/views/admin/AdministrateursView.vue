@@ -2,7 +2,6 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import authService from '@/services/authService'
-import api from '@/services/api'
 import StatsCard from '@/components/admin/StatsCard.vue'
 import ConfirmModal from '@/components/admin/ConfirmModal.vue'
 import ToastNotification from '@/components/admin/ToastNotification.vue'
@@ -17,28 +16,40 @@ const confirmId = ref(null)
 
 const { currentPage, totalPages, paginated, rangeLabel, prev, next } = usePagination(admins, 4)
 
+// AuthResponseDto: id, nomComplet, email, telephone, creationDate, archived, roles (Set<String>)
+// Normalise les champs pour l'affichage dans la vue
+function normalize(admin) {
+  return {
+    ...admin,
+    role:     Array.from(admin.roles ?? []).join(', '),
+    statut:   admin.archived ? 'INACTIF' : 'ACTIF',
+    dateAjout: admin.creationDate,
+  }
+}
+
 const stats = computed(() => ({
   total:   admins.value.length,
   actifs:  admins.value.filter(a => a.statut === 'ACTIF').length,
-  attente: admins.value.filter(a => a.statut === 'EN_ATTENTE').length,
+  attente: admins.value.filter(a => a.statut === 'INACTIF').length,
 }))
 
 function formatDate(d) {
+  if (!d) return '—'
   return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 function initials(name) {
+  if (!name) return '?'
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 }
 
 onMounted(async () => {
   try {
     const response = await authService.getAdmins(0, 100)
-    // Structure PagedResponse: { data, totalElements, totalPages, ... }
-    const pagedAdmins = response.data
-    admins.value = pagedAdmins.data
+    // PagedResponse — contenu dans response.data.content
+    admins.value = (response.data?.content ?? []).map(normalize)
   } catch (err) {
-    console.warn('[AdministrateursView] Backend indisponible.', err)
+    toast.value?.show(err.response?.data?.message || 'Erreur lors du chargement des administrateurs.', 'error')
   } finally {
     loading.value = false
   }
@@ -46,14 +57,26 @@ onMounted(async () => {
 
 async function revokeAccess() {
   try {
-    await api.delete(`/admins/${confirmId.value}`)
-    admins.value = admins.value.filter(a => a.id !== confirmId.value)
+    // PATCH /auth/admins/{id}/revoke — révoque le rôle ADMIN
+    await authService.revokeAdmin(confirmId.value)
+    const idx = admins.value.findIndex(a => a.id === confirmId.value)
+    if (idx !== -1) admins.value[idx].statut = 'INACTIF'
     toast.value.show('Accès révoqué avec succès.', 'success')
   } catch (err) {
-    console.error('[AdministrateursView] Erreur révocation.', err)
-    toast.value.show('Erreur lors de la révocation.', 'error')
+    toast.value.show(err.userMessage || err.response?.data?.message || 'Erreur lors de la révocation.', 'error')
   } finally {
     confirmId.value = null
+  }
+}
+
+async function restoreAccess(id) {
+  try {
+    await authService.restoreAdmin(id)
+    const idx = admins.value.findIndex(a => a.id === id)
+    if (idx !== -1) admins.value[idx].statut = 'ACTIF'
+    toast.value.show('Accès restauré avec succès.', 'success')
+  } catch (err) {
+    toast.value.show(err.userMessage || err.response?.data?.message || 'Erreur lors de la restauration.', 'error')
   }
 }
 </script>
@@ -112,12 +135,12 @@ async function revokeAccess() {
                 <div class="admin-avatar">{{ initials(admin.nomComplet) }}</div>
                 <div>
                   <div class="admin-name">{{ admin.nomComplet }}</div>
-                  <div class="admin-role">{{ admin.role }}</div>
+                  <div class="admin-role">{{ Array.from(admin.roles ?? []).join(', ') }}</div>
                 </div>
               </div>
             </td>
             <td class="td-email">{{ admin.email }}</td>
-            <td class="td-date">{{ formatDate(admin.dateAjout) }}</td>
+            <td class="td-date">{{ formatDate(admin.creationDate) }}</td>
             <td>
               <span
                 class="badge"
@@ -132,10 +155,10 @@ async function revokeAccess() {
             </td>
             <td>
               <div class="td-actions">
-                <button class="action-btn" title="Modifier" @click="router.push(`/admin/administrateurs/ajouter?edit=${admin.id}`)">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                <button v-if="admin.statut === 'INACTIF'" class="action-btn" title="Restaurer l'accès" @click="restoreAccess(admin.id)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
                 </button>
-                <button class="action-btn action-btn--danger" title="Révoquer l'accès" @click="confirmId = admin.id">
+                <button v-else class="action-btn action-btn--danger" title="Révoquer l'accès" @click="confirmId = admin.id">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
                 </button>
               </div>
@@ -146,7 +169,7 @@ async function revokeAccess() {
           <tr v-if="paginated.length === 0">
             <td colspan="5" class="empty-state">
               <div class="empty-state__content">
-                <span class="empty-state__icon">👥</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40" style="color:#9ca3af"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 <p>Aucun administrateur trouvé.</p>
               </div>
             </td>

@@ -1,0 +1,65 @@
+@baseUrl = http://localhost:8080/api/v1/contrats
+@clientToken = <client-jwt>
+@adminToken = <admin-jwt>
+
+### Create contrat (ADMIN)
+POST {{baseUrl}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "clientId": 1,
+  "annonceId": 1,
+  "leadId": null,
+  "dateDebut": "2026-10-01",
+  "dateFin": "2027-09-30",
+  "montant": 1200000,
+  "documentUrl": "https://example.com/contrat.pdf",
+  "notes": "Contrat de location standard."
+}
+
+### Get client contrats
+GET {{baseUrl}}/client?page=0&size=10&statut=ACTIVE
+Authorization: Bearer {{clientToken}}
+
+### Get all contrats (ADMIN)
+GET {{baseUrl}}/admin?page=0&size=20&statut=ACTIVE
+Authorization: Bearer {{adminToken}}
+
+### Get contrat by id
+GET {{baseUrl}}/1
+Authorization: Bearer {{clientToken}}
+
+### Update contrat (ADMIN)
+PUT {{baseUrl}}/1
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "dateDebut": "2026-10-05",
+  "dateFin": "2027-10-04",
+  "montant": 1250000,
+  "statut": "ACTIVE",
+  "documentUrl": "https://example.com/contrat-updated.pdf",
+  "notes": "Montant ajusté."
+}
+
+### Demander résiliation (CLIENT)
+PUT {{baseUrl}}/1/resiliation
+Content-Type: application/json
+Authorization: Bearer {{clientToken}}
+
+{
+  "nouvelleDate": null,
+  "motif": "Je souhaite résilier prématurément."
+}
+
+### Demander prolongation (CLIENT)
+PUT {{baseUrl}}/1/prolongation
+Content-Type: application/json
+Authorization: Bearer {{clientToken}}
+
+{
+  "nouvelleDate": "2028-09-30",
+  "motif": "Je souhaite prolonger la location."
+}

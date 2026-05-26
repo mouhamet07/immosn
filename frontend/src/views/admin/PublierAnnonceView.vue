@@ -1,4 +1,5 @@
 <script setup>
+import { MapPin, Camera, X } from 'lucide-vue-next'
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import FormStepper from '@/components/admin/FormStepper.vue'
@@ -6,6 +7,7 @@ import ToastNotification from '@/components/admin/ToastNotification.vue'
 import annonceService from '@/services/annonceService'
 import commoditeService from '@/services/commoditeService'
 import typeBienService from '@/services/typeBienService'
+import { uploadImages } from '@/services/cloudinaryService'
 
 const router = useRouter()
 const toast = ref(null)
@@ -47,7 +49,10 @@ onMounted(async () => {
   }
 })
 
+// Fichiers File bruts conservés pour l'upload Cloudinary
+const photoFiles    = ref([])
 const photoPreviews = ref([])
+const uploadProgress = ref({ done: 0, total: 0 })
 
 function toggleCommodite(id) {
   const idx = form.commoditeIds.indexOf(id)
@@ -58,25 +63,36 @@ function toggleCommodite(id) {
 function handleFileUpload(e) {
   const files = Array.from(e.target.files)
   files.forEach(file => {
+    photoFiles.value.push(file)
     const reader = new FileReader()
-    reader.onload = ev => {
-      form.images.push(ev.target.result)
-      photoPreviews.value.push(ev.target.result)
-    }
+    reader.onload = ev => photoPreviews.value.push(ev.target.result)
     reader.readAsDataURL(file)
   })
 }
 
 function removePhoto(i) {
-  form.images.splice(i, 1)
+  photoFiles.value.splice(i, 1)
   photoPreviews.value.splice(i, 1)
 }
 
 const loading = ref(false)
 
 async function submit() {
+  if (!form.typeBienId) {
+    toast.value.show('Veuillez sélectionner un type de bien.', 'error')
+    return
+  }
   loading.value = true
   try {
+    let imageUrls = []
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
+    if (photoFiles.value.length && cloudName && uploadPreset) {
+      uploadProgress.value = { done: 0, total: photoFiles.value.length }
+      imageUrls = await uploadImages(photoFiles.value, (done, total) => {
+        uploadProgress.value = { done, total }
+      })
+    }
     await annonceService.createAnnonce({
       libelle:      form.libelle,
       description:  form.description,
@@ -86,14 +102,15 @@ async function submit() {
       adresse:      form.adresse,
       typeBienId:   form.typeBienId,
       commoditeIds: form.commoditeIds,
-      images:       form.images,
+      images:       imageUrls,
     })
     toast.value.show('Annonce publiée avec succès ✓', 'success')
     setTimeout(() => router.push('/admin/annonces'), 1200)
   } catch (err) {
-    toast.value.show(err.response?.data?.message || 'Données invalides. Vérifiez les champs saisis.', 'error')
+    toast.value.show(err.userMessage || err.response?.data?.message || 'Données invalides. Vérifiez les champs saisis.', 'error')
   } finally {
     loading.value = false
+    uploadProgress.value = { done: 0, total: 0 }
   }
 }
 </script>
@@ -174,7 +191,7 @@ async function submit() {
         </div>
 
         <div class="map-placeholder">
-          <span class="map-placeholder__icon">📍</span>
+          <MapPin :size="28" class="map-placeholder__icon" />
           <span>Cliquer pour placer l'annonce sur la carte</span>
         </div>
       </section>
@@ -204,7 +221,7 @@ async function submit() {
 
         <label class="upload-zone">
           <input type="file" multiple accept="image/*" class="upload-zone__input" @change="handleFileUpload" />
-          <span class="upload-zone__icon">📷</span>
+          <Camera :size="32" class="upload-zone__icon" />
           <span class="upload-zone__text">Glissez-déposez vos photos ici</span>
           <span class="upload-zone__btn">Parcourir la galerie</span>
         </label>
@@ -212,7 +229,9 @@ async function submit() {
         <div v-if="photoPreviews.length" class="photo-previews">
           <div v-for="(src, i) in photoPreviews" :key="i" class="photo-thumb">
             <img :src="src" alt="preview" />
-            <button type="button" class="photo-thumb__remove" @click="removePhoto(i)">✕</button>
+            <button type="button" class="photo-thumb__remove" @click="removePhoto(i)">
+              <X :size="12" />
+            </button>
           </div>
         </div>
       </section>
@@ -230,7 +249,11 @@ async function submit() {
             Continuer vers la fiche finale
           </button>
           <button v-else type="button" class="btn-next" :disabled="loading" @click="submit">
-            {{ loading ? 'Publication...' : "Publier l'annonce" }}
+            <template v-if="loading && uploadProgress.total > 0">
+              Upload {{ uploadProgress.done }}/{{ uploadProgress.total }}...
+            </template>
+            <template v-else-if="loading">Publication...</template>
+            <template v-else>Publier l'annonce</template>
           </button>
         </div>
       </div>
@@ -366,7 +389,7 @@ async function submit() {
   cursor: pointer;
 }
 
-.map-placeholder__icon { font-size: 2rem; }
+.map-placeholder__icon { color: var(--color-primary); }
 
 .equipements-grid {
   display: grid;
@@ -407,7 +430,8 @@ async function submit() {
 
 .upload-zone:hover { border-color: var(--color-primary); }
 .upload-zone__input { display: none; }
-.upload-zone__icon { font-size: 2rem; }
+.upload-zone__icon { color: var(--color-text-muted); transition: color 150ms ease; }
+.upload-zone:hover .upload-zone__icon { color: var(--color-primary); }
 .upload-zone__text { font-size: 0.88rem; color: #6b7280; }
 
 .upload-zone__btn {

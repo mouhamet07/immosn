@@ -1,0 +1,93 @@
+# ══════════════════════════════════════════════════════════
+# ImmoSN — Docker Compose PRODUCTION (VPS Linux)
+#
+# Prérequis : fichier .env à la racine du projet avec :
+#
+#   JWT_SECRET=<64 caractères minimum>
+#   DB_HOST=<ep-xxx.us-east-1.aws.neon.tech>
+#   DB_NAME=<neondb>
+#   DB_USER=<neondb_owner>
+#   DB_PASSWORD=<mot_de_passe_neon>
+#   CORS_ORIGINS=https://immosn.sn,https://www.immosn.sn
+#   SUPER_ADMIN_EMAIL=<email>
+#   SUPER_ADMIN_PASSWORD=<mot_de_passe_fort>
+#   SUPER_ADMIN_NOM=<nom>
+#   SUPER_ADMIN_TELEPHONE=<telephone>
+#   VITE_API_URL=/api/v1
+#   VITE_CLOUDINARY_CLOUD_NAME=<cloudinary_name>
+#   VITE_CLOUDINARY_UPLOAD_PRESET=<cloudinary_preset>
+#
+# Utilisation :
+#   docker compose -f docker-compose.prod.yml up -d --build
+#   docker compose -f docker-compose.prod.yml logs -f backend
+#
+# Logs accessibles sur le VPS :
+#   tail -f ./logs/immosn-app.log
+#   tail -f ./logs/immosn-errors.log
+# ══════════════════════════════════════════════════════════
+
+services:
+
+  # ── Backend Spring Boot (Neon PostgreSQL) ───────────────
+  backend:
+    build: ./backend
+    container_name: immosn-backend-prod
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: neon
+      JWT_SECRET:             ${JWT_SECRET}
+      JWT_EXPIRATION:         ${JWT_EXPIRATION:-86400000}
+      SERVER_PORT:            8080
+      CORS_ORIGINS:           ${CORS_ORIGINS}
+      DB_HOST:                ${DB_HOST}
+      DB_NAME:                ${DB_NAME}
+      DB_USER:                ${DB_USER}
+      DB_PASSWORD:            ${DB_PASSWORD}
+      DB_POOL_SIZE:           ${DB_POOL_SIZE:-5}
+      DDL_AUTO:               ${DDL_AUTO:-update}
+      SUPER_ADMIN_EMAIL:      ${SUPER_ADMIN_EMAIL}
+      SUPER_ADMIN_PASSWORD:   ${SUPER_ADMIN_PASSWORD}
+      SUPER_ADMIN_NOM:        ${SUPER_ADMIN_NOM}
+      SUPER_ADMIN_TELEPHONE:  ${SUPER_ADMIN_TELEPHONE}
+      CONTRAT_EXPIRATION_CRON: ${CONTRAT_EXPIRATION_CRON:-0 5 0 * * *}
+      # Dossier de logs dans le conteneur — monté en volume ci-dessous
+      LOG_PATH:               /app/logs
+    volumes:
+      # ★ Persistance des logs ★
+      # ./logs sur le VPS ↔ /app/logs dans le conteneur
+      # Les logs survivent aux redémarrages, mises à jour et suppressions de conteneur
+      - ./logs:/app/logs
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network-prod
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/v1/annonces"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ── Nginx (frontend + reverse proxy SSL) ────────────────
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+      args:
+        VITE_API_URL:                    ${VITE_API_URL:-/api/v1}
+        VITE_CLOUDINARY_CLOUD_NAME:      ${VITE_CLOUDINARY_CLOUD_NAME:-}
+        VITE_CLOUDINARY_UPLOAD_PRESET:   ${VITE_CLOUDINARY_UPLOAD_PRESET:-}
+    container_name: immosn-nginx-prod
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - app-network-prod
+
+networks:
+  app-network-prod:
+    driver: bridge

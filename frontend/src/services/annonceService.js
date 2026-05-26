@@ -50,4 +50,10 @@ export default {
   restoreAnnonce(id) {
     return api.patch(`/annonces/${validateId(id)}/restore`)
   },
+
+  // POST /api/v1/annonces/search — recherche avancée avec filtres combinables (Sprint 2)
+  // Body: { typeBienId, prixMin, prixMax, adresse, nbrPieces, commoditeIds[], page, size, sortBy, sortDir }
+  searchAnnonces(filters = {}) {
+    return api.post('/annonces/search', filters)
+  },
 }

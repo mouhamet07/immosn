@@ -78,9 +78,19 @@ public class TypeBienAnnonceServiceImpl implements TypeBienAnnonceService {
     @Override
     public void archiveTypeBien(Long id) {
         TypeBienAnnonce typeBien = findActiveByIdOrThrow(id);
-
         typeBien.setArchived(true);
         typeBienAnnonceRepository.save(typeBien);
+    }
+
+    @Override
+    public TypeBienResponseDto restoreTypeBien(Long id) {
+        TypeBienAnnonce typeBien = typeBienAnnonceRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Type de bien introuvable : id=" + id));
+        if (!typeBien.isArchived()) {
+            throw new IllegalStateException("Ce type de bien n'est pas archivé");
+        }
+        typeBien.setArchived(false);
+        return typeBienAnnonceMapper.toResponseDto(typeBienAnnonceRepository.save(typeBien));
     }
 
     private TypeBienAnnonce findActiveByIdOrThrow(Long id) {

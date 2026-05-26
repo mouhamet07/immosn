@@ -1,0 +1,69 @@
+# ══════════════════════════════════════════════════════════
+# ImmoSN — Docker Compose développement local
+#
+# Utilisation :
+#   docker compose -f docker-compose.dev.yml up --build
+#
+# Base de données : H2 en mémoire (pas besoin de Neon)
+# Frontend        : http://localhost
+# Backend direct  : http://localhost:8080/api/v1
+# ══════════════════════════════════════════════════════════
+
+services:
+
+  # ── Backend Spring Boot (H2 en mémoire) ─────────────────
+  backend:
+    build: ./backend
+    container_name: immosn-backend-dev
+    restart: unless-stopped
+    environment:
+      # Pas de profil → H2 en mémoire par défaut
+      SPRING_PROFILES_ACTIVE: ""
+      JWT_SECRET:             dev-secret-not-for-production-minimum-64-chars-padding-here
+      JWT_EXPIRATION:         86400000
+      SERVER_PORT:            8080
+      CORS_ORIGINS:           http://localhost,http://localhost:5173
+      SUPER_ADMIN_EMAIL:      superadmin@immosn.sn
+      SUPER_ADMIN_PASSWORD:   SuperAdmin@2026!
+      SUPER_ADMIN_NOM:        Super Administrateur
+      SUPER_ADMIN_TELEPHONE:  "+221770000000"
+      CONTRAT_EXPIRATION_CRON: "0 5 0 * * *"
+      # Logs persistants dans ./logs sur le host (accessible depuis le VPS)
+      LOG_PATH:               /app/logs
+    volumes:
+      # Persistance des logs : ./logs sur le host ↔ /app/logs dans le conteneur
+      # Les logs survivent aux redémarrages et suppressions de conteneur
+      - ./logs:/app/logs
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network-dev
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/v1/annonces"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+
+  # ── Nginx (frontend + reverse proxy) ────────────────────
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+      args:
+        VITE_API_URL: /api/v1
+        VITE_CLOUDINARY_CLOUD_NAME: ""
+        VITE_CLOUDINARY_UPLOAD_PRESET: ""
+    container_name: immosn-nginx-dev
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - app-network-dev
+
+networks:
+  app-network-dev:
+    driver: bridge

@@ -32,4 +32,9 @@ export default {
   archiveCommodite(id) {
     return api.delete(`/commodites/${id}`)
   },
+
+  // Restaurer une commodité archivée — PATCH /api/v1/commodites/{id}/restore
+  restoreCommodite(id) {
+    return api.patch(`/commodites/${id}/restore`)
+  },
 }

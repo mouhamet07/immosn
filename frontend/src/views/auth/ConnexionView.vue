@@ -35,7 +35,9 @@ async function handleSubmit() {
     await authStore.login(form.email, form.motDePasse)
   } catch (err) {
     // Extraire le message depuis RestResponse<AuthResponseDto>
-    errors.global = err.response?.data?.message || err.response?.data?.data?.message || 'Email ou mot de passe incorrect.'
+    errors.global = err.response?.status === 401
+      ? 'Email ou mot de passe incorrect.'
+      : (err.response?.data?.message || 'Une erreur est survenue. Veuillez réessayer.')
   } finally {
     loading.value = false
   }
@@ -68,19 +70,31 @@ async function handleSubmit() {
             label="Adresse e-mail"
             type="email"
             placeholder="abdoulaye@example.sn"
-            icon="✉️"
             :error="errors.email"
             required
-          />
+          >
+            <template #icon>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+              </svg>
+            </template>
+          </InputField>
           <InputField
             v-model="form.motDePasse"
             label="Mot de passe"
             type="password"
             placeholder="••••••••"
-            icon="🔒"
             :error="errors.motDePasse"
             required
-          />
+          >
+            <template #icon>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </template>
+          </InputField>
 
           <!-- Erreur globale -->
           <div v-if="errors.global" class="connexion__alert">{{ errors.global }}</div>
@@ -118,7 +132,7 @@ async function handleSubmit() {
   width: 45%;
   height: 100%;
   background: url('@/assets/Luxury Home.png') center/cover no-repeat;
-  opacity: 0.15;
+  opacity: 0.35;
   z-index: 0;
 }
 
@@ -178,8 +192,10 @@ async function handleSubmit() {
 }
 
 .connexion__title {
-  font-size: 1.5rem;
-  font-weight: 800;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.7rem;
+  font-weight: 700;
   color: var(--color-text);
   margin-bottom: 0.4rem;
 }

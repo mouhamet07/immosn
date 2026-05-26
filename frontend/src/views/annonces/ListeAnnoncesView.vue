@@ -1,36 +1,57 @@
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import AnnonceCard from '@/components/AnnonceCard.vue'
-import ButtonPrimary from '@/components/ButtonPrimary.vue'
 import annonceService from '@/services/annonceService'
 import typeBienService from '@/services/typeBienService'
+import SvgIcon from '@/components/SvgIcon.vue'
 
-const annonces = ref([])
-const loading = ref(false)
-const error = ref('')
-const typesBien = ref([])
+const typesBien   = ref([])
+const annonces    = ref([])
+const loading     = ref(false)
+const error       = ref('')
 
-// Pagination backend (PagedResponse)
 const currentPage = ref(0)
-const totalPages = ref(1)
-const pageNumbers = computed(() => Array.from({ length: totalPages.value }, (_, i) => i + 1))
+const totalPages  = ref(1)
+const totalItems  = ref(0)
+const PAGE_SIZE   = 9
 
-// Filtres — typeBienId envoie l'ID, pas le libellé
+const pageNumbers = computed(() =>
+  Array.from({ length: totalPages.value }, (_, i) => i + 1)
+)
+
 const filtres = reactive({
-  typeBienId: '',
-  adresse: '',
+  typeBienId: null,
+  prixMax:    null,
+  adresse:    '',
+  nbrPieces:  null,
+  sortBy:     'createdAt',
+  sortDir:    'DESC',
 })
+
+function resetFiltres() {
+  filtres.typeBienId = null
+  filtres.prixMax    = null
+  filtres.adresse    = ''
+  filtres.nbrPieces  = null
+  fetchAnnonces(0)
+}
 
 async function fetchAnnonces(page = 0) {
   loading.value = true
-  error.value = ''
+  error.value   = ''
   try {
-    const response = await annonceService.getAllAnnonces({ page, size: 9 })
-    // Structure PagedResponse: { data, totalElements, totalPages, currentPage, ... }
-    const paged = response.data
-    annonces.value = paged.data
-    totalPages.value = paged.totalPages
+    const body = { page, size: PAGE_SIZE, sortBy: filtres.sortBy, sortDir: filtres.sortDir }
+    if (filtres.typeBienId)      body.typeBienId = filtres.typeBienId
+    if (filtres.prixMax)         body.prixMax    = Number(filtres.prixMax)
+    if (filtres.adresse?.trim()) body.adresse    = filtres.adresse.trim()
+    if (filtres.nbrPieces)       body.nbrPieces  = Number(filtres.nbrPieces)
+
+    const response = await annonceService.searchAnnonces(body)
+    const paged    = response.data
+    annonces.value    = paged.data
+    totalPages.value  = paged.totalPages
     currentPage.value = paged.currentPage
+    totalItems.value  = paged.totalElements
   } catch {
     error.value = 'Impossible de charger les annonces. Veuillez réessayer.'
   } finally {
@@ -46,13 +67,8 @@ function goToPage(page) {
 }
 
 onMounted(async () => {
-  // Charger les types de bien depuis l'API pour le dropdown
-  try {
-    const res = await typeBienService.getAllTypesBien()
-    typesBien.value = res.data.data
-  } catch {
-    typesBien.value = []
-  }
+  const res = await typeBienService.getAllTypesBien().catch(() => null)
+  if (res) typesBien.value = res.data.data ?? []
   fetchAnnonces(0)
 })
 </script>
@@ -60,35 +76,72 @@ onMounted(async () => {
 <template>
   <div class="liste-page">
     <main class="liste-main">
-      <!-- En-tête -->
-      <div class="liste-header">
-        <h1 class="liste-header__title">Explorer les Propriétés</h1>
-        <p class="liste-header__subtitle">
-          Découvrez notre sélection exclusive de biens immobiliers au Sénégal.
+
+      <!-- Hero -->
+      <div class="liste-hero">
+        <h1 class="liste-hero__title">Explorer les Propriétés</h1>
+        <p class="liste-hero__sub">
+          Découvrez notre sélection exclusive de biens immobiliers de luxe au Sénégal,
+          des villas côtières aux appartements contemporains.
         </p>
       </div>
 
-      <!-- Barre de filtres -->
-      <div class="liste-filtres">
-        <div class="liste-filtres__group">
-          <label class="liste-filtres__label">TYPE DE BIEN</label>
-          <select v-model="filtres.typeBienId" class="liste-filtres__select">
-            <option value="">Tous les types</option>
-            <option v-for="type in typesBien" :key="type.id" :value="type.id">
-              {{ type.libelle }}
-            </option>
-          </select>
+      <!-- Filtres horizontaux -->
+      <div class="liste-filters">
+        <div class="filters-grid">
+          <div class="filter-field">
+            <label class="filter-label">Quartier</label>
+            <div class="filter-input-wrap">
+              <SvgIcon name="map-pin" :size="16" class="filter-icon" />
+              <input v-model="filtres.adresse" type="text" class="filter-input" placeholder="Almadies, Plateau…" />
+            </div>
+          </div>
+
+          <div class="filter-field">
+            <label class="filter-label">Type de bien</label>
+            <div class="filter-input-wrap">
+              <SvgIcon name="home" :size="16" class="filter-icon" />
+              <select v-model="filtres.typeBienId" class="filter-select">
+                <option :value="null">Tous types</option>
+                <option v-for="t in typesBien" :key="t.id" :value="t.id">{{ t.libelle }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="filter-field">
+            <label class="filter-label">Budget (FCFA)</label>
+            <div class="filter-input-wrap">
+              <SvgIcon name="maximize" :size="16" class="filter-icon" />
+              <select v-model.number="filtres.prixMax" class="filter-select">
+                <option :value="null">Toute gamme</option>
+                <option :value="50000000">0 – 50M</option>
+                <option :value="200000000">50M – 200M</option>
+                <option :value="999999999">200M+</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="filter-field">
+            <label class="filter-label">Chambres</label>
+            <div class="filter-input-wrap">
+              <SvgIcon name="bed" :size="16" class="filter-icon" />
+              <select v-model.number="filtres.nbrPieces" class="filter-select">
+                <option :value="null">Tout</option>
+                <option :value="1">1+</option>
+                <option :value="3">3+</option>
+                <option :value="5">5+</option>
+              </select>
+            </div>
+          </div>
         </div>
 
-        <div class="liste-filtres__group">
-          <label class="liste-filtres__label">ADRESSE / QUARTIER</label>
-          <input v-model="filtres.adresse" type="text" class="liste-filtres__select" placeholder="ex. Almadies" />
-        </div>
-
-        <ButtonPrimary @click="fetchAnnonces">Rechercher</ButtonPrimary>
+        <button class="filters-btn" @click="fetchAnnonces(0)">
+          <SvgIcon name="search" :size="16" />
+          Rechercher
+        </button>
       </div>
 
-      <!-- État de chargement -->
+      <!-- Chargement -->
       <div v-if="loading" class="liste-loading">
         <div class="liste-loading__spinner"></div>
         <p>Chargement des annonces...</p>
@@ -97,10 +150,10 @@ onMounted(async () => {
       <!-- Erreur -->
       <div v-else-if="error" class="liste-error">{{ error }}</div>
 
-      <!-- Grille d'annonces -->
+      <!-- Grille -->
       <div v-else-if="annonces.length" class="liste-grid">
         <AnnonceCard
-          v-for="annonce in annonces"
+          v-for="(annonce, i) in annonces"
           :key="annonce.id"
           :id="annonce.id"
           :title="annonce.libelle"
@@ -111,118 +164,141 @@ onMounted(async () => {
           :surface="annonce.surface"
           :adresse="annonce.adresse"
           :badge="annonce.typeBien?.libelle || ''"
+          :isNew="i % 2 === 0"
         />
       </div>
 
-      <!-- Aucun résultat -->
+      <!-- Vide -->
       <div v-else class="liste-empty">
-        <p>🏠 Aucune annonce trouvée pour ces critères.</p>
+        <SvgIcon name="home" :size="48" class="liste-empty__icon" />
+        <p class="liste-empty__title">Aucune annonce trouvée</p>
+        <p class="liste-empty__sub">Essayez de modifier vos critères de recherche.</p>
+        <button class="filters-btn" @click="resetFiltres">Effacer les filtres</button>
       </div>
 
       <!-- Pagination -->
-      <div v-if="totalPages > 1" class="liste-pagination">
-        <button
-          class="liste-pagination__btn"
-          :disabled="currentPage === 0"
-          @click="goToPage(currentPage - 1)"
-        >
-          ← Précédent
+      <nav v-if="totalPages > 1" class="liste-pagination">
+        <button class="pagination-nav" :disabled="currentPage === 0" @click="goToPage(currentPage - 1)">
+          <SvgIcon name="chevron-left" :size="18" />
+          <span>Précédent</span>
         </button>
 
-        <button
-          v-for="page in pageNumbers"
-          :key="page"
-          class="liste-pagination__page"
-          :class="{ 'liste-pagination__page--active': page - 1 === currentPage }"
-          @click="goToPage(page - 1)"
-        >
-          {{ page }}
-        </button>
+        <div class="pagination-pages">
+          <button
+            v-for="page in pageNumbers"
+            :key="page"
+            class="pagination-page"
+            :class="{ 'pagination-page--active': page - 1 === currentPage }"
+            @click="goToPage(page - 1)"
+          >
+            {{ page }}
+          </button>
+        </div>
 
-        <button
-          class="liste-pagination__btn"
-          :disabled="currentPage === totalPages - 1"
-          @click="goToPage(currentPage + 1)"
-        >
-          Suivant →
+        <button class="pagination-nav" :disabled="currentPage === totalPages - 1" @click="goToPage(currentPage + 1)">
+          <span>Suivant</span>
+          <SvgIcon name="chevron-right" :size="18" />
         </button>
-      </div>
+      </nav>
+
     </main>
   </div>
 </template>
 
 <style scoped>
-.liste-page {
-  background: var(--color-background);
-}
+.liste-page { background: var(--color-background); }
 
 .liste-main {
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 2.5rem 1.5rem;
+  padding: 2.5rem 1.5rem 4rem;
 }
 
-/* En-tête */
-.liste-header {
-  margin-bottom: 2rem;
-}
-
-.liste-header__title {
-  font-size: 2rem;
-  font-weight: 800;
-  color: var(--color-text);
+/* Hero */
+.liste-hero { margin-bottom: 2rem; }
+.liste-hero__title {
+  font-family: var(--font-serif);
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1.1;
   margin-bottom: 0.5rem;
 }
-
-.liste-header__subtitle {
-  color: var(--color-text);
-  opacity: 0.6;
+.liste-hero__sub {
+  font-size: 1.05rem;
+  color: var(--color-text-muted);
+  max-width: 600px;
+  line-height: 1.6;
 }
 
 /* Filtres */
-.liste-filtres {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  align-items: flex-end;
+.liste-filters {
   background: var(--color-card);
-  padding: 1.5rem;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-card);
-  margin-bottom: 2rem;
-}
-
-.liste-filtres__group {
+  padding: 1.25rem 1.5rem;
   display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+  box-shadow: var(--shadow-card);
+}
+.filters-grid {
   flex: 1;
-  min-width: 160px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
 }
-
-.liste-filtres__label {
-  font-size: 0.75rem;
+.filter-field { display: flex; flex-direction: column; gap: 0.35rem; }
+.filter-label {
+  font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-text);
-  opacity: 0.7;
+  color: var(--color-text-muted);
 }
-
-.liste-filtres__select {
-  padding: 0.7rem 0.9rem;
+.filter-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.filter-icon {
+  position: absolute;
+  left: 0.65rem;
+  color: var(--color-text-muted);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+.filter-input,
+.filter-select {
+  width: 100%;
+  padding: 0.6rem 0.75rem 0.6rem 2.2rem;
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-sm);
-  background: #fff;
-  font-size: 0.9rem;
+  background: var(--color-background);
+  font-size: 0.88rem;
   color: var(--color-text);
   transition: border-color 0.2s;
+  appearance: none;
 }
+.filter-input:focus,
+.filter-select:focus { border-color: var(--color-primary); }
 
-.liste-filtres__select:focus {
-  border-color: var(--color-primary);
-  outline: none;
+.filters-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.5rem;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.2s;
+  flex-shrink: 0;
 }
+.filters-btn:hover { background: var(--color-primary-hover); }
 
 /* Chargement */
 .liste-loading {
@@ -231,10 +307,8 @@ onMounted(async () => {
   align-items: center;
   gap: 1rem;
   padding: 4rem;
-  color: var(--color-text);
-  opacity: 0.6;
+  color: var(--color-text-muted);
 }
-
 .liste-loading__spinner {
   width: 40px;
   height: 40px;
@@ -243,12 +317,7 @@ onMounted(async () => {
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* Erreur */
 .liste-error {
@@ -269,12 +338,16 @@ onMounted(async () => {
 
 /* Vide */
 .liste-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 4rem 2rem;
   text-align: center;
-  padding: 4rem;
-  color: var(--color-text);
-  opacity: 0.5;
-  font-size: 1.1rem;
 }
+.liste-empty__icon { color: var(--color-text-muted); opacity: 0.3; margin-bottom: 0.5rem; }
+.liste-empty__title { font-size: 1.1rem; font-weight: 700; color: var(--color-text); }
+.liste-empty__sub { font-size: 0.9rem; color: var(--color-text-muted); margin-bottom: 0.5rem; }
 
 /* Pagination */
 .liste-pagination {
@@ -282,67 +355,54 @@ onMounted(async () => {
   justify-content: center;
   align-items: center;
   gap: 0.5rem;
-  flex-wrap: wrap;
+  margin-top: 1rem;
 }
-
-.liste-pagination__btn {
+.pagination-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   padding: 0.5rem 1rem;
-  border: 1.5px solid var(--color-border);
   border-radius: var(--radius-sm);
-  background: var(--color-card);
-  color: var(--color-text);
   font-size: 0.88rem;
   font-weight: 600;
-  transition: all 0.2s;
+  color: var(--color-text-muted);
+  background: transparent;
+  transition: background 0.2s, color 0.2s;
 }
-
-.liste-pagination__btn:hover:not(:disabled) {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.liste-pagination__btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.liste-pagination__page {
-  width: 38px;
-  height: 38px;
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-card);
+.pagination-nav:hover:not(:disabled) {
+  background: var(--color-border);
   color: var(--color-text);
+}
+.pagination-nav:disabled { opacity: 0.35; cursor: not-allowed; }
+.pagination-pages { display: flex; gap: 0.25rem; }
+.pagination-page {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
   font-size: 0.88rem;
   font-weight: 600;
-  transition: all 0.2s;
+  color: var(--color-text-muted);
+  background: transparent;
+  transition: background 0.2s, color 0.2s;
 }
-
-.liste-pagination__page:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.liste-pagination__page--active {
+.pagination-page:hover { background: var(--color-border); color: var(--color-text); }
+.pagination-page--active {
   background: var(--color-primary);
-  border-color: var(--color-primary);
   color: #fff;
 }
 
 /* Responsive */
 @media (max-width: 1024px) {
-  .liste-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  .filters-grid { grid-template-columns: repeat(2, 1fr); }
+  .liste-grid { grid-template-columns: repeat(2, 1fr); }
 }
-
+@media (max-width: 768px) {
+  .liste-filters { flex-direction: column; align-items: stretch; }
+  .filters-btn { width: 100%; justify-content: center; }
+}
 @media (max-width: 600px) {
-  .liste-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .liste-filtres {
-    flex-direction: column;
-  }
+  .filters-grid { grid-template-columns: 1fr; }
+  .liste-grid { grid-template-columns: 1fr; }
+  .liste-hero__title { font-size: 2rem; }
 }
 </style>

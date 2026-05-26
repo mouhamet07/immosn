@@ -1,302 +1,277 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import authService from '@/services/authService'
-import StatsCard from '@/components/admin/StatsCard.vue'
+import { ref, computed, onMounted, defineComponent, h } from 'vue'
+import dashboardService from '@/services/dashboardService'
 
-const router = useRouter()
+// Composant icône SVG inline — remplace les emojis
+const SVGS = {
+  building:  `<path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-4h6v4"/>`,
+  user:      `<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>`,
+  calendar:  `<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>`,
+  document:  `<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>`,
+  target:    `<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>`,
+  alert:     `<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>`,
+  chat:      `<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>`,
+  people:    `<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>`,
+}
+const DashIcon = defineComponent({
+  props: { name: String },
+  setup(props) {
+    return () => h('svg', {
+      viewBox: '0 0 24 24', fill: 'none',
+      stroke: 'currentColor', 'stroke-width': '2',
+      innerHTML: SVGS[props.name] ?? SVGS.document,
+    })
+  },
+})
 
-// Données mockées — à remplacer par des appels API
-const stats = ref([
-  { label: 'Annonces actives',  value: 6,  color: 'primary' },
-  { label: 'Visites ce mois',   value: 0,  color: 'neutral' },
-  { label: 'Contrats signés',   value: 0,  color: 'neutral' },
-  { label: 'Administrateurs',   value: 0,  color: 'primary' },
-])
+const loading = ref(true)
+const error   = ref('')
+const stats   = ref(null)
 
-const recentAnnonces = ref([
-  { id: 1, titre: 'Villa moderne Almadies',   quartier: 'Almadies',  prix: '150 000 000', statut: 'ACTIF' },
-  { id: 2, titre: 'Appartement Plateau',      quartier: 'Plateau',   prix: '45 000 000',  statut: 'ACTIF' },
-  { id: 3, titre: 'Bureau Mermoz',            quartier: 'Mermoz',    prix: '30 000 000',  statut: 'EN_ATTENTE' },
-  { id: 4, titre: 'Penthouse Ngor',           quartier: 'Ngor',      prix: '200 000 000', statut: 'ACTIF' },
-])
-
-const admins = ref([])
-const loadingAdmins = ref(true)
-
-// Charger la liste des administrateurs
+// ── Chargement ─────────────────────────────────────────────
 onMounted(async () => {
   try {
-    const response = await authService.getAdmins(0, 10)
-    // Structure PagedResponse: { data, totalElements, totalPages, ... }
-    const pagedAdmins = response.data
-    admins.value = pagedAdmins.data
-    // Mettre à jour le stat des administrateurs avec le nombre total
-    stats.value[3].value = pagedAdmins.totalElements
-  } catch (error) {
-    console.error('Erreur lors du chargement des administrateurs:', error)
+    const res = await dashboardService.getStats()
+    stats.value = res.data.data
+  } catch {
+    error.value = 'Impossible de charger les statistiques.'
   } finally {
-    loadingAdmins.value = false
+    loading.value = false
   }
 })
+
+// ── Cards statistiques ──────────────────────────────────────
+const statCards = computed(() => {
+  if (!stats.value) return []
+  const s = stats.value
+  return [
+    { icon: 'building',     label: 'Annonces actives',    value: s.annoncesActives,      total: s.totalAnnonces,        color: 'primary', to: '/admin/annonces' },
+    { icon: 'user',         label: 'Clients',              value: s.totalClients,         total: null,                   color: 'blue',    to: null },
+    { icon: 'calendar',     label: 'Visites en attente',   value: s.visitesEnAttente,     total: s.totalVisites,         color: 'orange',  to: '/admin/visites' },
+    { icon: 'document',     label: 'Contrats actifs',      value: s.contratsActifs,       total: s.totalContrats,        color: 'green',   to: '/admin/contrats' },
+    { icon: 'target',       label: 'Leads en cours',       value: s.leadsEnCours,         total: s.totalLeads,           color: 'purple',  to: '/admin/leads' },
+    { icon: 'alert',        label: 'Signalements ouverts', value: s.signalementsOuverts,  total: s.totalSignalements,    color: 'red',     to: '/admin/signalements' },
+    { icon: 'chat',         label: 'Discussions',          value: s.totalDiscussions,     total: null,                   color: 'teal',    to: '/admin/messages' },
+    { icon: 'people',       label: 'Administrateurs',      value: s.totalAdmins,          total: null,                   color: 'gray',    to: '/admin/administrateurs' },
+  ]
+})
+
+const recentActivities = computed(() => stats.value?.activitesRecentes ?? [])
+
+const ACTIVITY_ICONS  = { ANNONCE: 'building', VISITE: 'calendar', CONTRAT: 'document', SIGNALEMENT: 'alert', CLIENT: 'user' }
+const STATUT_COLORS   = {
+  ACTIVE: 'badge--success', EN_ATTENTE: 'badge--warning', ACCEPTEE: 'badge--success',
+  REFUSEE: 'badge--danger', ACTIF: 'badge--success', RESILIE: 'badge--danger',
+  EXPIRE: 'badge--neutral', OUVERT: 'badge--warning', EN_COURS: 'badge--info',
+  RESOLU: 'badge--success', FERME: 'badge--neutral',
+}
+const STATUT_LABELS   = {
+  ACTIVE: 'Actif', EN_ATTENTE: 'En attente', ACCEPTEE: 'Acceptée',
+  REFUSEE: 'Refusée', ACTIF: 'Actif', RESILIE: 'Résilié',
+  EXPIRE: 'Expiré', OUVERT: 'Ouvert', EN_COURS: 'En cours',
+  RESOLU: 'Résolu', FERME: 'Fermé',
+}
+
+function formatDate(dt) {
+  if (!dt) return ''
+  const d = new Date(dt), now = new Date()
+  const diff = Math.floor((now - d) / 1000)
+  if (diff < 60)    return 'À l\'instant'
+  if (diff < 3600)  return `Il y a ${Math.floor(diff / 60)} min`
+  if (diff < 86400) return `Il y a ${Math.floor(diff / 3600)} h`
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })
+}
+
+const shortcuts = [
+  { icon: 'building', label: 'Publier une annonce', to: '/admin/annonces/publier' },
+  { icon: 'calendar', label: 'Gérer les visites',   to: '/admin/visites' },
+  { icon: 'target',   label: 'Voir les leads',       to: '/admin/leads' },
+  { icon: 'document', label: 'Voir les contrats',    to: '/admin/contrats' },
+  { icon: 'alert',    label: 'Signalements SAV',     to: '/admin/signalements' },
+  { icon: 'chat',     label: 'Messagerie',           to: '/admin/messages' },
+]
 </script>
 
 <template>
-  <div class="dashboard">
-    <!-- En-tête -->
-    <div class="dashboard__header">
+  <div class="dash">
+
+    <div class="dash__header">
       <div>
-        <h1 class="dashboard__title">Tableau de bord</h1>
-        <p class="dashboard__subtitle">Bienvenue sur l'interface d'administration ImmoSN.</p>
+        <h1 class="dash__title">Tableau de bord</h1>
+        <p class="dash__sub">Bienvenue sur l'interface d'administration ImmoSN.</p>
+      </div>
+      <div v-if="stats" class="dash__today">
+        <span class="dash__today-label">Visites aujourd'hui</span>
+        <span class="dash__today-value">{{ stats.visitesAujourdhui }}</span>
       </div>
     </div>
 
-    <!-- Stats -->
-    <div class="dashboard__stats">
-      <StatsCard
-        v-for="stat in stats"
-        :key="stat.label"
-        :label="stat.label"
-        :value="stat.value"
-        :color="stat.color"
-      />
+    <div v-if="loading" class="dash__loading">
+      <div class="spinner"></div>
+      <p>Chargement des statistiques&hellip;</p>
     </div>
 
-    <!-- Annonces récentes -->
-    <div class="dashboard__section">
-      <div class="section-header">
-        <h2 class="section-header__title">Annonces récentes</h2>
-        <RouterLink to="/admin/annonces" class="section-header__link">Voir tout →</RouterLink>
+    <div v-else-if="error" class="dash__error">{{ error }}</div>
+
+    <template v-else>
+      <!-- Stats -->
+      <div class="dash__stats">
+        <component
+          :is="card.to ? 'RouterLink' : 'div'"
+          v-for="card in statCards"
+          :key="card.label"
+          :to="card.to"
+          class="stat-card"
+          :class="`stat-card--${card.color}`"
+        >
+          <div class="stat-card__icon">
+            <DashIcon :name="card.icon" />
+          </div>
+          <div class="stat-card__body">
+            <div class="stat-card__row">
+              <span class="stat-card__value">{{ card.value?.toLocaleString('fr-FR') }}</span>
+              <span v-if="card.total !== null" class="stat-card__total">/ {{ card.total?.toLocaleString('fr-FR') }}</span>
+            </div>
+            <p class="stat-card__label">{{ card.label }}</p>
+          </div>
+        </component>
       </div>
 
-      <div class="recent-table-wrap">
-        <table class="recent-table">
-          <thead>
-            <tr>
-              <th>Titre</th>
-              <th>Quartier</th>
-              <th>Prix (FCFA)</th>
-              <th>Statut</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="a in recentAnnonces"
-              :key="a.id"
-              class="recent-table__row"
-              @click="router.push(`/admin/annonces`)"
-            >
-              <td class="td-title">{{ a.titre }}</td>
-              <td class="td-muted">{{ a.quartier }}</td>
-              <td class="td-muted">{{ a.prix }}</td>
-              <td>
-                <span
-                  class="badge"
-                  :class="{
-                    'badge--active':  a.statut === 'ACTIF',
-                    'badge--pending': a.statut === 'EN_ATTENTE',
-                  }"
-                >
-                  {{ a.statut === 'EN_ATTENTE' ? 'En attente' : 'Actif' }}
+      <!-- Grille 2 colonnes -->
+      <div class="dash__grid">
+
+        <!-- Activités récentes -->
+        <div class="dash__section">
+          <div class="section-head">
+            <h2 class="section-head__title">Activités récentes</h2>
+          </div>
+          <p v-if="!recentActivities.length" class="dash__empty">Aucune activité récente.</p>
+          <ul v-else class="activity-list">
+            <li v-for="(a, i) in recentActivities" :key="i" class="activity-item">
+              <span class="activity-item__icon">
+                <DashIcon :name="ACTIVITY_ICONS[a.type] ?? 'document'" />
+              </span>
+              <div class="activity-item__body">
+                <p class="activity-item__title">{{ a.titre }}</p>
+                <p class="activity-item__desc">{{ a.description }}</p>
+              </div>
+              <div class="activity-item__right">
+                <span :class="['badge', STATUT_COLORS[a.statut] ?? 'badge--neutral']">
+                  {{ STATUT_LABELS[a.statut] ?? a.statut }}
                 </span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+                <span class="activity-item__date">{{ formatDate(a.createdAt) }}</span>
+              </div>
+            </li>
+          </ul>
+        </div>
 
-    <!-- Administrateurs -->
-    <div class="dashboard__section">
-      <div class="section-header">
-        <h2 class="section-header__title">Administrateurs</h2>
-        <RouterLink to="/admin/administrateurs" class="section-header__link">Voir tout →</RouterLink>
+        <!-- Raccourcis -->
+        <div class="dash__shortcuts-col">
+          <div class="section-head">
+            <h2 class="section-head__title">Accès rapides</h2>
+          </div>
+          <div class="shortcuts-grid">
+            <RouterLink v-for="s in shortcuts" :key="s.to" :to="s.to" class="shortcut-card">
+              <span class="shortcut-card__icon">
+                <DashIcon :name="s.icon" />
+              </span>
+              <span class="shortcut-card__label">{{ s.label }}</span>
+            </RouterLink>
+          </div>
+        </div>
       </div>
-
-      <div class="recent-table-wrap">
-        <div v-if="loadingAdmins" class="loading-text">Chargement des administrateurs...</div>
-        <table v-else class="recent-table">
-          <thead>
-            <tr>
-              <th>Nom complet</th>
-              <th>Email</th>
-              <th>Téléphone</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="admin in admins.slice(0, 5)"
-              :key="admin.id"
-              class="recent-table__row"
-              @click="router.push(`/admin/administrateurs`)"
-            >
-              <td class="td-title">{{ admin.nomComplet }}</td>
-              <td class="td-muted">{{ admin.email }}</td>
-              <td class="td-muted">{{ admin.telephone }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Raccourcis -->
-    <div class="dashboard__shortcuts">
-      <RouterLink to="/admin/annonces/publier" class="shortcut-card">
-        <span class="shortcut-card__icon">🏠</span>
-        <span class="shortcut-card__label">Publier une annonce</span>
-      </RouterLink>
-      <RouterLink to="/admin/visites" class="shortcut-card">
-        <span class="shortcut-card__icon">📅</span>
-        <span class="shortcut-card__label">Gérer les visites</span>
-      </RouterLink>
-      <RouterLink to="/admin/contrats" class="shortcut-card">
-        <span class="shortcut-card__icon">📄</span>
-        <span class="shortcut-card__label">Voir les contrats</span>
-      </RouterLink>
-      <RouterLink to="/admin/administrateurs" class="shortcut-card">
-        <span class="shortcut-card__icon">👥</span>
-        <span class="shortcut-card__label">Administrateurs</span>
-      </RouterLink>
-    </div>
+    </template>
   </div>
 </template>
 
 <style scoped>
-.dashboard { display: flex; flex-direction: column; gap: 2rem; }
+.dash { display: flex; flex-direction: column; gap: 1.75rem; }
 
-.dashboard__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 1rem;
+.dash__header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; }
+.dash__title  { font-size: 1.5rem; font-weight: 800; color: var(--color-text); }
+.dash__sub    { font-size: .88rem; color: var(--color-text); opacity: .55; margin-top: .2rem; }
+.dash__today  { background: var(--color-card); border-radius: var(--radius); padding: .75rem 1.25rem; box-shadow: var(--shadow-card); text-align: center; }
+.dash__today-label { display: block; font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; color: var(--color-text); opacity: .5; }
+.dash__today-value { font-size: 1.75rem; font-weight: 800; color: var(--color-primary); }
+
+.dash__loading { display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 4rem; opacity: .55; }
+.dash__error   { text-align: center; padding: 2rem; color: var(--color-accent); }
+.dash__empty   { padding: 2rem; text-align: center; font-size: .88rem; color: var(--color-text); opacity: .45; }
+
+/* Grille 8 stats */
+.dash__stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: .9rem; }
+
+.stat-card {
+  background: var(--color-card); border-radius: var(--radius); padding: 1.1rem 1.25rem;
+  display: flex; align-items: center; gap: .9rem; box-shadow: var(--shadow-card);
+  text-decoration: none; border-left: 4px solid transparent;
+  transition: transform .15s, box-shadow .15s;
 }
+.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-card-hover); }
+.stat-card__icon  { width: 2rem; height: 2rem; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.stat-card__icon svg { width: 1.5rem; height: 1.5rem; }
+.stat-card__body  { min-width: 0; }
+.stat-card__row   { display: flex; align-items: baseline; gap: .25rem; }
+.stat-card__value { font-size: 1.4rem; font-weight: 800; color: var(--color-text); line-height: 1; }
+.stat-card__total { font-size: .75rem; color: var(--color-text); opacity: .4; }
+.stat-card__label { font-size: .73rem; color: var(--color-text); opacity: .55; margin-top: .15rem; }
 
-.dashboard__title {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: var(--color-text);
-}
+.stat-card--primary { border-left-color: var(--color-primary); }
+.stat-card--blue    { border-left-color: #3b82f6; }
+.stat-card--orange  { border-left-color: #f59e0b; }
+.stat-card--green   { border-left-color: #10b981; }
+.stat-card--purple  { border-left-color: #8b5cf6; }
+.stat-card--red     { border-left-color: #ef4444; }
+.stat-card--teal    { border-left-color: #14b8a6; }
+.stat-card--gray    { border-left-color: #6b7280; }
 
-.dashboard__subtitle {
-  font-size: 0.88rem;
-  color: var(--color-text-muted);
-  margin-top: 0.25rem;
-}
+/* Grille 2 colonnes */
+.dash__grid { display: grid; grid-template-columns: 1fr 300px; gap: 1.5rem; align-items: start; }
 
-.btn-primary { display: none; }
+.dash__section { background: var(--color-card); border-radius: var(--radius); box-shadow: var(--shadow-card); overflow: hidden; }
+.dash__shortcuts-col { display: flex; flex-direction: column; gap: 0; background: var(--color-card); border-radius: var(--radius); box-shadow: var(--shadow-card); overflow: hidden; }
 
-.dashboard__stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
-}
+.section-head { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem .75rem; border-bottom: 1px solid var(--color-border); }
+.section-head__title { font-size: .95rem; font-weight: 700; color: var(--color-text); }
 
-/* Section */
-.dashboard__section {
-  background: var(--color-card);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-card);
-  overflow: hidden;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.25rem 1.25rem 0.75rem;
-  border-bottom: 1px solid #E8E0D4;
-}
-
-.section-header__title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.section-header__link {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--color-primary);
-  text-decoration: none;
-}
-.section-header__link:hover { text-decoration: underline; }
-
-/* Table */
-.recent-table-wrap { overflow-x: auto; }
-
-.recent-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.88rem;
-}
-
-.recent-table th {
-  padding: 0.75rem 1.25rem;
-  text-align: left;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-text-muted);
-  background: var(--color-background);
-}
-
-.recent-table__row {
-  border-top: 1px solid var(--color-hover-row);
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.recent-table__row:hover { background: var(--color-hover-row); }
-
-.recent-table td { padding: 0.85rem 1.25rem; vertical-align: middle; }
-.td-title { font-weight: 600; color: var(--color-text); }
-.td-muted { color: var(--color-text-muted); }
-
-.loading-text {
-  padding: 2rem 1.25rem;
-  text-align: center;
-  color: var(--color-text-muted);
-  font-size: 0.9rem;
-}
-
-.badge {
-  display: inline-block;
-  padding: 0.2rem 0.6rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-.badge--active  { background: var(--badge-active-bg);  color: var(--badge-active-color); }
-.badge--pending { background: var(--badge-pending-bg); color: var(--badge-pending-color); }
+/* Activités */
+.activity-list { list-style: none; margin: 0; padding: 0; }
+.activity-item { display: flex; align-items: center; gap: .9rem; padding: .85rem 1.25rem; border-bottom: 1px solid var(--color-border); transition: background .12s; }
+.activity-item:last-child { border-bottom: none; }
+.activity-item:hover { background: var(--color-background); }
+.activity-item__icon { flex-shrink: 0; width: 24px; display: flex; align-items: center; justify-content: center; }
+.activity-item__icon svg { width: 16px; height: 16px; stroke: var(--color-text-muted); }
+.activity-item__body { flex: 1; min-width: 0; }
+.activity-item__title { font-size: .88rem; font-weight: 600; color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.activity-item__desc  { font-size: .75rem; color: var(--color-text); opacity: .5; }
+.activity-item__right { display: flex; flex-direction: column; align-items: flex-end; gap: .2rem; flex-shrink: 0; }
+.activity-item__date  { font-size: .68rem; color: var(--color-text); opacity: .4; }
 
 /* Raccourcis */
-.dashboard__shortcuts {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
-}
-
+.shortcuts-grid { display: grid; grid-template-columns: 1fr 1fr; }
 .shortcut-card {
-  background: var(--color-card);
-  border-radius: var(--radius);
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.6rem;
-  text-decoration: none;
-  box-shadow: var(--shadow-card);
-  transition: box-shadow 0.15s, transform 0.15s;
-  border: 1px solid #E8E0D4;
+  display: flex; flex-direction: column; align-items: center; gap: .4rem;
+  padding: 1rem .5rem; text-decoration: none; border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border); transition: background .12s;
 }
-.shortcut-card:hover { box-shadow: var(--shadow-card-hover); transform: translateY(-2px); }
+.shortcut-card:nth-child(even) { border-right: none; }
+.shortcut-card:nth-last-child(-n+2) { border-bottom: none; }
+.shortcut-card:hover { background: var(--color-background); }
+.shortcut-card__icon  { width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center; color: var(--color-primary); }
+.shortcut-card__icon svg { width: 1.25rem; height: 1.25rem; }
+.shortcut-card__label { font-size: .75rem; font-weight: 600; color: var(--color-text); text-align: center; line-height: 1.3; }
 
-.shortcut-card__icon { font-size: 1.75rem; }
-.shortcut-card__label { font-size: 0.82rem; font-weight: 600; color: var(--color-text); text-align: center; }
+/* Badges */
+.badge { padding: .2rem .5rem; border-radius: 10px; font-size: .68rem; font-weight: 700; }
+.badge--success { background: #d1fae5; color: #059669; }
+.badge--warning { background: #fef3c7; color: #d97706; }
+.badge--danger  { background: #fee2e2; color: #dc2626; }
+.badge--info    { background: #dbeafe; color: #2563eb; }
+.badge--neutral { background: #f3f4f6; color: #6b7280; }
 
-@media (max-width: 900px) {
-  .dashboard__stats     { grid-template-columns: repeat(2, 1fr); }
-  .dashboard__shortcuts { grid-template-columns: repeat(2, 1fr); }
-}
+.spinner { width: 36px; height: 36px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 900px)  { .dash__stats { grid-template-columns: repeat(2, 1fr); } .dash__grid { grid-template-columns: 1fr; } }
+@media (max-width: 560px)  { .dash__stats { grid-template-columns: 1fr 1fr; } }
 </style>

@@ -1,0 +1,34 @@
+@baseUrl = http://localhost:8080/api/v1/discussions
+@clientToken = <client-jwt>
+@adminToken = <admin-jwt>
+
+### Create or get discussion for annonce (CLIENT)
+POST {{baseUrl}}
+Content-Type: application/json
+Authorization: Bearer {{clientToken}}
+
+{
+  "annonceId": 1,
+  "premierMessage": "Bonjour, est-ce que l'appartement est toujours disponible ?"
+}
+
+### List client discussions
+GET {{baseUrl}}/client?page=0&size=10
+Authorization: Bearer {{clientToken}}
+
+### List all discussions (ADMIN)
+GET {{baseUrl}}/admin?page=0&size=20
+Authorization: Bearer {{adminToken}}
+
+### Get discussion messages
+GET {{baseUrl}}/1/messages
+Authorization: Bearer {{clientToken}}
+
+### Send message in discussion
+POST {{baseUrl}}/1/messages
+Content-Type: application/json
+Authorization: Bearer {{clientToken}}
+
+{
+  "contenu": "Merci pour la réponse, quel est le prix final ?"
+}

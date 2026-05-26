@@ -1,5 +1,6 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { MessageSquare, BookOpen } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/authStore'
 import ToastNotification from '@/components/admin/ToastNotification.vue'
 import api from '@/services/api'
@@ -23,7 +24,7 @@ onMounted(() => {
 async function saveInfo() {
   loadingInfo.value = true
   try {
-    await api.put(`/users/${authStore.user.id}`, {
+    await api.put('/auth/profile', {
       nomComplet: formInfo.nomComplet,
       email:      formInfo.email,
       telephone:  formInfo.telephone,
@@ -44,7 +45,7 @@ async function saveSecurite() {
   }
   loadingSecurite.value = true
   try {
-    await api.put(`/users/${authStore.user.id}`, {
+    await api.put('/auth/profile', {
       motDePasseActuel: formSecurite.motDePasseActuel,
       motDePasse:       formSecurite.nouveauMotDePasse,
     })
@@ -141,8 +142,8 @@ async function saveSecurite() {
         <section class="profil-card">
           <h2 class="profil-card__title">Besoin d'aide ?</h2>
           <ul class="profil-help">
-            <li><a href="#" class="profil-help__link">💬 Contacter le support</a></li>
-            <li><a href="#" class="profil-help__link">📖 Guide d'utilisation</a></li>
+            <li><a href="#" class="profil-help__link"><MessageSquare :size="14" /> Contacter le support</a></li>
+            <li><a href="#" class="profil-help__link"><BookOpen :size="14" /> Guide d'utilisation</a></li>
           </ul>
         </section>
       </div>
@@ -277,7 +278,15 @@ async function saveSecurite() {
 }
 
 .profil-help { list-style: none; display: flex; flex-direction: column; gap: 0.75rem; }
-.profil-help__link { color: var(--color-primary); font-size: 0.88rem; font-weight: 500; }
+.profil-help__link {
+  color: var(--color-primary);
+  font-size: 0.88rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: opacity 0.15s;
+}
 .profil-help__link:hover { text-decoration: underline; }
 
 @media (max-width: 900px) {

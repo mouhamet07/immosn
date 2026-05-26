@@ -1,0 +1,259 @@
+<script setup>
+import { ref, onMounted } from 'vue'
+import { Home, MapPin } from 'lucide-vue-next'
+import visiteService from '@/services/visiteService'
+
+const visites     = ref([])
+const loading     = ref(false)
+const error       = ref('')
+const currentPage = ref(0)
+const totalPages  = ref(1)
+const filtreStatut = ref('')
+const cancelling  = ref(null)
+
+const STATUTS = ['', 'EN_ATTENTE', 'ACCEPTEE', 'REFUSEE', 'ANNULEE', 'TERMINEE']
+
+const STATUT_LABELS = {
+  EN_ATTENTE: 'En attente',
+  ACCEPTEE:   'Acceptée',
+  REFUSEE:    'Refusée',
+  ANNULEE:    'Annulée',
+  TERMINEE:   'Terminée',
+}
+const STATUT_COLORS = {
+  EN_ATTENTE: 'badge--warning',
+  ACCEPTEE:   'badge--success',
+  REFUSEE:    'badge--danger',
+  ANNULEE:    'badge--neutral',
+  TERMINEE:   'badge--info',
+}
+
+async function fetchVisites(page = 0) {
+  loading.value = true
+  error.value   = ''
+  try {
+    const res   = await visiteService.getClientVisites(page, 10, filtreStatut.value || null)
+    const paged = res.data
+    visites.value     = paged.data
+    currentPage.value = paged.currentPage
+    totalPages.value  = paged.totalPages
+  } catch {
+    error.value = 'Impossible de charger vos demandes.'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function annuler(id) {
+  if (!confirm('Confirmer l\'annulation de cette demande ?')) return
+  cancelling.value = id
+  try {
+    await visiteService.annuler(id)
+    await fetchVisites(currentPage.value)
+  } catch {
+    alert('Erreur lors de l\'annulation.')
+  } finally {
+    cancelling.value = null
+  }
+}
+
+function formatDate(dt) {
+  return new Date(dt).toLocaleDateString('fr-FR', {
+    day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+  })
+}
+
+onMounted(() => fetchVisites(0))
+</script>
+
+<template>
+  <div class="mv-page">
+    <div class="mv-container">
+
+      <!-- Header -->
+      <div class="mv-header">
+        <div>
+          <h1 class="mv-header__title">Mes demandes de visite</h1>
+          <p class="mv-header__sub">Suivez l'état de vos rendez-vous</p>
+        </div>
+        <RouterLink to="/annonces" class="mv-header__btn">+ Demander une visite</RouterLink>
+      </div>
+
+      <!-- Filtres statut -->
+      <div class="mv-filters">
+        <button
+          v-for="s in STATUTS"
+          :key="s"
+          class="mv-filter-btn"
+          :class="{ '--active': filtreStatut === s }"
+          @click="filtreStatut = s; fetchVisites(0)"
+        >
+          {{ s ? STATUT_LABELS[s] : 'Tous' }}
+        </button>
+      </div>
+
+      <!-- Chargement -->
+      <div v-if="loading" class="mv-loading"><div class="spinner"></div></div>
+      <div v-else-if="error" class="mv-error">{{ error }}</div>
+
+      <!-- Vide -->
+      <div v-else-if="!visites.length" class="mv-empty">
+        <Home :size="48" class="mv-empty__icon" />
+        <p class="mv-empty__title">Aucune demande trouvée</p>
+        <RouterLink to="/annonces" class="mv-empty__link">Parcourir les annonces</RouterLink>
+      </div>
+
+      <!-- Liste -->
+      <div v-else class="mv-list">
+        <div v-for="v in visites" :key="v.id" class="mv-card">
+          <div class="mv-card__thumb">
+            <img v-if="v.imagePrincipale" :src="v.imagePrincipale" :alt="v.annonceLibelle" />
+            <span v-else class="mv-card__thumb-ph"><Home :size="28" /></span>
+          </div>
+          <div class="mv-card__body">
+            <div class="mv-card__top">
+              <span :class="['badge', STATUT_COLORS[v.statut]]">{{ STATUT_LABELS[v.statut] }}</span>
+              <span class="mv-card__date">Demandé le {{ formatDate(v.createdAt) }}</span>
+            </div>
+            <RouterLink :to="`/annonces/${v.annonceId}`" class="mv-card__title">{{ v.annonceLibelle }}</RouterLink>
+            <p class="mv-card__addr"><MapPin :size="12" /> {{ v.annonceAdresse }}</p>
+            <div class="mv-card__visite">
+              <span class="mv-card__visite-label">Date souhaitée :</span>
+              <span class="mv-card__visite-val">{{ formatDate(v.dateVisite) }}</span>
+            </div>
+            <p v-if="v.commentaire" class="mv-card__comment">{{ v.commentaire }}</p>
+          </div>
+          <div class="mv-card__actions">
+            <button
+              v-if="v.statut === 'EN_ATTENTE'"
+              class="mv-card__cancel"
+              :disabled="cancelling === v.id"
+              @click="annuler(v.id)"
+            >
+              {{ cancelling === v.id ? '…' : 'Annuler' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div v-if="totalPages > 1" class="mv-pager">
+        <button :disabled="currentPage === 0" @click="fetchVisites(currentPage - 1)">← Précédent</button>
+        <span>{{ currentPage + 1 }} / {{ totalPages }}</span>
+        <button :disabled="currentPage === totalPages - 1" @click="fetchVisites(currentPage + 1)">Suivant →</button>
+      </div>
+
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.mv-page { background: var(--color-background); min-height: 100vh; }
+.mv-container { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+.mv-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;
+}
+.mv-header__title { font-size: 1.6rem; font-weight: 800; color: var(--color-text); }
+.mv-header__sub { font-size: 0.88rem; color: var(--color-text); opacity: .55; margin-top: .25rem; }
+.mv-header__btn {
+  padding: .6rem 1.2rem; background: var(--color-primary); color: #fff;
+  border-radius: var(--radius-sm); font-weight: 600; font-size: .88rem; text-decoration: none;
+  transition: opacity .2s;
+}
+.mv-header__btn:hover { opacity: .85; }
+
+.mv-filters {
+  display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.5rem;
+}
+.mv-filter-btn {
+  padding: .35rem .9rem; border: 1.5px solid var(--color-border); border-radius: 20px;
+  font-size: .8rem; background: var(--color-card); color: var(--color-text);
+  cursor: pointer; transition: all .15s;
+}
+.mv-filter-btn:hover, .mv-filter-btn.--active {
+  background: var(--color-primary); border-color: var(--color-primary); color: #fff;
+}
+
+.mv-loading { display: flex; justify-content: center; padding: 4rem; }
+.mv-error { text-align: center; padding: 2rem; color: var(--color-accent); }
+.mv-empty {
+  display: flex; flex-direction: column; align-items: center; gap: .75rem;
+  padding: 4rem; text-align: center;
+}
+.mv-empty__icon { color: var(--color-text-muted); opacity: 0.3; }
+.mv-empty__title { font-size: 1rem; font-weight: 700; color: var(--color-text); opacity: .6; }
+.mv-empty__link { color: var(--color-primary); font-weight: 600; font-size: .88rem; }
+
+.mv-list { display: flex; flex-direction: column; gap: 1rem; }
+.mv-card {
+  display: flex; gap: 1rem; align-items: flex-start;
+  background: var(--color-card); border-radius: var(--radius);
+  padding: 1.25rem; box-shadow: var(--shadow-card);
+  transition: box-shadow .2s;
+}
+.mv-card:hover { box-shadow: 0 4px 24px rgba(0,0,0,.1); }
+
+.mv-card__thumb {
+  width: 80px; height: 80px; border-radius: 8px; overflow: hidden;
+  flex-shrink: 0; background: var(--color-border);
+  display: flex; align-items: center; justify-content: center; font-size: 1.5rem;
+}
+.mv-card__thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+.mv-card__body { flex: 1; min-width: 0; }
+.mv-card__top {
+  display: flex; align-items: center; gap: .75rem;
+  margin-bottom: .5rem; flex-wrap: wrap;
+}
+.mv-card__date { font-size: .75rem; color: var(--color-text); opacity: .45; }
+.mv-card__title {
+  font-size: .95rem; font-weight: 700; color: var(--color-text);
+  text-decoration: none;
+}
+.mv-card__title:hover { color: var(--color-primary); }
+.mv-card__addr { font-size: .8rem; color: var(--color-text); opacity: .55; margin: .25rem 0; display: flex; align-items: center; gap: .3rem; }
+.mv-card__visite { display: flex; gap: .5rem; font-size: .85rem; margin-top: .4rem; }
+.mv-card__visite-label { font-weight: 600; color: var(--color-text); opacity: .7; }
+.mv-card__visite-val { color: var(--color-primary); font-weight: 600; }
+.mv-card__comment {
+  font-size: .82rem; color: var(--color-text); opacity: .6;
+  font-style: italic; margin-top: .4rem;
+}
+
+.mv-card__actions { flex-shrink: 0; }
+.mv-card__cancel {
+  padding: .4rem .9rem; border: 1.5px solid #e53e3e; border-radius: var(--radius-sm);
+  color: #e53e3e; font-size: .82rem; font-weight: 600; background: none;
+  cursor: pointer; transition: all .15s;
+}
+.mv-card__cancel:hover:not(:disabled) { background: #e53e3e; color: #fff; }
+.mv-card__cancel:disabled { opacity: .4; cursor: not-allowed; }
+
+/* Badges */
+.badge { padding: .25rem .65rem; border-radius: 12px; font-size: .75rem; font-weight: 700; }
+.badge--warning  { background: #fef3c7; color: #d97706; }
+.badge--success  { background: #d1fae5; color: #059669; }
+.badge--danger   { background: #fee2e2; color: #dc2626; }
+.badge--neutral  { background: #f3f4f6; color: #6b7280; }
+.badge--info     { background: #dbeafe; color: #2563eb; }
+
+.mv-pager {
+  display: flex; justify-content: center; align-items: center; gap: 1rem;
+  margin-top: 1.5rem; font-size: .88rem; color: var(--color-text); opacity: .7;
+}
+.mv-pager button {
+  padding: .4rem .9rem; border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm); background: var(--color-card);
+  cursor: pointer; font-size: .88rem; font-weight: 600;
+}
+.mv-pager button:disabled { opacity: .4; cursor: not-allowed; }
+
+.spinner {
+  width: 36px; height: 36px; border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary); border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>

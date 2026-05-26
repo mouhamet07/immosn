@@ -17,6 +17,8 @@ public class AuthResponseDto {
     private String nomComplet;
     private String email;
     private String telephone;
+    private String adresse;
+    private String photo;
     private LocalDateTime creationDate;
     private boolean archived;
     private String accessToken;

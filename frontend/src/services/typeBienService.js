@@ -32,4 +32,9 @@ export default {
   archiveTypeBien(id) {
     return api.delete(`/types-bien/${id}`)
   },
+
+  // Restaurer un type de bien archivé — PATCH /api/v1/types-bien/{id}/restore
+  restoreTypeBien(id) {
+    return api.patch(`/types-bien/${id}/restore`)
+  },
 }

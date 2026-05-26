@@ -13,7 +13,8 @@ public class CommoditeMapper {
         if (entity == null) return null;
         return new CommoditeResponseDto(
                 entity.getId(),
-                entity.getLibelle()
+                entity.getLibelle(),
+                entity.isArchived()
         );
     }
 

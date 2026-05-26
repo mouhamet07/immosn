@@ -27,6 +27,8 @@ public class AuthMapper {
                 user.getNomComplet(),
                 user.getEmail(),
                 user.getTelephone(),
+                user.getAdresse(),
+                user.getPhoto(),
                 user.getCreationDate(),
                 user.isArchived(),
                 token,

@@ -25,10 +25,10 @@ function isTokenExpired(token) {
 }
 
 /**
- * Valide que le rôle reçu fait partie des valeurs autorisées.
+ * Valide que le rôle reçu fait partie des valeurs autorisées (RoleType enum backend).
  * Empêche l'injection d'une valeur arbitraire depuis le JWT ou le localStorage.
  */
-const ALLOWED_ROLES = ['CLIENT', 'ADMIN', 'EMPLOYE']
+const ALLOWED_ROLES = ['CLIENT', 'ADMIN', 'SUPER_ADMIN']
 function sanitizeRole(role) {
   return ALLOWED_ROLES.includes(role) ? role : 'CLIENT'
 }
@@ -51,7 +51,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const isAuthenticated = computed(() => !!token.value)
-  const isAdmin = computed(() => role.value === 'ADMIN')
+  const isAdmin = computed(() => role.value === 'ADMIN' || role.value === 'SUPER_ADMIN')
 
   // Initialiser le header axios si token existant
   if (token.value) {
@@ -71,8 +71,8 @@ export const useAuthStore = defineStore('auth', () => {
     role.value = sanitizeRole(roles.length ? roles[0] : null)
     localStorage.setItem('role', role.value)
     user.value = data
-    // Redirection selon le rôle (RoleType enum: ADMIN, CLIENT, EMPLOYE)
-    if (role.value === 'ADMIN') {
+    // Redirection selon le rôle (RoleType enum: ADMIN, CLIENT, SUPER_ADMIN)
+    if (role.value === 'ADMIN' || role.value === 'SUPER_ADMIN') {
       router.push('/admin/dashboard')
     } else {
       router.push('/annonces')
@@ -115,10 +115,6 @@ export const useAuthStore = defineStore('auth', () => {
     if (token.value) {
       await fetchProfile()
     }
-    // DEV ONLY — simuler un admin connecté, à retirer quand le backend auth est prêt
-    user.value = { id: 1, nomComplet: 'Mamadou Diallo', email: 'admin@immosn.sn', telephone: '+221 77 000 00 00', role: 'ADMIN' }
-    token.value = 'fake-token'
-    role.value = 'ADMIN'
   }
 
   return { user, token, role, isAuthenticated, isAdmin, login, logout, fetchProfile, init }

@@ -1,13 +1,16 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ButtonPrimary from '@/components/ButtonPrimary.vue'
-import Badge from '@/components/Badge.vue'
+import SvgIcon from '@/components/SvgIcon.vue'
 import annonceService from '@/services/annonceService'
+import discussionService from '@/services/discussionService'
+import { useAuthStore } from '@/stores/authStore'
 import placeholderImg from '@/assets/Penthouse.png'
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 
 const annonce = ref(null)
 const loading = ref(false)
@@ -15,10 +18,120 @@ const error = ref('')
 const favoris = ref(false)
 const imageActive = ref(0)
 
+// ── Modal visite ──────────────────────────────────────────
+import visiteService from '@/services/visiteService'
+const showVisiteModal  = ref(false)
+const visiteDate       = ref('')
+const visiteComment    = ref('')
+const visiteSending    = ref(false)
+const visiteSuccess    = ref(false)
+const visiteError      = ref('')
+
+async function sendVisiteRequest() {
+  if (!visiteDate.value) { visiteError.value = 'Veuillez choisir une date.'; return }
+  visiteSending.value = true; visiteError.value = ''
+  try {
+    // datetime-local retourne "2026-05-24T10:30" — le backend attend "2026-05-24T10:30:00"
+    const dateFormatted = visiteDate.value.length === 16 ? visiteDate.value + ':00' : visiteDate.value
+    await visiteService.create(annonce.value.id, dateFormatted, visiteComment.value || null)
+    visiteSuccess.value = true
+  } catch (e) {
+    visiteError.value = e.response?.data?.message || 'Erreur lors de l\'envoi.'
+  } finally {
+    visiteSending.value = false
+  }
+}
+
+function closeVisiteModal() {
+  showVisiteModal.value = false; visiteSuccess.value = false
+  visiteDate.value = ''; visiteComment.value = ''; visiteError.value = ''
+}
+
+function openVisite() {
+  if (!authStore.isAuthenticated) { router.push({ name: 'connexion' }); return }
+  showVisiteModal.value = true; visiteSuccess.value = false
+}
+
+// ── Modal contact ──────────────────────────────────────────
+const showContactModal = ref(false)
+const contactMessage = ref('')
+const contactSending = ref(false)
+const contactError = ref('')
+const contactSuccess = ref(false)
+const discussionId = ref(null)
+const messagesRef = ref(null)
+
+// Messages du chat après ouverture de la discussion
+const chatMessages = ref([])
+const newMessage = ref('')
+const sendingMessage = ref(false)
+
+async function openContact() {
+  if (!authStore.isAuthenticated) {
+    router.push({ name: 'connexion' })
+    return
+  }
+  showContactModal.value = true
+  contactSuccess.value   = false
+  contactError.value     = ''
+}
+
+async function sendFirstMessage() {
+  if (!contactMessage.value.trim()) return
+  contactSending.value = true
+  contactError.value   = ''
+  try {
+    const res = await discussionService.createOrGetDiscussion(
+      annonce.value.id,
+      contactMessage.value.trim()
+    )
+    discussionId.value  = res.data.data.id
+    chatMessages.value  = res.data.data.messages ?? []
+    contactSuccess.value = true
+    contactMessage.value = ''
+    await nextTick()
+    scrollChat()
+  } catch {
+    contactError.value = 'Erreur lors de l\'envoi. Veuillez réessayer.'
+  } finally {
+    contactSending.value = false
+  }
+}
+
+async function sendChatMessage() {
+  if (!newMessage.value.trim() || sendingMessage.value) return
+  sendingMessage.value = true
+  try {
+    const res = await discussionService.sendMessage(discussionId.value, newMessage.value.trim())
+    chatMessages.value.push(res.data.data)
+    newMessage.value = ''
+    await nextTick()
+    scrollChat()
+  } catch {
+    // Silently fail — message not sent
+  } finally {
+    sendingMessage.value = false
+  }
+}
+
+function scrollChat() {
+  if (messagesRef.value) {
+    messagesRef.value.scrollTop = messagesRef.value.scrollHeight
+  }
+}
+
+function closeModal() {
+  showContactModal.value = false
+  contactSuccess.value   = false
+  contactMessage.value   = ''
+  newMessage.value       = ''
+  chatMessages.value     = []
+  discussionId.value     = null
+}
+
 onMounted(async () => {
   loading.value = true
   try {
-    // Appel GET /api/v1/annonces/{id} — réponse: RestResponse<AnnonceResponseDto>
     const response = await annonceService.getAnnonceById(route.params.id)
     annonce.value = response.data.data
   } catch {
@@ -44,93 +157,79 @@ function getImage(index) {
 
 <template>
   <div class="detail-page">
-    <!-- Chargement -->
     <div v-if="loading" class="detail-loading">
       <div class="detail-loading__spinner"></div>
       <p>Chargement de l'annonce...</p>
     </div>
 
-    <!-- Erreur -->
     <div v-else-if="error" class="detail-error">
       <p>{{ error }}</p>
       <ButtonPrimary @click="router.push({ name: 'annonces' })">← Retour aux annonces</ButtonPrimary>
     </div>
 
     <main v-else-if="annonce" class="detail-main">
-      <!-- Fil d'Ariane -->
-      <nav class="detail-breadcrumb">
-        <RouterLink to="/annonces">Annonces</RouterLink>
-        <span>›</span>
-        <span>{{ annonce.libelle }}</span>
-      </nav>
 
-      <!-- Galerie d'images -->
-      <div class="detail-gallery">
+      <!-- Galerie Figma : 2/3 gauche + 1/3 droite -->
+      <section class="detail-gallery">
         <!-- Image principale -->
         <div class="detail-gallery__main">
-          <img
-            :src="getImage(imageActive)"
-            :alt="annonce.libelle"
-            class="detail-gallery__img"
-          />
-          <button class="detail-gallery__favoris" @click="favoris = !favoris">
-            {{ favoris ? '❤️' : '🤍' }}
+          <img :src="getImage(imageActive)" :alt="annonce.libelle" class="detail-gallery__img" />
+          <button class="detail-gallery__fav" :class="{ 'detail-gallery__fav--active': favoris }" @click="favoris = !favoris">
+            <SvgIcon :name="favoris ? 'heart-filled' : 'heart'" :size="18" />
           </button>
-          <Badge v-if="annonce.typeBien" :label="annonce.typeBien.libelle" class="detail-gallery__badge" />
         </div>
-
-        <!-- Miniatures -->
-        <div class="detail-gallery__thumbs">
-          <div
-            v-for="(photo, index) in (annonce.images || []).slice(1, 3)"
-            :key="index"
-            class="detail-gallery__thumb"
-            @click="imageActive = index + 1"
-          >
-            <img :src="photo" :alt="`Photo ${index + 2}`" />
+        <!-- Miniatures empilées -->
+        <div class="detail-gallery__side">
+          <div class="detail-gallery__thumb" @click="imageActive = 1">
+            <img :src="getImage(1)" alt="Photo 2" />
           </div>
-          <div v-if="annonce.images?.length > 3" class="detail-gallery__more">
-            +{{ annonce.images.length - 3 }} Plus
+          <div class="detail-gallery__thumb detail-gallery__thumb--more" @click="imageActive = 2">
+            <img :src="getImage(2)" alt="Photo 3" />
+            <div v-if="annonce.images?.length > 3" class="detail-gallery__overlay">+{{ annonce.images.length - 3 }} Plus</div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Corps principal -->
+      <!-- Corps : contenu + sidebar -->
       <div class="detail-body">
-        <!-- Infos principales -->
         <div class="detail-content">
+
           <!-- Titre + prix -->
           <div class="detail-header">
-            <h1 class="detail-header__title">{{ annonce.libelle }}</h1>
+            <div>
+              <h1 class="detail-header__title">{{ annonce.libelle }}</h1>
+              <p class="detail-adresse">
+                <SvgIcon name="map-pin" :size="14" />
+                {{ annonce.adresse }}
+              </p>
+            </div>
             <div class="detail-header__prix">
               <span class="detail-header__fcfa">{{ formatPrix(annonce.prix) }}</span>
               <span class="detail-header__usd">≈ {{ toUSD(annonce.prix) }}</span>
             </div>
           </div>
 
-          <!-- Adresse -->
-          <p class="detail-adresse">📍 {{ annonce.adresse }}</p>
-
-          <!-- Stats -->
-          <div class="detail-stats">
-            <div class="detail-stat">
-              <span class="detail-stat__icon">🛏️</span>
-              <span class="detail-stat__value">{{ annonce.nbrPieces }}</span>
-              <span class="detail-stat__label">Chambres</span>
+          <!-- Bento stats -->
+          <div class="detail-bento">
+            <div class="detail-bento__item">
+              <SvgIcon name="bed" :size="28" class="detail-bento__icon" />
+              <span class="detail-bento__label">{{ annonce.nbrPieces }} Chambres</span>
             </div>
-            <div class="detail-stat">
-              <span class="detail-stat__icon">📄</span>
-              <span class="detail-stat__value">{{ annonce.typeBien?.libelle || '–' }}</span>
-              <span class="detail-stat__label">Type de bien</span>
+            <div class="detail-bento__item">
+              <SvgIcon name="droplet" :size="28" class="detail-bento__icon" />
+              <span class="detail-bento__label">Salles de bain</span>
             </div>
-            <div class="detail-stat">
-              <span class="detail-stat__icon">📐</span>
-              <span class="detail-stat__value">{{ annonce.surface }} m²</span>
-              <span class="detail-stat__label">Surface</span>
+            <div class="detail-bento__item">
+              <SvgIcon name="maximize" :size="28" class="detail-bento__icon" />
+              <span class="detail-bento__label">{{ annonce.surface }} m²</span>
+            </div>
+            <div class="detail-bento__item">
+              <SvgIcon name="check-circle" :size="28" class="detail-bento__icon" />
+              <span class="detail-bento__label">{{ annonce.typeBien?.libelle || 'Bien' }}</span>
             </div>
           </div>
 
-          <!-- Présentation architecturale -->
+          <!-- Description -->
           <section class="detail-section">
             <h2 class="detail-section__title">Présentation architecturale</h2>
             <p class="detail-section__text">{{ annonce.description }}</p>
@@ -141,7 +240,8 @@ function getImage(index) {
             <h2 class="detail-section__title">Équipements et caractéristiques</h2>
             <ul v-if="annonce.commodites?.length" class="detail-commodites">
               <li v-for="(item, i) in annonce.commodites" :key="i" class="detail-commodite">
-                ✅ {{ item.libelle }}
+                <SvgIcon name="check-circle" :size="14" class="detail-commodite__icon" />
+                {{ item.libelle }}
               </li>
             </ul>
             <p v-else class="detail-section__text">Aucun équipement renseigné.</p>
@@ -151,44 +251,56 @@ function getImage(index) {
           <section class="detail-section">
             <h2 class="detail-section__title">Emplacement</h2>
             <div class="detail-map">
-              <p class="detail-map__placeholder">🗺️ Carte non disponible</p>
-              <a
-                v-if="annonce.gps"
-                :href="`https://www.google.com/maps?q=${annonce.gps}`"
-                target="_blank"
-                class="detail-map__link"
-              >
-                📍 Itinéraire vers {{ annonce.adresse }}
+              <SvgIcon name="map" :size="24" class="detail-map__icon" />
+              <span>Carte non disponible</span>
+              <a v-if="annonce.gps" :href="`https://www.google.com/maps?q=${annonce.gps}`" target="_blank" class="detail-map__link">
+                <SvgIcon name="map-pin" :size="13" /> Itinéraire vers {{ annonce.adresse }}
               </a>
             </div>
           </section>
         </div>
 
-        <!-- Sidebar contact -->
+        <!-- Sidebar agent -->
         <aside class="detail-sidebar">
+          <!-- Card agent -->
           <div class="detail-sidebar__card">
-            <h3 class="detail-sidebar__title">Contacter l'agence</h3>
+            <div class="detail-agent">
+              <div class="detail-agent__avatar">A</div>
+              <div>
+                <p class="detail-agent__name">Aminata Diop</p>
+                <p class="detail-agent__role">PARTENAIRE LUXE SENIOR</p>
+              </div>
+            </div>
 
             <div class="detail-sidebar__contact">
-              <p>📞 <a href="tel:+221338000000">+221 33 800 00 00</a></p>
-              <p>✉️ <a href="mailto:contact@2simmo.sn">contact@2simmo.sn</a></p>
+              <p class="detail-sidebar__contact-item">
+                <SvgIcon name="phone" :size="14" />
+                <a href="tel:+221770000000">+221 77 000 00 00</a>
+              </p>
+              <p class="detail-sidebar__contact-item">
+                <SvgIcon name="mail" :size="14" />
+                <a href="mailto:contact@immosn.sn">contact@immosn.sn</a>
+              </p>
             </div>
 
             <div class="detail-sidebar__actions">
-              <ButtonPrimary full-width>Contacter l'agent</ButtonPrimary>
-              <ButtonPrimary variant="outline" full-width>Réserver une visite</ButtonPrimary>
+              <ButtonPrimary full-width @click="openContact">Contacter l'agent</ButtonPrimary>
+              <ButtonPrimary variant="outline" full-width @click="openVisite">Réserver une visite privée</ButtonPrimary>
             </div>
 
             <div class="detail-sidebar__links">
-              <a href="#" class="detail-sidebar__link">🔗 Partager</a>
-              <a href="#" class="detail-sidebar__link">📄 Brochure</a>
-              <a href="#" class="detail-sidebar__link">🚩 Signaler</a>
+              <a href="#" class="detail-sidebar__link"><SvgIcon name="share-2" :size="13" /> Partager</a>
+              <a href="#" class="detail-sidebar__link"><SvgIcon name="file-text" :size="13" /> Brochure</a>
+              <a href="#" class="detail-sidebar__link"><SvgIcon name="flag" :size="13" /> Signaler</a>
             </div>
           </div>
 
           <!-- Aperçu du marché -->
-          <div class="detail-sidebar__card">
-            <h3 class="detail-sidebar__title">Aperçu du marché</h3>
+          <div class="detail-sidebar__market">
+            <div class="detail-sidebar__market-header">
+              <SvgIcon name="maximize" :size="16" />
+              <span>Aperçu du marché</span>
+            </div>
             <p class="detail-sidebar__market-text">
               Les biens similaires dans ce quartier sont estimés entre
               <strong>{{ formatPrix(annonce.prix * 0.85) }}</strong> et
@@ -198,400 +310,450 @@ function getImage(index) {
         </aside>
       </div>
     </main>
+
+    <!-- ── Modal Demande de Visite ─────────────────────────── -->
+    <Teleport to="body">
+      <div v-if="showVisiteModal" class="modal-overlay" @click.self="closeVisiteModal">
+        <div class="modal-chat">
+          <div class="modal-chat__header">
+            <div>
+              <p class="modal-chat__title">Demander une visite</p>
+              <p class="modal-chat__sub">{{ annonce?.libelle }}</p>
+            </div>
+            <button class="modal-chat__close" @click="closeVisiteModal">
+              <SvgIcon name="x" :size="16" />
+            </button>
+          </div>
+
+          <template v-if="!visiteSuccess">
+            <div class="modal-chat__compose" style="padding-top: 1.25rem;">
+              <div style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:.75rem;">
+                <label style="font-size:.78rem;font-weight:600;opacity:.7;">Date et heure souhaitées *</label>
+                <input v-model="visiteDate" type="datetime-local" class="modal-chat__textarea"
+                  style="resize:none;padding:.65rem .9rem;" />
+              </div>
+              <div style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:.75rem;">
+                <label style="font-size:.78rem;font-weight:600;opacity:.7;">Commentaire (optionnel)</label>
+                <textarea v-model="visiteComment" class="modal-chat__textarea" rows="3"
+                  placeholder="Ex. : Disponible en matinée, préférence pour le week-end…" />
+              </div>
+              <p v-if="visiteError" class="modal-chat__err">{{ visiteError }}</p>
+              <ButtonPrimary full-width :disabled="visiteSending || !visiteDate" @click="sendVisiteRequest">
+                {{ visiteSending ? 'Envoi…' : 'Envoyer la demande' }}
+              </ButtonPrimary>
+            </div>
+          </template>
+
+          <template v-else>
+            <div class="modal-chat__compose" style="text-align:center;padding:2rem 1.5rem;">
+              <div class="modal-success__icon"><SvgIcon name="check-circle" :size="48" /></div>
+              <p style="font-weight:700;margin:.75rem 0 .4rem;">Demande envoyée !</p>
+              <p style="font-size:.88rem;opacity:.65;margin-bottom:1rem;">
+                Votre demande de visite a été transmise à l'agence. Vous serez notifié rapidement.
+              </p>
+              <RouterLink to="/mes-visites" class="modal-chat__hint" @click="closeVisiteModal">
+                Voir mes demandes →
+              </RouterLink>
+            </div>
+          </template>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- ── Modal Contact Agence ─────────────────────────────── -->
+    <Teleport to="body">
+      <div v-if="showContactModal" class="modal-overlay" @click.self="closeModal">
+        <div class="modal-chat">
+          <!-- Header -->
+          <div class="modal-chat__header">
+            <div>
+              <p class="modal-chat__title">Contacter l'agence</p>
+              <p class="modal-chat__sub">{{ annonce?.libelle }}</p>
+            </div>
+            <button class="modal-chat__close" @click="closeModal">
+              <SvgIcon name="x" :size="16" />
+            </button>
+          </div>
+
+          <!-- Phase 1 : premier message -->
+          <template v-if="!contactSuccess">
+            <div class="modal-chat__intro">
+              <p>Bonjour ! Présentez brièvement votre demande et l'agence vous répondra rapidement.</p>
+            </div>
+            <div class="modal-chat__compose">
+              <textarea
+                v-model="contactMessage"
+                class="modal-chat__textarea"
+                rows="4"
+                placeholder="Ex. : Je suis intéressé par ce bien, pouvez-vous me donner plus d'informations ?"
+              ></textarea>
+              <p v-if="contactError" class="modal-chat__err">{{ contactError }}</p>
+              <ButtonPrimary
+                full-width
+                :disabled="contactSending || !contactMessage.trim()"
+                @click="sendFirstMessage"
+              >
+                {{ contactSending ? 'Envoi…' : 'Envoyer le message' }}
+              </ButtonPrimary>
+            </div>
+          </template>
+
+          <!-- Phase 2 : fil de discussion -->
+          <template v-else>
+            <div class="modal-chat__messages" ref="messagesRef">
+              <div
+                v-for="msg in chatMessages"
+                :key="msg.id"
+                class="chat-bubble"
+                :class="msg.senderRole === 'CLIENT' ? 'chat-bubble--right' : 'chat-bubble--left'"
+              >
+                <span class="chat-bubble__sender">{{ msg.senderRole === 'ADMIN' ? 'Agence' : 'Vous' }}</span>
+                <div class="chat-bubble__text">{{ msg.contenu }}</div>
+                <span class="chat-bubble__time">{{ new Date(msg.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) }}</span>
+              </div>
+            </div>
+
+            <div class="modal-chat__input-row">
+              <input
+                v-model="newMessage"
+                class="modal-chat__input"
+                placeholder="Votre message…"
+                @keydown.enter.prevent="sendChatMessage"
+              />
+              <button
+                class="modal-chat__send"
+                :disabled="sendingMessage || !newMessage.trim()"
+                @click="sendChatMessage"
+              >
+                <SvgIcon name="send" :size="16" />
+              </button>
+            </div>
+
+            <p class="modal-chat__hint">
+              Voir toutes vos discussions dans
+              <RouterLink to="/discussions" @click="closeModal">Mon espace</RouterLink>
+            </p>
+          </template>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <style scoped>
-.detail-page {
-  background: var(--color-background);
-}
+.detail-page { background: var(--color-background); }
+.detail-main { max-width: 1280px; margin: 0 auto; padding: 1.5rem 1.5rem 4rem; }
 
-.detail-main {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem;
-}
-
-/* Chargement */
 .detail-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  padding: 6rem;
-  color: var(--color-text);
-  opacity: 0.6;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 1rem; padding: 6rem; color: var(--color-text-muted);
 }
-
 .detail-loading__spinner {
-  width: 48px;
-  height: 48px;
+  width: 48px; height: 48px;
   border: 3px solid var(--color-border);
   border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  border-radius: 50%; animation: spin 0.8s linear infinite;
 }
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Erreur */
+@keyframes spin { to { transform: rotate(360deg); } }
 .detail-error {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.5rem;
-  padding: 4rem;
-  text-align: center;
-  color: var(--color-accent);
-}
-
-/* Fil d'Ariane */
-.detail-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-  color: var(--color-text);
-  opacity: 0.6;
-  margin-bottom: 1.5rem;
-}
-
-.detail-breadcrumb a {
-  color: var(--color-primary);
-}
-
-.detail-breadcrumb a:hover {
-  text-decoration: underline;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 1.5rem; padding: 4rem; text-align: center; color: var(--color-accent);
 }
 
 /* Galerie */
 .detail-gallery {
   display: grid;
   grid-template-columns: 2fr 1fr;
-  gap: 0.75rem;
-  margin-bottom: 2rem;
+  gap: 0.5rem;
+  height: 520px;
   border-radius: var(--radius);
   overflow: hidden;
-  height: 420px;
+  margin-bottom: 2.5rem;
 }
-
 .detail-gallery__main {
-  position: relative;
-  overflow: hidden;
+  position: relative; overflow: hidden;
 }
-
 .detail-gallery__img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  width: 100%; height: 100%; object-fit: cover;
+  transition: transform 0.5s;
 }
-
-.detail-gallery__favoris {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: rgba(255, 255, 255, 0.85);
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.1rem;
-  transition: background 0.2s;
+.detail-gallery__main:hover .detail-gallery__img { transform: scale(1.03); }
+.detail-gallery__fav {
+  position: absolute; top: 1rem; right: 1rem;
+  width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(255,255,255,0.9);
+  backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--color-text-muted);
+  transition: color var(--transition);
 }
-
-.detail-gallery__favoris:hover {
-  background: #fff;
+.detail-gallery__fav:hover { color: var(--color-accent); }
+.detail-gallery__fav--active { color: var(--color-danger); }
+.detail-gallery__side {
+  display: grid; grid-template-rows: 1fr 1fr; gap: 0.5rem;
 }
-
-.detail-gallery__badge {
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-}
-
-.detail-gallery__thumbs {
-  display: grid;
-  grid-template-rows: 1fr 1fr;
-  gap: 0.75rem;
-}
-
 .detail-gallery__thumb {
-  overflow: hidden;
-  cursor: pointer;
-  border-radius: 4px;
+  position: relative; overflow: hidden; cursor: pointer;
 }
-
 .detail-gallery__thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s;
+  width: 100%; height: 100%; object-fit: cover;
+  transition: transform 0.4s;
 }
-
-.detail-gallery__thumb:hover img {
-  transform: scale(1.05);
-}
-
-.detail-gallery__more {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(45, 55, 72, 0.7);
-  color: #fff;
-  font-weight: 700;
-  font-size: 1rem;
-  cursor: pointer;
-  border-radius: 4px;
+.detail-gallery__thumb:hover img { transform: scale(1.06); }
+.detail-gallery__overlay {
+  position: absolute; inset: 0;
+  background: rgba(30,37,50,0.55);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 1.1rem; font-weight: 700;
 }
 
 /* Corps */
 .detail-body {
   display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: 2rem;
+  grid-template-columns: 1fr 360px;
+  gap: 2.5rem;
   align-items: start;
 }
 
-/* En-tête */
+/* Header */
 .detail-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
-  flex-wrap: wrap;
+  display: flex; justify-content: space-between;
+  align-items: flex-start; gap: 1rem;
+  margin-bottom: 1.5rem; flex-wrap: wrap;
 }
-
 .detail-header__title {
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: var(--color-text);
-  flex: 1;
+  font-family: var(--font-serif);
+  font-size: 2.2rem; font-weight: 700;
+  color: var(--color-primary); line-height: 1.15;
 }
-
-.detail-header__prix {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-}
-
+.detail-header__prix { text-align: right; }
 .detail-header__fcfa {
-  font-size: 1.4rem;
-  font-weight: 800;
+  display: block; font-size: 1.5rem; font-weight: 800;
   color: var(--color-accent);
 }
-
 .detail-header__usd {
-  font-size: 0.85rem;
-  color: var(--color-text);
-  opacity: 0.5;
+  font-size: 0.85rem; color: var(--color-text-muted);
 }
-
-/* Adresse */
 .detail-adresse {
-  font-size: 0.9rem;
-  color: var(--color-text);
-  opacity: 0.65;
-  margin-bottom: 1.5rem;
+  display: flex; align-items: center; gap: 0.35rem;
+  font-size: 0.9rem; color: var(--color-text-muted);
+  margin-bottom: 1.75rem;
 }
 
-/* Stats */
-.detail-stats {
-  display: flex;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-  padding: 1.25rem;
+/* Bento stats */
+.detail-bento {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 1rem; margin-bottom: 2rem;
+}
+.detail-bento__item {
   background: var(--color-card);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-card);
-  margin-bottom: 2rem;
-}
-
-.detail-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.2rem;
-  flex: 1;
-  min-width: 80px;
-}
-
-.detail-stat__icon {
-  font-size: 1.3rem;
-}
-
-.detail-stat__value {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.detail-stat__label {
-  font-size: 0.75rem;
-  color: var(--color-text);
-  opacity: 0.55;
+  padding: 1.25rem 1rem;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 0.5rem;
   text-align: center;
+}
+.detail-bento__icon { color: var(--color-primary); }
+.detail-bento__label {
+  font-size: 0.82rem; font-weight: 600;
+  color: var(--color-text);
 }
 
 /* Sections */
-.detail-section {
-  margin-bottom: 2rem;
-}
-
+.detail-section { margin-bottom: 2rem; }
 .detail-section__title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--color-text);
+  font-family: var(--font-serif);
+  font-size: 1.25rem; font-weight: 600;
+  color: var(--color-primary);
   margin-bottom: 0.75rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid var(--color-primary);
-  display: inline-block;
 }
-
 .detail-section__text {
-  color: var(--color-text);
-  opacity: 0.75;
-  line-height: 1.7;
+  color: var(--color-text-muted); line-height: 1.75; font-size: 0.95rem;
 }
 
 /* Commodités */
 .detail-commodites {
   list-style: none;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.5rem;
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem;
 }
-
 .detail-commodite {
-  font-size: 0.9rem;
-  color: var(--color-text);
-  opacity: 0.8;
+  display: flex; align-items: center; gap: 0.4rem;
+  font-size: 0.9rem; color: var(--color-text);
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--color-border);
 }
+.detail-commodite__icon { color: var(--color-primary); flex-shrink: 0; }
 
-/* Carte */
+/* Map */
 .detail-map {
   background: var(--color-card);
-  border-radius: var(--radius);
-  height: 200px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
+  border-radius: var(--radius); height: 200px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 0.75rem;
   border: 1px dashed var(--color-border);
+  color: var(--color-text-muted); font-size: 0.9rem;
 }
-
-.detail-map__placeholder {
-  color: var(--color-text);
-  opacity: 0.4;
-  font-size: 1rem;
-}
-
+.detail-map__icon { opacity: 0.35; }
 .detail-map__link {
-  color: var(--color-primary);
-  font-weight: 600;
-  font-size: 0.9rem;
+  display: flex; align-items: center; gap: 0.3rem;
+  color: var(--color-primary); font-weight: 600; font-size: 0.88rem;
 }
-
-.detail-map__link:hover {
-  text-decoration: underline;
-}
+.detail-map__link:hover { text-decoration: underline; }
 
 /* Sidebar */
 .detail-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  position: sticky;
-  top: 80px;
+  display: flex; flex-direction: column; gap: 1rem;
+  position: sticky; top: 80px;
 }
-
 .detail-sidebar__card {
   background: var(--color-card);
   border-radius: var(--radius);
+  border: 1px solid var(--color-border);
   padding: 1.5rem;
   box-shadow: var(--shadow-card);
 }
 
-.detail-sidebar__title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--color-text);
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--color-border);
+/* Agent */
+.detail-agent {
+  display: flex; align-items: center; gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+.detail-agent__avatar {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: var(--color-primary); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem; font-weight: 700; flex-shrink: 0;
+}
+.detail-agent__name {
+  font-family: var(--font-serif);
+  font-size: 1.1rem; font-weight: 600; color: var(--color-text);
+}
+.detail-agent__role {
+  font-size: 0.7rem; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--color-text-muted); margin-top: 0.2rem;
 }
 
 .detail-sidebar__contact {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  display: flex; flex-direction: column; gap: 0.5rem;
   margin-bottom: 1.25rem;
-  font-size: 0.9rem;
-  color: var(--color-text);
 }
-
-.detail-sidebar__contact a {
-  color: var(--color-primary);
-  font-weight: 500;
+.detail-sidebar__contact-item {
+  display: flex; align-items: center; gap: 0.5rem;
+  font-size: 0.9rem; color: var(--color-text-muted);
 }
-
+.detail-sidebar__contact-item a { color: var(--color-primary); font-weight: 500; }
 .detail-sidebar__actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
+  display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.25rem;
 }
-
 .detail-sidebar__links {
-  display: flex;
-  justify-content: space-between;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--color-border);
+  display: flex; justify-content: space-between;
+  padding-top: 0.75rem; border-top: 1px solid var(--color-border);
 }
-
 .detail-sidebar__link {
-  font-size: 0.82rem;
-  color: var(--color-text);
-  opacity: 0.6;
-  transition: opacity 0.2s;
+  display: flex; align-items: center; gap: 0.3rem;
+  font-size: 0.82rem; color: var(--color-text-muted);
+  transition: color var(--transition);
 }
+.detail-sidebar__link:hover { color: var(--color-primary); }
 
-.detail-sidebar__link:hover {
-  opacity: 1;
-  color: var(--color-primary);
+/* Market */
+.detail-sidebar__market {
+  background: rgba(var(--color-primary-rgb), 0.06);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.15);
+  border-radius: var(--radius); padding: 1.25rem;
 }
-
+.detail-sidebar__market-header {
+  display: flex; align-items: center; gap: 0.5rem;
+  color: var(--color-primary); font-weight: 700;
+  font-size: 0.9rem; margin-bottom: 0.6rem;
+}
 .detail-sidebar__market-text {
-  font-size: 0.88rem;
-  color: var(--color-text);
-  opacity: 0.75;
-  line-height: 1.6;
+  font-size: 0.88rem; color: var(--color-text-muted); line-height: 1.6;
 }
+
+/* Modals — inchangés */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+  z-index: 1000; display: flex; align-items: center;
+  justify-content: center; padding: 1rem;
+}
+.modal-chat {
+  background: var(--color-card); border-radius: var(--radius);
+  width: 100%; max-width: 480px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  display: flex; flex-direction: column;
+  max-height: 90vh; overflow: hidden;
+}
+.modal-chat__header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--color-border);
+}
+.modal-chat__title { font-size: 1rem; font-weight: 700; color: var(--color-text); }
+.modal-chat__sub { font-size: 0.82rem; color: var(--color-text-muted); margin-top: 0.15rem; }
+.modal-chat__close {
+  background: none; cursor: pointer; color: var(--color-text-muted);
+  padding: 0.2rem; display: flex; align-items: center;
+  border-radius: var(--radius-xs); transition: color var(--transition);
+}
+.modal-chat__close:hover { color: var(--color-text); }
+.modal-chat__intro { padding: 1.25rem 1.5rem 0; font-size: 0.88rem; color: var(--color-text-muted); line-height: 1.6; }
+.modal-chat__compose { display: flex; flex-direction: column; gap: 0.75rem; padding: 1rem 1.5rem 1.5rem; }
+.modal-chat__textarea {
+  width: 100%; padding: 0.75rem;
+  border: 1.5px solid var(--color-border); border-radius: var(--radius-sm);
+  font-size: 0.9rem; color: var(--color-text); background: var(--color-background);
+  resize: vertical; box-sizing: border-box; transition: border-color 0.2s;
+}
+.modal-chat__textarea:focus { border-color: var(--color-primary); outline: none; }
+.modal-chat__err { font-size: 0.82rem; color: var(--color-accent); }
+.modal-chat__messages {
+  flex: 1; overflow-y: auto; padding: 1rem 1.5rem;
+  display: flex; flex-direction: column; gap: 0.75rem;
+  min-height: 200px; max-height: 320px;
+}
+.chat-bubble { display: flex; flex-direction: column; max-width: 75%; }
+.chat-bubble--right { align-self: flex-end; align-items: flex-end; }
+.chat-bubble--left { align-self: flex-start; align-items: flex-start; }
+.chat-bubble__sender { font-size: 0.72rem; font-weight: 600; color: var(--color-text-muted); margin-bottom: 0.2rem; }
+.chat-bubble__text { padding: 0.6rem 0.9rem; border-radius: 12px; font-size: 0.88rem; line-height: 1.5; word-break: break-word; }
+.chat-bubble--right .chat-bubble__text { background: var(--color-primary); color: #fff; border-bottom-right-radius: 4px; }
+.chat-bubble--left .chat-bubble__text { background: var(--color-border); color: var(--color-text); border-bottom-left-radius: 4px; }
+.chat-bubble__time { font-size: 0.68rem; color: var(--color-text-muted); margin-top: 0.2rem; }
+.modal-chat__input-row { display: flex; gap: 0.5rem; padding: 0.75rem 1.5rem; border-top: 1px solid var(--color-border); }
+.modal-chat__input {
+  flex: 1; padding: 0.6rem 0.9rem;
+  border: 1.5px solid var(--color-border); border-radius: 24px;
+  font-size: 0.9rem; color: var(--color-text); background: var(--color-background);
+  transition: border-color 0.2s;
+}
+.modal-chat__input:focus { border-color: var(--color-primary); outline: none; }
+.modal-success__icon { color: var(--color-primary); display: flex; justify-content: center; margin-bottom: 0.5rem; }
+.modal-chat__send {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--color-primary); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity var(--transition); flex-shrink: 0;
+}
+.modal-chat__send:disabled { opacity: 0.4; cursor: not-allowed; }
+.modal-chat__send:hover:not(:disabled) { opacity: 0.85; }
+.modal-chat__hint { text-align: center; font-size: 0.78rem; color: var(--color-text-muted); padding: 0.5rem 1.5rem 1rem; }
+.modal-chat__hint a { color: var(--color-primary); font-weight: 600; }
 
 /* Responsive */
+@media (max-width: 1024px) {
+  .detail-bento { grid-template-columns: repeat(2, 1fr); }
+}
 @media (max-width: 900px) {
-  .detail-body {
-    grid-template-columns: 1fr;
-  }
-
-  .detail-gallery {
-    grid-template-columns: 1fr;
-    height: 280px;
-  }
-
-  .detail-gallery__thumbs {
-    display: none;
-  }
-
-  .detail-sidebar {
-    position: static;
-  }
+  .detail-gallery { grid-template-columns: 1fr; height: 300px; }
+  .detail-gallery__side { display: none; }
+  .detail-body { grid-template-columns: 1fr; }
+  .detail-sidebar { position: static; }
+}
+@media (max-width: 600px) {
+  .detail-header { flex-direction: column; }
+  .detail-header__prix { text-align: left; }
+  .detail-bento { grid-template-columns: repeat(2, 1fr); }
 }
 </style>

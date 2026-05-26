@@ -45,6 +45,7 @@ public class AnnonceMapper {
         String firstImage = (a.getImages() != null && !a.getImages().isEmpty())
             ? a.getImages().get(0) : null;
         return new AnnonceListDto(
+            String.valueOf(a.getId()),
             a.getLibelle(),
             a.getPrix(),
             a.getAdresse(),

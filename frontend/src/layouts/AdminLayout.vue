@@ -6,13 +6,17 @@ const authStore = useAuthStore()
 const route = useRoute()
 
 const navLinks = [
-  { to: '/admin/dashboard',       label: 'Dashboard',         icon: 'grid' },
-  { to: '/admin/annonces',        label: 'Annonces',          icon: 'building' },
-  { to: '/admin/messages',        label: 'Messages',          icon: 'chat' },
-  { to: '/admin/visites',         label: 'Visites',           icon: 'calendar' },
-  { to: '/admin/contrats',        label: 'Contrats',          icon: 'document' },
-  { to: '/admin/administrateurs', label: 'Administrateurs',   icon: 'people' },
-  { to: '/admin/profil',          label: 'Paramètres',        icon: 'gear' },
+  { to: '/admin/dashboard',       label: 'Dashboard',      icon: 'grid' },
+  { to: '/admin/annonces',        label: 'Annonces',       icon: 'building' },
+  { to: '/admin/messages',        label: 'Messages',       icon: 'chat' },
+  { to: '/admin/visites',         label: 'Visites',        icon: 'calendar' },
+  { to: '/admin/leads',           label: 'Leads',          icon: 'target' },
+  { to: '/admin/contrats',        label: 'Contrats',       icon: 'document' },
+  { to: '/admin/signalements',    label: 'Signalements',   icon: 'alert' },
+  { to: '/admin/types-biens',     label: 'Types de biens', icon: 'tag' },
+  { to: '/admin/commodites',      label: 'Commodités',     icon: 'list' },
+  { to: '/admin/administrateurs', label: 'Admins',         icon: 'people', superAdminOnly: true },
+  { to: '/admin/profil',          label: 'Paramètres',     icon: 'gear' },
 ]
 
 function isActive(path) {
@@ -33,6 +37,7 @@ function isActive(path) {
       <nav class="sidebar__nav">
         <RouterLink
           v-for="link in navLinks"
+          v-show="!link.superAdminOnly || authStore.role === 'SUPER_ADMIN'"
           :key="link.to"
           :to="link.to"
           class="sidebar__link"
@@ -49,6 +54,14 @@ function isActive(path) {
             <svg v-else-if="link.icon === 'calendar'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             <!-- document -->
             <svg v-else-if="link.icon === 'document'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <!-- target (leads) -->
+            <svg v-else-if="link.icon === 'target'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+            <!-- alert (signalements) -->
+            <svg v-else-if="link.icon === 'alert'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <!-- tag (types de biens) -->
+            <svg v-else-if="link.icon === 'tag'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+            <!-- list (commodités) -->
+            <svg v-else-if="link.icon === 'list'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
             <!-- people -->
             <svg v-else-if="link.icon === 'people'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             <!-- gear -->

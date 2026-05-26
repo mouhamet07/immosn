@@ -8,7 +8,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -27,6 +26,7 @@ import sn.immosn.backend.client.web.annonce.dto.AnnonceCreateRequestDto;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceListDto;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceResponseDto;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceUpdateRequestDto;
+import sn.immosn.backend.client.web.annonce.dto.SearchAnnonceRequestDto;
 import sn.immosn.backend.shared.response.PagedResponse;
 import sn.immosn.backend.shared.response.RestResponse;
 
@@ -34,7 +34,6 @@ import sn.immosn.backend.shared.response.RestResponse;
 @RequestMapping("/api/v1/annonces")
 @RequiredArgsConstructor
 @Validated
-@CrossOrigin(origins = "http://localhost:5173")
 public class AnnonceController {
 
     private final AnnonceService annonceService;
@@ -83,6 +82,10 @@ public class AnnonceController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<RestResponse<AnnonceResponseDto>> getById(@PathVariable Long id) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant d'annonce invalide", null));
+        }
         return ResponseEntity
             .status(HttpStatus.OK)
             .body(RestResponse.success(annonceService.getAnnonceById(id), HttpStatus.OK));
@@ -97,6 +100,10 @@ public class AnnonceController {
     public ResponseEntity<RestResponse<AnnonceResponseDto>> update(
         @PathVariable Long id,
         @RequestBody @Valid AnnonceUpdateRequestDto request) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant d'annonce invalide", null));
+        }
         return ResponseEntity
             .status(HttpStatus.OK)
             .body(RestResponse.success(annonceService.updateAnnonce(id, request), HttpStatus.OK));
@@ -110,6 +117,10 @@ public class AnnonceController {
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<RestResponse<Void>> archive(@PathVariable Long id) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant d'annonce invalide", null));
+        }
         annonceService.archiveAnnonce(id);
         return ResponseEntity
             .status(HttpStatus.NO_CONTENT)
@@ -123,10 +134,27 @@ public class AnnonceController {
      */
     @PatchMapping("/{id}/restore")
     public ResponseEntity<RestResponse<Void>> restore(@PathVariable Long id) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant d'annonce invalide", null));
+        }
         annonceService.restoreAnnonce(id);
         return ResponseEntity
             .status(HttpStatus.NO_CONTENT)
             .body(RestResponse.success(null, HttpStatus.NO_CONTENT));
+    }
+
+    /**
+     * POST /api/v1/annonces/search
+     * Recherche avancée avec filtres combinables (Sprint 2 – PB05/PB08)
+     * Body: SearchAnnonceRequestDto — tous les champs sont optionnels
+     */
+    @PostMapping("/search")
+    public ResponseEntity<PagedResponse<AnnonceListDto>> search(
+            @RequestBody @Valid SearchAnnonceRequestDto request) {
+        return ResponseEntity
+            .status(HttpStatus.OK)
+            .body(PagedResponse.fromPage(annonceService.searchAnnonces(request)));
     }
 
     /**
