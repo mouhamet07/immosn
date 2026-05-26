@@ -1,7 +1,7 @@
 @baseUrl = http://localhost:8080/api/v1/leads
 @adminToken = <admin-jwt>
 
-### Create lead (ADMIN)
+### Lead - Create lead (ADMIN)
 POST {{baseUrl}}
 Content-Type: application/json
 Authorization: Bearer {{adminToken}}
@@ -13,15 +13,15 @@ Authorization: Bearer {{adminToken}}
   "noteAdmin": "Lead créé après visite."
 }
 
-### List leads
+### Lead - List leads
 GET {{baseUrl}}?page=0&size=20&statut=NEW
 Authorization: Bearer {{adminToken}}
 
-### Get lead by id
+### Lead - Get lead by id
 GET {{baseUrl}}/1
 Authorization: Bearer {{adminToken}}
 
-### Update lead status
+### Lead - Update lead status
 PUT {{baseUrl}}/1/status
 Content-Type: application/json
 Authorization: Bearer {{adminToken}}

@@ -1,6 +1,6 @@
-# Auth API tests for backend and frontend connection
 @baseUrl = http://localhost:8080/api/v1/auth
-### Register a client user
+@token = <admin-jwt>
+### Auth - Register a client user
 POST {{baseUrl}}/register
 Content-Type: application/json
 
@@ -11,7 +11,7 @@ Content-Type: application/json
     "motDePasse": "Test1234!"
 }
 
-### Login as client
+### Auth - Login as client
 POST {{baseUrl}}/login
 Content-Type: application/json
 
@@ -20,7 +20,7 @@ Content-Type: application/json
     "motDePasse": "Test1234!"
 }
 
-### Register an admin user
+### Auth - Register an admin user
 POST {{baseUrl}}/admin
 Content-Type: application/json
 
@@ -31,7 +31,7 @@ Content-Type: application/json
     "motDePasse": "Admin1234!"
 }
 
-### Login as admin
+### Auth - Login as admin
 POST {{baseUrl}}/login
 Content-Type: application/json
 
@@ -40,8 +40,7 @@ Content-Type: application/json
     "motDePasse": "Admin1234!"
 }
 
-### List admins (paginated)
-# Remplacez {{token}} par le token JWT renvoyé par la connexion admin
+### Auth - List admins (paginated)
 GET {{baseUrl}}/admins?page=0&size=10
 Content-Type: application/json
-# Authorization: Bearer {{token}}
+Authorization: Bearer {{token}}

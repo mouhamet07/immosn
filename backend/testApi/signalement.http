@@ -2,7 +2,7 @@
 @clientToken = <client-jwt>
 @adminToken = <admin-jwt>
 
-### Create signalement (CLIENT)
+### Signalement - Create signalement (CLIENT)
 POST {{baseUrl}}
 Content-Type: application/json
 Authorization: Bearer {{clientToken}}
@@ -12,15 +12,15 @@ Authorization: Bearer {{clientToken}}
   "contenu": "Le contrat contient une erreur sur le montant."
 }
 
-### List client signalements
+### Signalement - List client signalements
 GET {{baseUrl}}/client?page=0&size=10&statut=OPEN
 Authorization: Bearer {{clientToken}}
 
-### List all signalements (ADMIN)
+### Signalement - List all signalements (ADMIN)
 GET {{baseUrl}}/admin?page=0&size=20&statut=OPEN
 Authorization: Bearer {{adminToken}}
 
-### Update signalement statut (ADMIN)
+### Signalement - Update signalement statut (ADMIN)
 PUT {{baseUrl}}/1/status
 Content-Type: application/json
 Authorization: Bearer {{adminToken}}
@@ -30,6 +30,6 @@ Authorization: Bearer {{adminToken}}
   "reponseAdmin": "Problème traité, merci."
 }
 
-### Mark signalement as read (ADMIN)
+### Signalement - Mark signalement as read (ADMIN)
 PUT {{baseUrl}}/1/read
 Authorization: Bearer {{adminToken}}

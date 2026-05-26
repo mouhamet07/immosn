@@ -11,7 +11,7 @@ const router = createRouter({
     { path: '/inscription', name: 'inscription', component: () => import('@/views/auth/InscriptionView.vue') },
     { path: '/connexion',   name: 'connexion',   component: () => import('@/views/auth/ConnexionView.vue') },
 
-    // ── Interface CLIENT ──────────────────────────────────────
+    // Interface CLIENT
     {
       path: '/',
       component: () => import('@/layouts/ClientLayout.vue'),
@@ -27,7 +27,7 @@ const router = createRouter({
       ],
     },
 
-    // ── Interface ADMIN ───────────────────────────────────────
+    // Interface ADMIN
     {
       path: '/admin',
       component: () => import('@/layouts/AdminLayout.vue'),

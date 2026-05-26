@@ -2,7 +2,7 @@
 @clientToken = <client-jwt>
 @adminToken = <admin-jwt>
 
-### Create contrat (ADMIN)
+### Auth - Create contrat (ADMIN)
 POST {{baseUrl}}
 Content-Type: application/json
 Authorization: Bearer {{adminToken}}

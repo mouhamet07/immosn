@@ -1,9 +1,9 @@
-# ── Étape 1 : Build Maven ───────────────────────────────────
+# Étape 1 : Build Maven
 FROM maven:3.9.9-eclipse-temurin-21 AS build
 
 WORKDIR /app
 
-# Copier le pom.xml seul d'abord (cache des dépendances Maven)
+# Copier le pom.xml seul d'abord 
 COPY pom.xml .
 RUN mvn dependency:go-offline -B
 
@@ -11,10 +11,10 @@ RUN mvn dependency:go-offline -B
 COPY src src
 RUN mvn -B package -DskipTests
 
-# ── Étape 2 : Runtime JRE ──────────────────────────────────
+# Étape 2 : Runtime JRE
 FROM eclipse-temurin:21-jre
 
-# Installer wget pour le healthcheck Docker (curl absent de l'image JRE)
+# Installer wget pour le healthcheck Docker
 RUN apt-get update && apt-get install -y --no-install-recommends wget \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -23,7 +23,6 @@ WORKDIR /app
 COPY --from=build /app/target/backend-0.0.1-SNAPSHOT.jar app.jar
 
 # Créer le répertoire des logs avec les bons droits
-# Ce répertoire est monté en volume dans docker-compose pour la persistance
 RUN mkdir -p /app/logs/archived && chmod -R 755 /app/logs
 
 EXPOSE 8080

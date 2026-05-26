@@ -1,18 +1,13 @@
-# ══════════════════════════════════════════════════════════
 # ImmoSN — Docker Compose production (PostgreSQL Neon)
-#
 # Prérequis : fichier .env à la racine
 #   cp .env.example .env
 #   # Renseigner DB_HOST, DB_NAME, DB_USER, DB_PASSWORD, JWT_SECRET
-#
 # Utilisation :
 #   docker compose up --build -d
 #   docker compose logs -f backend   # surveiller le démarrage
-# ══════════════════════════════════════════════════════════
 
 services:
-
-  # ── Backend Spring Boot (Neon PostgreSQL) ────────────────
+  # Backend Spring Boot (Neon PostgreSQL)
   backend:
     build: ./backend
     container_name: immosn-backend
@@ -21,7 +16,6 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: neon
       SERVER_PORT: 8080
-      # Surcharger explicitement pour éviter toute ambiguïté avec l'env hôte
       DB_HOST: ${DB_HOST}
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
@@ -39,23 +33,21 @@ services:
     networks:
       - app-network
     healthcheck:
-      # --spider envoie HEAD — SecurityConfig n'autorise que GET → 403 → exit=8 unhealthy
-      # -O /dev/null envoie GET → 200 → exit=0 healthy
       test: ["CMD", "wget", "--quiet", "--tries=1", "-O", "/dev/null", "http://localhost:8080/api/v1/annonces"]
       interval: 20s
       timeout: 15s
       retries: 5
       start_period: 60s
 
-  # ── Nginx (frontend + reverse proxy) ────────────────────
+  # Nginx (frontend + reverse proxy)
   nginx:
     build:
       context: .
       dockerfile: nginx/Dockerfile
       args:
-        VITE_API_URL:                   /api/v1
-        VITE_CLOUDINARY_CLOUD_NAME:     ${VITE_CLOUDINARY_CLOUD_NAME:-}
-        VITE_CLOUDINARY_UPLOAD_PRESET:  ${VITE_CLOUDINARY_UPLOAD_PRESET:-}
+        VITE_API_URL: /api/v1
+        VITE_CLOUDINARY_CLOUD_NAME: ${VITE_CLOUDINARY_CLOUD_NAME:-}
+        VITE_CLOUDINARY_UPLOAD_PRESET: ${VITE_CLOUDINARY_UPLOAD_PRESET:-}
     container_name: immosn-nginx
     restart: unless-stopped
     ports:

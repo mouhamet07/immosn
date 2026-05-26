@@ -2,7 +2,7 @@
 @clientToken = <client-jwt>
 @adminToken = <admin-jwt>
 
-### Create visite request (CLIENT)
+### Visite - Create visite request (CLIENT)
 POST {{baseUrl}}
 Content-Type: application/json
 Authorization: Bearer {{clientToken}}
@@ -13,15 +13,15 @@ Authorization: Bearer {{clientToken}}
   "commentaire": "Je souhaite visiter cet appartement."
 }
 
-### List client visites
+### Visite - List client visites
 GET {{baseUrl}}/client?page=0&size=10&statut=PENDING
 Authorization: Bearer {{clientToken}}
 
-### List all visites (ADMIN)
+### Visite - List all visites (ADMIN)
 GET {{baseUrl}}/admin?page=0&size=20&statut=PENDING
 Authorization: Bearer {{adminToken}}
 
-### Update visite status
+### Visite - Update visite status
 PUT {{baseUrl}}/1/status
 Content-Type: application/json
 Authorization: Bearer {{adminToken}}
@@ -31,7 +31,7 @@ Authorization: Bearer {{adminToken}}
   "commentaire": "Visite confirmée par l'agent."
 }
 
-### Update visite date
+### Visite - Update visite date
 PUT {{baseUrl}}/1/date
 Content-Type: application/json
 Authorization: Bearer {{adminToken}}
@@ -41,6 +41,6 @@ Authorization: Bearer {{adminToken}}
   "commentaire": "Nouvelle date validée."
 }
 
-### Cancel visite (CLIENT)
+### Visite - Cancel visite (CLIENT)
 DELETE {{baseUrl}}/1
 Authorization: Bearer {{clientToken}}
