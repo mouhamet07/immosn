@@ -46,8 +46,8 @@ async function saveSecurite() {
   loadingSecurite.value = true
   try {
     await api.put('/auth/profile', {
-      motDePasseActuel: formSecurite.motDePasseActuel,
-      motDePasse:       formSecurite.nouveauMotDePasse,
+      motDePasseActuel:  formSecurite.motDePasseActuel,
+      nouveauMotDePasse: formSecurite.nouveauMotDePasse,
     })
     formSecurite.motDePasseActuel  = ''
     formSecurite.nouveauMotDePasse = ''
