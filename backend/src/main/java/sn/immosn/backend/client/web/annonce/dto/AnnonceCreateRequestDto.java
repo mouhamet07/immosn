@@ -30,9 +30,16 @@ public record AnnonceCreateRequestDto(
     @Positive(message = "Le prix doit être positif")
     BigDecimal prix,
 
-    @NotBlank(message = "L'adresse est obligatoire")
     @Size(max = 500, message = "L'adresse ne peut pas dépasser 500 caractères")
     String adresse,
+
+    String region,
+
+    @NotBlank(message = "Le département est obligatoire")
+    String departement,
+
+    @NotBlank(message = "Le quartier est obligatoire")
+    String quartier,
 
     @NotNull(message = "Le type de bien est obligatoire")
     Long typeBienId,

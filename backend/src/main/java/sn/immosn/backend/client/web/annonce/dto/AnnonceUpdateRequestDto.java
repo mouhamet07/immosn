@@ -27,6 +27,12 @@ public record AnnonceUpdateRequestDto(
     @Size(max = 500)
     String adresse,
 
+    String region,
+
+    String departement,
+
+    String quartier,
+
     Long typeBienId,
 
     List<Long> commoditeIds,

@@ -27,6 +27,7 @@ import sn.immosn.backend.client.web.annonce.dto.SearchAnnonceRequestDto;
 import sn.immosn.backend.client.web.annonce.mapper.AnnonceMapper;
 import sn.immosn.backend.contrat.data.entity.StatutContrat;
 import sn.immosn.backend.contrat.data.repository.ContratRepository;
+import sn.immosn.backend.location.GeoCodingService;
 import sn.immosn.backend.shared.exception.EntityNotFoundException;
 
 import java.util.List;
@@ -42,6 +43,7 @@ public class AnnonceServiceImpl implements AnnonceService {
     private final TypeBienAnnonceRepository typeBienAnnonceRepository;
     private final AnnonceMapper             annonceMapper;
     private final ContratRepository         contratRepository;
+    private final GeoCodingService          geoCodingService;
 
     @Override
     @Transactional
@@ -57,8 +59,10 @@ public class AnnonceServiceImpl implements AnnonceService {
             : List.of();
 
         Annonce annonce = annonceMapper.toEntity(requestDto, typeBien, commodites);
-        Annonce saved   = annonceRepository.save(annonce);
+        applyGeolocation(annonce, annonce.getQuartier(), annonce.getDepartement(), annonce.getAdresse());
+        Annonce saved = annonceRepository.save(annonce);
 
+        geoCodingService.logGeolocation(saved.getId());
         log.info("Annonce créée : id={}", saved.getId());
         return annonceMapper.toResponse(saved);
     }
@@ -90,8 +94,20 @@ public class AnnonceServiceImpl implements AnnonceService {
         if (requestDto.nbrPieces()   != null) annonce.setNbrPieces(requestDto.nbrPieces());
         if (requestDto.surface()     != null) annonce.setSurface(requestDto.surface());
         if (requestDto.prix()        != null) annonce.setPrix(requestDto.prix());
-        if (requestDto.adresse()     != null) annonce.setAdresse(requestDto.adresse());
         if (requestDto.images()      != null) annonce.setImages(requestDto.images());
+        if (requestDto.region()      != null) annonce.setRegion(requestDto.region());
+
+        boolean locationChanged = requestDto.adresse()     != null
+                               || requestDto.departement() != null
+                               || requestDto.quartier()    != null;
+
+        if (requestDto.adresse()     != null) annonce.setAdresse(requestDto.adresse());
+        if (requestDto.departement() != null) annonce.setDepartement(requestDto.departement());
+        if (requestDto.quartier()    != null) annonce.setQuartier(requestDto.quartier());
+
+        if (locationChanged) {
+            applyGeolocation(annonce, annonce.getQuartier(), annonce.getDepartement(), annonce.getAdresse());
+        }
 
         if (requestDto.typeBienId() != null) {
             TypeBienAnnonce typeBien = typeBienAnnonceRepository
@@ -109,6 +125,9 @@ public class AnnonceServiceImpl implements AnnonceService {
         }
 
         Annonce updated = annonceRepository.save(annonce);
+        if (locationChanged) {
+            geoCodingService.logGeolocation(updated.getId());
+        }
         log.info("Annonce modifiée : id={}", updated.getId());
         return annonceMapper.toResponse(updated);
     }
@@ -172,5 +191,16 @@ public class AnnonceServiceImpl implements AnnonceService {
         Pageable pageable = PageRequest.of(page, size, Sort.by(dir, sort));
         Specification<Annonce> spec = AnnonceSpecification.fromRequest(request);
         return annonceRepository.findAll(spec, pageable).map(annonceMapper::toListDto);
+    }
+
+    private void applyGeolocation(Annonce annonce, String quartier, String departement, String adresse) {
+        if (quartier == null || departement == null) return;
+        geoCodingService.geocode(quartier, departement, adresse).ifPresentOrElse(
+            coords -> {
+                annonce.setLatitude(coords[0]);
+                annonce.setLongitude(coords[1]);
+            },
+            () -> log.warn("Coordonnées introuvables pour quartier='{}', departement='{}'", quartier, departement)
+        );
     }
 }

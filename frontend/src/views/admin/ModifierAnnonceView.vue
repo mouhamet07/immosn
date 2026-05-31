@@ -1,25 +1,31 @@
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { X, Camera, MapPin } from 'lucide-vue-next'
+import { X, Camera } from 'lucide-vue-next'
 import annonceService from '@/services/annonceService'
 import typeBienService from '@/services/typeBienService'
 import commoditeService from '@/services/commoditeService'
+import locationService from '@/services/locationService'
 import { uploadImages } from '@/services/cloudinaryService'
 import ToastNotification from '@/components/admin/ToastNotification.vue'
+import LocationMap from '@/components/LocationMap.vue'
 
 const route  = useRoute()
 const router = useRouter()
 const toast  = ref(null)
 
-const loading     = ref(false)
-const submitting  = ref(false)
-const typesBien   = ref([])
-const commodites  = ref([])
+const loading    = ref(false)
+const submitting = ref(false)
+const typesBien  = ref([])
+const commodites = ref([])
 
-// Images existantes (URLs Cloudinary) — on peut en retirer
-const existingImages = ref([])
-// Nouveaux fichiers à uploader
+const departements     = ref([])
+const quartiers        = ref([])
+const loadingQuartiers = ref(false)
+const geocoding        = ref(false)
+let geocodeTimer       = null
+
+const existingImages   = ref([])
 const newPhotoFiles    = ref([])
 const newPhotoPreviews = ref([])
 
@@ -31,6 +37,10 @@ const form = reactive({
   surface:      '',
   prix:         '',
   adresse:      '',
+  departement:  '',
+  quartier:     '',
+  latitude:     null,
+  longitude:    null,
   commoditeIds: [],
 })
 
@@ -40,13 +50,10 @@ function toggleCommodite(id) {
   else form.commoditeIds.splice(idx, 1)
 }
 
-function removeExistingImage(index) {
-  existingImages.value.splice(index, 1)
-}
+function removeExistingImage(index) { existingImages.value.splice(index, 1) }
 
 function handleNewPhotos(e) {
-  const files = Array.from(e.target.files)
-  files.forEach(file => {
+  Array.from(e.target.files).forEach(file => {
     newPhotoFiles.value.push(file)
     const reader = new FileReader()
     reader.onload = ev => newPhotoPreviews.value.push(ev.target.result)
@@ -59,16 +66,76 @@ function removeNewPhoto(index) {
   newPhotoPreviews.value.splice(index, 1)
 }
 
+// Département → recharger quartiers (seulement si l'utilisateur change le département)
+watch(() => form.departement, async (val, old) => {
+  if (!old) return // skip initial prefill
+  form.quartier  = ''
+  form.latitude  = null
+  form.longitude = null
+  quartiers.value = []
+  if (!val) return
+  loadingQuartiers.value = true
+  try {
+    const res = await locationService.getQuartiersByDepartement(val)
+    quartiers.value = res.data.data
+  } catch {
+    quartiers.value = []
+  } finally {
+    loadingQuartiers.value = false
+  }
+})
+
+// Quartier → géocoder immédiatement
+watch(() => form.quartier, (val, old) => {
+  if (!old) return // skip initial prefill
+  if (val) geocodeLocation()
+  else { form.latitude = null; form.longitude = null }
+})
+
+// Adresse → géocoder avec délai
+watch(() => form.adresse, (val, old) => {
+  if (!old || !form.quartier) return
+  clearTimeout(geocodeTimer)
+  geocodeTimer = setTimeout(geocodeLocation, 500)
+})
+
+async function geocodeLocation() {
+  if (!form.quartier || !form.departement) return
+  geocoding.value = true
+  try {
+    const q = form.adresse?.trim()
+      ? `${form.adresse}, ${form.quartier}, ${form.departement}, Sénégal`
+      : `${form.quartier}, ${form.departement}, Sénégal`
+    const res  = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`,
+      { headers: { 'Accept-Language': 'fr' } }
+    )
+    const data = await res.json()
+    if (data.length) {
+      form.latitude  = parseFloat(data[0].lat)
+      form.longitude = parseFloat(data[0].lon)
+    } else {
+      form.latitude  = null
+      form.longitude = null
+    }
+  } catch {
+    // Echec silencieux
+  } finally {
+    geocoding.value = false
+  }
+}
+
 onMounted(async () => {
   loading.value = true
   try {
-    const [resAnnonce, resTypes, resCommodites] = await Promise.all([
+    const [resAnnonce, resTypes, resCommodites, resDepts] = await Promise.all([
       annonceService.getAnnonceById(route.params.id),
       typeBienService.getAllTypesBien(),
       commoditeService.getAllCommodites(),
+      locationService.getDepartements(),
     ])
     const a = resAnnonce.data.data
-    // Pré-remplir le formulaire avec les champs exacts de AnnonceResponseDto
+
     form.libelle      = a.libelle      || ''
     form.description  = a.description  || ''
     form.typeBienId   = a.typeBien?.id || null
@@ -76,12 +143,22 @@ onMounted(async () => {
     form.surface      = a.surface      || ''
     form.prix         = a.prix         || ''
     form.adresse      = a.adresse      || ''
+    form.departement  = a.departement  || ''
+    form.quartier     = a.quartier     || ''
+    form.latitude     = a.latitude     ?? null
+    form.longitude    = a.longitude    ?? null
     form.commoditeIds = a.commodites?.map(c => c.id) || []
-    // Images existantes — List<String> URLs Cloudinary
     existingImages.value = a.images ? [...a.images] : []
 
-    typesBien.value  = resTypes.data.data    || []
-    commodites.value = resCommodites.data.data || []
+    typesBien.value    = resTypes.data.data       || []
+    commodites.value   = resCommodites.data.data  || []
+    departements.value = resDepts.data.data       || []
+
+    // Charger les quartiers du département pré-rempli
+    if (form.departement) {
+      const resQ = await locationService.getQuartiersByDepartement(form.departement)
+      quartiers.value = resQ.data.data || []
+    }
   } catch {
     toast.value?.show('Erreur lors du chargement de l\'annonce.', 'error')
   } finally {
@@ -90,32 +167,33 @@ onMounted(async () => {
 })
 
 async function handleSubmit() {
-  if (!form.libelle.trim() || !form.typeBienId || !form.prix || !form.adresse.trim()) {
+  if (!form.libelle.trim() || !form.typeBienId || !form.prix) {
     toast.value?.show('Veuillez remplir tous les champs obligatoires.', 'error')
+    return
+  }
+  if (!form.departement || !form.quartier) {
+    toast.value?.show('Le département et le quartier sont obligatoires.', 'error')
     return
   }
   submitting.value = true
   try {
-    // 1. Uploader les nouvelles photos sur Cloudinary si présentes
     let newUrls = []
-    const cloudName   = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
+    const cloudName    = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
     const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
     if (newPhotoFiles.value.length && cloudName && uploadPreset) {
       newUrls = await uploadImages(newPhotoFiles.value)
     }
-
-    // 2. Construire la liste finale d'images :
-    //    images existantes conservées + nouvelles URLs uploadées
     const finalImages = [...existingImages.value, ...newUrls]
 
-    // 3. Envoyer PUT /api/v1/annonces/{id} avec AnnonceUpdateRequestDto
     await annonceService.updateAnnonce(route.params.id, {
       libelle:      form.libelle,
       description:  form.description,
       nbrPieces:    parseInt(form.nbrPieces),
       surface:      parseFloat(form.surface),
       prix:         parseFloat(form.prix),
-      adresse:      form.adresse,
+      adresse:      form.adresse || null,
+      departement:  form.departement,
+      quartier:     form.quartier,
       typeBienId:   form.typeBienId,
       commoditeIds: form.commoditeIds,
       images:       finalImages,
@@ -187,10 +265,50 @@ async function handleSubmit() {
 
       <!-- Section 2 — Localisation -->
       <div class="ma-card">
-        <h2 class="ma-card__title"><MapPin :size="16" /> Localisation</h2>
+        <h2 class="ma-card__title">Localisation</h2>
+
+        <div class="field-row">
+          <div class="field">
+            <label class="field__label">DÉPARTEMENT <span class="req">*</span></label>
+            <select v-model="form.departement" class="field__input">
+              <option value="">Sélectionner un département...</option>
+              <option v-for="d in departements" :key="d" :value="d">{{ d }}</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field__label">QUARTIER <span class="req">*</span></label>
+            <select v-model="form.quartier" class="field__input" :disabled="!form.departement || loadingQuartiers">
+              <option value="">{{ loadingQuartiers ? 'Chargement...' : 'Sélectionner un quartier...' }}</option>
+              <option v-for="q in quartiers" :key="q" :value="q">{{ q }}</option>
+            </select>
+            <p v-if="form.departement && !loadingQuartiers && !quartiers.length" class="ma-field-hint">
+              Aucun quartier trouvé pour ce département.
+            </p>
+          </div>
+        </div>
+
         <div class="field">
-          <label class="field__label">ADRESSE COMPLÈTE <span class="req">*</span></label>
-          <input v-model="form.adresse" type="text" class="field__input" placeholder="ex. 12 Rue Carnot, Plateau, Dakar" />
+          <label class="field__label">ADRESSE EXACTE <span class="ma-optional">(facultatif)</span></label>
+          <input v-model="form.adresse" type="text" class="field__input" placeholder="ex. 12 Rue Carnot" />
+        </div>
+
+        <div class="ma-map-section">
+          <div v-if="geocoding" class="ma-map-loading">
+            <div class="ma-map-spinner"></div>
+            <span>Recherche de la localisation...</span>
+          </div>
+          <LocationMap
+            v-else
+            :latitude="form.latitude"
+            :longitude="form.longitude"
+            :draggable="true"
+            height="260px"
+            @update:latitude="v => form.latitude = v"
+            @update:longitude="v => form.longitude = v"
+          />
+          <p v-if="form.quartier && !geocoding && form.latitude == null" class="ma-map-hint">
+            Localisation introuvable — l'annonce sera quand même enregistrée.
+          </p>
         </div>
       </div>
 
@@ -341,6 +459,24 @@ async function handleSubmit() {
 
 .spinner { width: 36px; height: 36px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+.ma-optional { font-weight: 400; text-transform: none; font-size: .72rem; color: var(--color-text-muted); letter-spacing: 0; }
+.ma-field-hint { font-size: .78rem; color: var(--color-text-muted); margin-top: .15rem; }
+.ma-map-section { display: flex; flex-direction: column; gap: .5rem; }
+.ma-map-hint { font-size: .78rem; color: var(--color-text-muted); text-align: center; }
+.ma-map-loading {
+  height: 260px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: .75rem;
+  background: #e8f2ef; border-radius: var(--radius);
+  border: 1px solid #cde3dd; color: var(--color-primary);
+  font-size: .88rem; font-weight: 500;
+}
+.ma-map-spinner {
+  width: 28px; height: 28px;
+  border: 3px solid rgba(74,124,111,.25);
+  border-top-color: var(--color-primary);
+  border-radius: 50%; animation: spin .7s linear infinite;
+}
 
 @media (max-width: 768px) {
   .field-row { grid-template-columns: 1fr; }

@@ -30,6 +30,11 @@ public class AnnonceMapper {
             a.getSurface(),
             a.getPrix(),
             a.getAdresse(),
+            a.getRegion(),
+            a.getDepartement(),
+            a.getQuartier(),
+            a.getLatitude(),
+            a.getLongitude(),
             typeBienAnnonceMapper.toResponseDto(a.getTypeBien()),
             a.getAnnonceCommodites().stream()
                 .map(ac -> commoditeMapper.toResponse(ac.getCommodite()))
@@ -49,6 +54,10 @@ public class AnnonceMapper {
             a.getLibelle(),
             a.getPrix(),
             a.getAdresse(),
+            a.getDepartement(),
+            a.getQuartier(),
+            a.getLatitude(),
+            a.getLongitude(),
             typeBienAnnonceMapper.toResponseDto(a.getTypeBien()),
             a.getNbrPieces(),
             a.getSurface(),
@@ -66,6 +75,9 @@ public class AnnonceMapper {
             .surface(dto.surface())
             .prix(dto.prix())
             .adresse(dto.adresse())
+            .region(dto.region())
+            .departement(dto.departement())
+            .quartier(dto.quartier())
             .typeBien(typeBien)
             .images(dto.images())
             .isArchived(false)

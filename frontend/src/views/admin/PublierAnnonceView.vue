@@ -1,12 +1,14 @@
 <script setup>
-import { MapPin, Camera, X } from 'lucide-vue-next'
-import { ref, reactive, computed, onMounted } from 'vue'
+import { Camera, X } from 'lucide-vue-next'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import FormStepper from '@/components/admin/FormStepper.vue'
 import ToastNotification from '@/components/admin/ToastNotification.vue'
+import LocationMap from '@/components/LocationMap.vue'
 import annonceService from '@/services/annonceService'
 import commoditeService from '@/services/commoditeService'
 import typeBienService from '@/services/typeBienService'
+import locationService from '@/services/locationService'
 import { uploadImages } from '@/services/cloudinaryService'
 
 const router = useRouter()
@@ -17,7 +19,6 @@ const currentStep = ref(0)
 
 const progress = computed(() => Math.round((currentStep.value / (STEPS.length - 1)) * 100))
 
-// Champs alignés avec AnnonceCreateRequestDto
 const form = reactive({
   libelle:      '',
   description:  '',
@@ -26,32 +27,104 @@ const form = reactive({
   surface:      '',
   prix:         '',
   adresse:      '',
+  departement:  '',
+  quartier:     '',
+  latitude:     null,
+  longitude:    null,
   commoditeIds: [],
   images:       [],
 })
 
-// Types de bien et commodités chargés depuis le backend
-const commodites = ref([])
-const typesBien = ref([])
+const commodites       = ref([])
+const typesBien        = ref([])
+const departements     = ref([])
+const quartiers        = ref([])
+const loadingQuartiers = ref(false)
+const geocoding        = ref(false)
+let geocodeTimer       = null
 
 onMounted(async () => {
   try {
-    const [resCommodites, resTypesBien] = await Promise.all([
+    const [resCommodites, resTypesBien, resDepts] = await Promise.all([
       commoditeService.getAllCommodites(),
       typeBienService.getAllTypesBien(),
+      locationService.getDepartements(),
     ])
-    // Réponse: RestResponse<List<CommoditeResponseDto>> → { id, libelle }
-    commodites.value = resCommodites.data.data
-    // Réponse: RestResponse<List<TypeBienResponseDto>> → { id, libelle }
-    typesBien.value = resTypesBien.data.data
+    commodites.value   = resCommodites.data.data
+    typesBien.value    = resTypesBien.data.data
+    departements.value = resDepts.data.data
   } catch {
     toast.value?.show('Erreur lors du chargement des données.', 'error')
   }
 })
 
-// Fichiers File bruts conservés pour l'upload Cloudinary
-const photoFiles    = ref([])
-const photoPreviews = ref([])
+// Département → charger quartiers et réinitialiser coords
+watch(() => form.departement, async (val) => {
+  form.quartier  = ''
+  form.latitude  = null
+  form.longitude = null
+  quartiers.value = []
+  if (!val) return
+  loadingQuartiers.value = true
+  try {
+    const res = await locationService.getQuartiersByDepartement(val)
+    quartiers.value = res.data.data
+  } catch {
+    quartiers.value = []
+  } finally {
+    loadingQuartiers.value = false
+  }
+})
+
+// Quartier → géocoder immédiatement
+watch(() => form.quartier, (val) => {
+  if (val) geocodeLocation()
+  else { form.latitude = null; form.longitude = null }
+})
+
+// Adresse → géocoder avec délai (seulement si quartier défini)
+watch(() => form.adresse, () => {
+  if (!form.quartier) return
+  clearTimeout(geocodeTimer)
+  geocodeTimer = setTimeout(geocodeLocation, 500)
+})
+
+async function geocodeLocation() {
+  if (!form.quartier || !form.departement) return
+  geocoding.value = true
+  try {
+    const q = form.adresse?.trim()
+      ? `${form.adresse}, ${form.quartier}, ${form.departement}, Sénégal`
+      : `${form.quartier}, ${form.departement}, Sénégal`
+    const res  = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`,
+      { headers: { 'Accept-Language': 'fr' } }
+    )
+    const data = await res.json()
+    if (data.length) {
+      form.latitude  = parseFloat(data[0].lat)
+      form.longitude = parseFloat(data[0].lon)
+    } else {
+      form.latitude  = null
+      form.longitude = null
+    }
+  } catch {
+    // Echec silencieux — la création n'est pas bloquée
+  } finally {
+    geocoding.value = false
+  }
+}
+
+function nextStep() {
+  if (currentStep.value === 1 && (!form.departement || !form.quartier)) {
+    toast.value?.show('Veuillez sélectionner un département et un quartier.', 'error')
+    return
+  }
+  currentStep.value++
+}
+
+const photoFiles     = ref([])
+const photoPreviews  = ref([])
 const uploadProgress = ref({ done: 0, total: 0 })
 
 function toggleCommodite(id) {
@@ -82,10 +155,14 @@ async function submit() {
     toast.value.show('Veuillez sélectionner un type de bien.', 'error')
     return
   }
+  if (!form.departement || !form.quartier) {
+    toast.value.show('Le département et le quartier sont obligatoires.', 'error')
+    return
+  }
   loading.value = true
   try {
     let imageUrls = []
-    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
+    const cloudName   = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
     const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
     if (photoFiles.value.length && cloudName && uploadPreset) {
       uploadProgress.value = { done: 0, total: photoFiles.value.length }
@@ -99,7 +176,9 @@ async function submit() {
       nbrPieces:    parseInt(form.nbrPieces),
       surface:      parseFloat(form.surface),
       prix:         parseFloat(form.prix),
-      adresse:      form.adresse,
+      adresse:      form.adresse || null,
+      departement:  form.departement,
+      quartier:     form.quartier,
       typeBienId:   form.typeBienId,
       commoditeIds: form.commoditeIds,
       images:       imageUrls,
@@ -185,14 +264,48 @@ async function submit() {
       <section v-else-if="currentStep === 1" class="form-section">
         <h2 class="form-section__title"><span class="form-section__num">2</span> Contexte géographique</h2>
 
-        <div class="field">
-          <label class="field__label">ADRESSE COMPLÈTE <span class="req">*</span></label>
-          <input v-model="form.adresse" type="text" class="field__input" placeholder="ex. 12 Rue Carnot, Plateau, Dakar" />
+        <div class="field-row">
+          <div class="field">
+            <label class="field__label">DÉPARTEMENT <span class="req">*</span></label>
+            <select v-model="form.departement" class="field__input">
+              <option value="">Sélectionner un département...</option>
+              <option v-for="d in departements" :key="d" :value="d">{{ d }}</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field__label">QUARTIER <span class="req">*</span></label>
+            <select v-model="form.quartier" class="field__input" :disabled="!form.departement || loadingQuartiers">
+              <option value="">{{ loadingQuartiers ? 'Chargement...' : 'Sélectionner un quartier...' }}</option>
+              <option v-for="q in quartiers" :key="q" :value="q">{{ q }}</option>
+            </select>
+            <p v-if="form.departement && !loadingQuartiers && !quartiers.length" class="field__hint">
+              Aucun quartier trouvé pour ce département.
+            </p>
+          </div>
         </div>
 
-        <div class="map-placeholder">
-          <MapPin :size="28" class="map-placeholder__icon" />
-          <span>Cliquer pour placer l'annonce sur la carte</span>
+        <div class="field">
+          <label class="field__label">ADRESSE EXACTE <span class="field__optional">(facultatif)</span></label>
+          <input v-model="form.adresse" type="text" class="field__input" placeholder="ex. 12 Rue Carnot" />
+        </div>
+
+        <div class="map-section">
+          <div v-if="geocoding" class="map-loading">
+            <div class="map-spinner"></div>
+            <span>Recherche de la localisation...</span>
+          </div>
+          <LocationMap
+            v-else
+            :latitude="form.latitude"
+            :longitude="form.longitude"
+            :draggable="true"
+            height="280px"
+            @update:latitude="v => form.latitude = v"
+            @update:longitude="v => form.longitude = v"
+          />
+          <p v-if="form.quartier && !geocoding && form.latitude == null" class="map-hint">
+            Localisation introuvable — l'annonce sera quand même enregistrée.
+          </p>
         </div>
       </section>
 
@@ -245,7 +358,7 @@ async function submit() {
           <button v-if="currentStep > 0" type="button" class="btn-prev" @click="currentStep--">
             Étape précédente
           </button>
-          <button v-if="currentStep < STEPS.length - 1" type="button" class="btn-next" @click="currentStep++">
+          <button v-if="currentStep < STEPS.length - 1" type="button" class="btn-next" @click="nextStep">
             Continuer vers la fiche finale
           </button>
           <button v-else type="button" class="btn-next" :disabled="loading" @click="submit">
@@ -373,23 +486,53 @@ async function submit() {
 .field__input:focus { border-color: var(--color-primary); outline: none; }
 .field__textarea { resize: vertical; min-height: 100px; }
 
-.map-placeholder {
+.field__optional {
+  font-weight: 400;
+  text-transform: none;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0;
+}
+
+.field__hint {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  margin-top: 0.15rem;
+}
+
+.map-section { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.map-loading {
+  height: 280px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  height: 160px;
+  gap: 0.75rem;
   background: #e8f2ef;
-  border: 2px dashed var(--color-primary);
   border-radius: var(--radius);
+  border: 1px solid #cde3dd;
   color: var(--color-primary);
   font-size: 0.88rem;
   font-weight: 500;
-  cursor: pointer;
 }
 
-.map-placeholder__icon { color: var(--color-primary); }
+.map-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(74, 124, 111, 0.25);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.map-hint {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}
 
 .equipements-grid {
   display: grid;
