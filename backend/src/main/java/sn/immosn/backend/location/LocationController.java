@@ -17,7 +17,8 @@ import sn.immosn.backend.shared.response.RestResponse;
 @RequiredArgsConstructor
 public class LocationController {
 
-    private final LocationService locationService;
+    private final LocationService   locationService;
+    private final GeoCodingService  geoCodingService;
 
     @GetMapping("/departements")
     public ResponseEntity<RestResponse<List<String>>> getDepartements() {
@@ -32,5 +33,17 @@ public class LocationController {
         return ResponseEntity.ok(
             RestResponse.success(locationService.getQuartiersByDepartement(departement), HttpStatus.OK)
         );
+    }
+
+    @GetMapping("/geocode")
+    public ResponseEntity<RestResponse<GeocodeResponseDto>> geocode(
+            @RequestParam String departement,
+            @RequestParam String quartier,
+            @RequestParam(required = false) String adresse) {
+        double[] coords = geoCodingService.geocode(quartier, departement, adresse).orElse(null);
+        GeocodeResponseDto result = coords != null
+            ? new GeocodeResponseDto(coords[0], coords[1])
+            : new GeocodeResponseDto(null, null);
+        return ResponseEntity.ok(RestResponse.success(result, HttpStatus.OK));
     }
 }

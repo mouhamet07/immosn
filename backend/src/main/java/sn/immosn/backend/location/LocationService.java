@@ -19,7 +19,7 @@ public class LocationService {
             "Ouakam", "Plateau", "Point E", "Sacré-Cœur", "Yoff"
         )),
         Map.entry("Pikine", List.of(
-            "Diamaguène", "Guinaw Rails", "Keur Massar", "Pikine Est",
+            "Diamaguène", "Guinaw Rails", "Pikine Est",
             "Pikine Ouest", "Tally Boubess", "Thiaroye", "Yeumbeul"
         )),
         Map.entry("Guédiawaye", List.of(
@@ -30,46 +30,9 @@ public class LocationService {
             "Bargny", "Diamniadio", "Rufisque Est",
             "Rufisque Nord", "Rufisque Ouest", "Sébikotane"
         )),
-        Map.entry("Thiès", List.of(
-            "Khombole", "Mbour", "Thiès Est", "Thiès Nord",
-            "Thiès Ouest", "Tivaouane"
-        )),
-        Map.entry("Saint-Louis", List.of(
-            "Dagana", "Matam", "Podor",
-            "Saint-Louis Nord", "Saint-Louis Sud"
-        )),
-        Map.entry("Ziguinchor", List.of(
-            "Bignona", "Oussouye", "Ziguinchor Centre"
-        )),
-        Map.entry("Kaolack", List.of(
-            "Fatick", "Guinguinéo", "Kaolack Centre", "Nioro du Rip"
-        )),
-        Map.entry("Diourbel", List.of(
-            "Bambey", "Diourbel Centre", "Mbacké", "Touba"
-        )),
-        Map.entry("Louga", List.of(
-            "Kébémer", "Linguère", "Louga Centre"
-        )),
-        Map.entry("Tambacounda", List.of(
-            "Bakel", "Goudiry", "Tambacounda Centre", "Vélingara"
-        )),
-        Map.entry("Kolda", List.of(
-            "Kolda Centre", "Médina Yoro Fula", "Vélingara Sud"
-        )),
-        Map.entry("Fatick", List.of(
-            "Fatick Centre", "Foundiougne", "Gossas"
-        )),
-        Map.entry("Matam", List.of(
-            "Kanel", "Matam Centre", "Ranérou"
-        )),
-        Map.entry("Kaffrine", List.of(
-            "Birkilane", "Kaffrine Centre", "Koungheul"
-        )),
-        Map.entry("Kédougou", List.of(
-            "Kédougou Centre", "Saraya", "Salemata"
-        )),
-        Map.entry("Sédhiou", List.of(
-            "Bounkiling", "Goudomp", "Sédhiou Centre"
+        Map.entry("Keur Massar", List.of(
+            "Jaxaay-Parcelles", "Keur Massar Nord", "Keur Massar Sud",
+            "Malika", "Niakoul Rap", "Tivaouane Peulh"
         ))
     );
 

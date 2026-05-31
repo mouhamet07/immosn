@@ -74,6 +74,11 @@ public class GeoCodingService {
         log.info("[{}] GEOLOCATION GENERATED ANNONCE:{}", timestamp, annonceId);
     }
 
+    public void logGeolocationFailed(Long annonceId) {
+        String timestamp = LocalDateTime.now().format(LOG_FORMATTER);
+        log.warn("[{}] GEOLOCATION FAILED ANNONCE:{}", timestamp, annonceId);
+    }
+
     private String buildQuery(String quartier, String departement, String adresse) {
         if (adresse != null && !adresse.isBlank()) {
             return adresse + ", " + quartier + ", " + departement + ", Senegal";

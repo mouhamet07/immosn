@@ -93,21 +93,10 @@ async function geocodeLocation() {
   if (!form.quartier || !form.departement) return
   geocoding.value = true
   try {
-    const q = form.adresse?.trim()
-      ? `${form.adresse}, ${form.quartier}, ${form.departement}, Sénégal`
-      : `${form.quartier}, ${form.departement}, Sénégal`
-    const res  = await fetch(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`,
-      { headers: { 'Accept-Language': 'fr' } }
-    )
-    const data = await res.json()
-    if (data.length) {
-      form.latitude  = parseFloat(data[0].lat)
-      form.longitude = parseFloat(data[0].lon)
-    } else {
-      form.latitude  = null
-      form.longitude = null
-    }
+    const res = await locationService.geocode(form.departement, form.quartier, form.adresse || null)
+    const coords = res.data.data
+    form.latitude  = coords?.latitude  ?? null
+    form.longitude = coords?.longitude ?? null
   } catch {
     // Echec silencieux — la création n'est pas bloquée
   } finally {

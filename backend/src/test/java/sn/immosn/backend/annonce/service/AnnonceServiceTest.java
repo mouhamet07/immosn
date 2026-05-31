@@ -73,13 +73,15 @@ class AnnonceServiceTest {
         responseDto = new AnnonceResponseDto(
             1L, "Villa Almadies", "Magnifique villa", 5, 250.0,
             BigDecimal.valueOf(150_000_000), "Almadies, Dakar",
+            null, null, null, null, null,
             null, List.of(), List.of(), false,
             LocalDateTime.now(), LocalDateTime.now()
         );
 
         listDto = new AnnonceListDto(
             "1", "Villa Almadies", BigDecimal.valueOf(150_000_000),
-            "Almadies, Dakar", null, 5, 250.0, null, LocalDateTime.now(), false
+            "Almadies, Dakar", null, null, null, null,
+            null, 5, 250.0, null, LocalDateTime.now(), false
         );
     }
 
