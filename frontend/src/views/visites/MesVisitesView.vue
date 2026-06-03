@@ -1,7 +1,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { Home, MapPin } from 'lucide-vue-next'
+import { Home, MapPin, Calendar, Search, AlertCircle, RefreshCw } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
 import visiteService from '@/services/visiteService'
+
+const router = useRouter()
 
 const visites     = ref([])
 const loading     = ref(false)
@@ -94,13 +97,27 @@ onMounted(() => fetchVisites(0))
 
       <!-- Chargement -->
       <div v-if="loading" class="mv-loading"><div class="spinner"></div></div>
-      <div v-else-if="error" class="mv-error">{{ error }}</div>
+
+      <!-- Erreur API -->
+      <div v-else-if="error" class="mv-empty">
+        <AlertCircle :size="40" color="var(--color-accent)" />
+        <p class="mv-empty__title">Impossible de charger vos demandes.</p>
+        <button class="mv-empty__retry" @click="fetchVisites(0)">
+          <RefreshCw :size="14" /> Réessayer
+        </button>
+      </div>
 
       <!-- Vide -->
       <div v-else-if="!visites.length" class="mv-empty">
-        <Home :size="48" class="mv-empty__icon" />
-        <p class="mv-empty__title">Aucune demande trouvée</p>
-        <RouterLink to="/annonces" class="mv-empty__link">Parcourir les annonces</RouterLink>
+        <Calendar :size="56" color="var(--color-border)" />
+        <p class="mv-empty__title">Aucune demande de visite</p>
+        <p class="mv-empty__desc">
+          Vous n'avez pas encore demandé de visite.
+          Trouvez un bien et cliquez sur <strong>"Réserver une visite"</strong>.
+        </p>
+        <button class="mv-empty__btn" @click="router.push('/annonces')">
+          <Search :size="16" /> Trouver un bien
+        </button>
       </div>
 
       <!-- Liste -->
@@ -177,14 +194,28 @@ onMounted(() => fetchVisites(0))
 }
 
 .mv-loading { display: flex; justify-content: center; padding: 4rem; }
-.mv-error { text-align: center; padding: 2rem; color: var(--color-accent); }
 .mv-empty {
   display: flex; flex-direction: column; align-items: center; gap: .75rem;
-  padding: 4rem; text-align: center;
+  padding: 4rem 2rem; text-align: center;
 }
-.mv-empty__icon { color: var(--color-text-muted); opacity: 0.3; }
-.mv-empty__title { font-size: 1rem; font-weight: 700; color: var(--color-text); opacity: .6; }
-.mv-empty__link { color: var(--color-primary); font-weight: 600; font-size: .88rem; }
+.mv-empty__title { font-size: 1rem; font-weight: 700; color: var(--color-text); }
+.mv-empty__desc { font-size: 0.85rem; color: var(--color-text-secondary, #6B7280); line-height: 1.5; max-width: 360px; }
+.mv-empty__btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: .6rem 1.2rem; background: var(--color-primary); color: #fff;
+  border: none; border-radius: var(--radius-sm);
+  font-size: .88rem; font-weight: 600; cursor: pointer; transition: opacity .15s;
+  margin-top: .25rem;
+}
+.mv-empty__btn:hover { opacity: .85; }
+.mv-empty__retry {
+  display: flex; align-items: center; gap: 6px;
+  padding: .45rem 1rem; background: transparent;
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  font-size: .82rem; font-weight: 600; color: var(--color-text); cursor: pointer;
+  transition: background .15s;
+}
+.mv-empty__retry:hover { background: var(--color-background); }
 
 .mv-list { display: flex; flex-direction: column; gap: 1rem; }
 .mv-card {
