@@ -1,6 +1,9 @@
 <script setup>
 import { ref, computed, onMounted, defineComponent, h } from 'vue'
+import { useAuthStore } from '@/stores/authStore'
 import dashboardService from '@/services/dashboardService'
+
+const authStore = useAuthStore()
 
 // Composant icône SVG inline — remplace les emojis
 const SVGS = {
@@ -52,7 +55,10 @@ const statCards = computed(() => {
     { icon: 'target',       label: 'Leads en cours',       value: s.leadsEnCours,         total: s.totalLeads,           color: 'purple',  to: '/admin/leads' },
     { icon: 'alert',        label: 'Signalements ouverts', value: s.signalementsOuverts,  total: s.totalSignalements,    color: 'red',     to: '/admin/signalements' },
     { icon: 'chat',         label: 'Discussions',          value: s.totalDiscussions,     total: null,                   color: 'teal',    to: '/admin/messages' },
-    { icon: 'people',       label: 'Administrateurs',      value: s.totalAdmins,          total: null,                   color: 'gray',    to: '/admin/administrateurs' },
+    // Carte admins visible seulement pour SUPER_ADMIN
+    ...(authStore.user?.role === 'SUPER_ADMIN'
+      ? [{ icon: 'people', label: 'Administrateurs', value: s.totalAdmins, total: null, color: 'gray', to: '/admin/administrateurs' }]
+      : []),
   ]
 })
 

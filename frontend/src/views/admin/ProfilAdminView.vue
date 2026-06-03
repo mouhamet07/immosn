@@ -77,7 +77,7 @@ async function saveInfo() {
 
 async function saveSecurite() {
   if (!formSecurite.motDePasseActuel || !formSecurite.nouveauMotDePasse) {
-    toast.value.show('Veuillez remplir les deux champs.', 'error')
+    toast.error('Veuillez remplir les deux champs.')
     return
   }
   loadingSecurite.value = true
