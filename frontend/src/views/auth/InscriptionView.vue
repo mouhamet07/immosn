@@ -1,7 +1,7 @@
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ChevronDown } from 'lucide-vue-next'
+import { ChevronDown, Eye, EyeOff } from 'lucide-vue-next'
 import authService from '@/services/authService'
 
 const router = useRouter()
@@ -17,6 +17,16 @@ const form = reactive({
 
 const errorMessage = ref('')
 const loading = ref(false)
+const showPassword = ref(false)
+
+// Indicateur de force du mot de passe
+const passwordStrength = computed(() => {
+  const p = form.motDePasse
+  if (!p) return null
+  if (p.length < 6) return 'faible'
+  if (p.length < 10 || !/[A-Z]/.test(p) || !/[0-9]/.test(p)) return 'moyen'
+  return 'fort'
+})
 
 // Formater le numéro de téléphone avec le préfixe +221
 const formatPhoneNumber = (event) => {
@@ -113,7 +123,43 @@ async function handleSubmit() {
 
             <div class="ins-field">
               <label class="ins-label" for="password">Mot de Passe</label>
-              <input id="password" v-model="form.motDePasse" type="password" class="ins-input" placeholder="••••••••" required />
+              <div class="ins-input-wrap">
+                <input
+                  id="password"
+                  v-model="form.motDePasse"
+                  :type="showPassword ? 'text' : 'password'"
+                  class="ins-input ins-input--pw"
+                  placeholder="••••••••"
+                  required
+                />
+                <button type="button" class="ins-eye" @click="showPassword = !showPassword">
+                  <EyeOff v-if="showPassword" :size="16" />
+                  <Eye v-else :size="16" />
+                </button>
+              </div>
+              <!-- Indicateur de force -->
+              <div v-if="form.motDePasse" class="ins-strength">
+                <div class="ins-strength__bars">
+                  <span
+                    class="ins-strength__bar"
+                    :class="{ '--active': passwordStrength }"
+                    :style="{ background: passwordStrength === 'faible' ? '#ef4444' : passwordStrength === 'moyen' ? '#f59e0b' : '#22c55e' }"
+                  ></span>
+                  <span
+                    class="ins-strength__bar"
+                    :class="{ '--active': passwordStrength === 'moyen' || passwordStrength === 'fort' }"
+                    :style="{ background: passwordStrength === 'moyen' ? '#f59e0b' : passwordStrength === 'fort' ? '#22c55e' : '' }"
+                  ></span>
+                  <span
+                    class="ins-strength__bar"
+                    :class="{ '--active': passwordStrength === 'fort' }"
+                    :style="{ background: passwordStrength === 'fort' ? '#22c55e' : '' }"
+                  ></span>
+                </div>
+                <span class="ins-strength__label" :class="`ins-strength__label--${passwordStrength}`">
+                  {{ passwordStrength === 'faible' ? 'Faible' : passwordStrength === 'moyen' ? 'Moyen' : 'Fort' }}
+                </span>
+              </div>
             </div>
 
             <!-- Conditions -->
@@ -302,6 +348,28 @@ async function handleSubmit() {
 }
 .ins-input:focus { outline: none; border-color: #316357; }
 .ins-input::placeholder { color: #707975; }
+
+/* Champ mot de passe avec toggle */
+.ins-input-wrap { position: relative; }
+.ins-input--pw { padding-right: 2.75rem; }
+.ins-eye {
+  position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer; color: #707975;
+  display: flex; align-items: center; transition: color 0.15s;
+}
+.ins-eye:hover { color: #316357; }
+
+/* Indicateur de force du mot de passe */
+.ins-strength { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.ins-strength__bars { display: flex; gap: 4px; }
+.ins-strength__bar {
+  width: 36px; height: 4px; border-radius: 2px;
+  background: #e5e7eb; transition: background 0.2s;
+}
+.ins-strength__label { font-size: 0.75rem; font-weight: 600; }
+.ins-strength__label--faible { color: #ef4444; }
+.ins-strength__label--moyen  { color: #f59e0b; }
+.ins-strength__label--fort   { color: #22c55e; }
 
 /* Champ téléphone avec préfixe +221 */
 .ins-phone-wrap {
