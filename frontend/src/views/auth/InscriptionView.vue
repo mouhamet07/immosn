@@ -1,6 +1,7 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import { ChevronDown } from 'lucide-vue-next'
 import authService from '@/services/authService'
 
 const router = useRouter()
@@ -16,6 +17,15 @@ const form = reactive({
 
 const errorMessage = ref('')
 const loading = ref(false)
+
+// Formater le numéro de téléphone avec le préfixe +221
+const formatPhoneNumber = (event) => {
+  let value = event.target.value.replace(/\D/g, '')
+  if (value.length > 9) value = value.slice(0, 9)
+  form.telephone = '+221 ' + value
+    .replace(/(\d{2})(\d{3})(\d{2})(\d{2})/, '$1 $2 $3 $4')
+    .trim()
+}
 
 async function handleSubmit() {
   errorMessage.value = ''
@@ -41,10 +51,9 @@ async function handleSubmit() {
     <!-- Header fixe -->
     <header class="ins-header">
       <div class="ins-header__inner">
-        <RouterLink to="/annonces" class="ins-header__brand">ImmoSN</RouterLink>
+        <img src="@/assets/logo nav 1 - orange 1.png" alt="ImmoSN" class="ins-header__logo" />
         <div class="ins-header__actions">
           <RouterLink to="/connexion" class="ins-header__login">Connexion</RouterLink>
-          <a href="#" class="ins-header__support">Contacter le Support</a>
         </div>
       </div>
     </header>
@@ -85,7 +94,21 @@ async function handleSubmit() {
 
             <div class="ins-field">
               <label class="ins-label" for="telephone">Téléphone</label>
-              <input id="telephone" v-model="form.telephone" type="tel" class="ins-input" placeholder="+221 77 000 00 00" required />
+              <div class="ins-phone-wrap">
+                <div class="ins-phone-prefix">
+                  <span class="ins-prefix-text">+221</span>
+                  <ChevronDown :size="14" />
+                </div>
+                <input
+                  id="telephone"
+                  v-model="form.telephone"
+                  type="tel"
+                  class="ins-phone-input"
+                  placeholder="77 123 45 67"
+                  @input="formatPhoneNumber"
+                  required
+                />
+              </div>
             </div>
 
             <div class="ins-field">
@@ -163,11 +186,7 @@ async function handleSubmit() {
   padding: 1rem 1.5rem;
   display: flex; justify-content: space-between; align-items: center;
 }
-.ins-header__brand {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 1.5rem; font-weight: 600;
-  color: #316357; text-decoration: none;
-}
+.ins-header__logo { height: 40px; object-fit: contain; }
 .ins-header__actions { display: flex; align-items: center; gap: 1.5rem; }
 .ins-header__login {
   font-size: 0.9rem; font-weight: 500;
@@ -283,6 +302,32 @@ async function handleSubmit() {
 }
 .ins-input:focus { outline: none; border-color: #316357; }
 .ins-input::placeholder { color: #707975; }
+
+/* Champ téléphone avec préfixe +221 */
+.ins-phone-wrap {
+  display: flex;
+  border-radius: 8px;
+  border: 1px solid rgba(192,200,196,0.4);
+  overflow: hidden;
+  background: #f3f4f2;
+}
+.ins-phone-prefix {
+  display: flex; align-items: center; gap: 4px;
+  padding: 0 0.75rem;
+  background: var(--color-border);
+  color: var(--color-text);
+  font-size: 0.875rem; font-weight: 600;
+  flex-shrink: 0;
+  border-right: 1px solid rgba(192,200,196,0.4);
+}
+.ins-prefix-text { font-size: 0.875rem; }
+.ins-phone-input {
+  flex: 1; padding: 0.75rem 1rem;
+  border: none; background: transparent;
+  font-size: 1rem; color: #191c1b; outline: none;
+}
+.ins-phone-input::placeholder { color: #707975; }
+.ins-phone-wrap:focus-within { border-color: var(--color-primary); }
 
 /* Terms */
 .ins-terms { display: flex; align-items: flex-start; gap: 0.75rem; padding-top: 4px; }
