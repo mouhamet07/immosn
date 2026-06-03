@@ -1,11 +1,50 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { Camera } from 'lucide-vue-next'
 import InputField from '@/components/InputField.vue'
 import ButtonPrimary from '@/components/ButtonPrimary.vue'
 import { useAuthStore } from '@/stores/authStore'
+import { useToastStore } from '@/stores/toastStore'
 import api from '@/services/api'
 
 const authStore = useAuthStore()
+const toast = useToastStore()
+
+// Avatar
+const previewUrl = ref(null)
+const avatarFile = ref(null)
+
+function getInitials(name) {
+  if (!name) return '?'
+  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+}
+
+const handleAvatarChange = (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+  if (file.size > 2 * 1024 * 1024) {
+    toast.error('Photo trop lourde — max 2 Mo')
+    return
+  }
+  avatarFile.value = file
+  previewUrl.value = URL.createObjectURL(file)
+}
+
+const uploadAvatar = async () => {
+  if (!avatarFile.value) return
+  const formData = new FormData()
+  formData.append('file', avatarFile.value)
+  try {
+    const response = await api.post(
+      `/users/${authStore.user.id}/avatar`,
+      formData
+    )
+    authStore.user.avatar = response.data.avatarUrl
+    localStorage.setItem('user', JSON.stringify(authStore.user))
+  } catch {
+    toast.error('Erreur upload photo')
+  }
+}
 
 // Formulaire informations de base
 const formInfo = reactive({
@@ -41,19 +80,23 @@ async function saveInfo() {
   successInfo.value = ''
   errorInfo.value   = ''
   try {
+    // Upload avatar si un nouveau fichier est sélectionné
+    await uploadAvatar()
     // PUT /api/v1/auth/profile — champs exacts de UpdateProfileRequestDto
     const res = await api.put('/auth/profile', {
       nomComplet: formInfo.nomComplet,
       email:      formInfo.email,
       telephone:  formInfo.telephone,
     })
-    // Mettre à jour le store avec les nouvelles données
     const updated = res.data.data
     authStore.user = { ...authStore.user, ...updated }
     localStorage.setItem('user', JSON.stringify(authStore.user))
+    toast.success('Informations mises à jour avec succès.')
     successInfo.value = 'Informations mises à jour avec succès.'
   } catch (err) {
-    errorInfo.value = err.response?.data?.message || 'Erreur lors de la mise à jour.'
+    const msg = err.response?.data?.message || 'Erreur lors de la mise à jour.'
+    errorInfo.value = msg
+    toast.error(msg)
   } finally {
     loadingInfo.value = false
   }
@@ -126,10 +169,33 @@ async function saveSecurite() {
         <div class="profil-right">
           <!-- Carte avatar -->
           <section class="profil-card profil-card--center">
-            <div class="profil-avatar">
-              {{ authStore.user?.nomComplet?.charAt(0)?.toUpperCase() || '?' }}
+            <div class="avatar-container">
+              <div class="avatar-wrapper">
+                <img
+                  v-if="previewUrl || authStore.user?.avatar"
+                  :src="previewUrl || authStore.user.avatar"
+                  alt="Photo de profil"
+                  class="avatar-img"
+                />
+                <div v-else class="avatar-initials">
+                  {{ getInitials(authStore.user?.nomComplet) }}
+                </div>
+                <label class="avatar-overlay" title="Changer la photo">
+                  <Camera :size="18" />
+                  <span>Modifier</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    @change="handleAvatarChange"
+                    hidden
+                  />
+                </label>
+              </div>
+              <div class="avatar-info">
+                <p class="avatar-name">{{ authStore.user?.nomComplet }}</p>
+                <p class="avatar-hint">JPG, PNG ou WebP — max 2 Mo</p>
+              </div>
             </div>
-            <h3 class="profil-user__name">{{ authStore.user?.nomComplet }}</h3>
             <p class="profil-user__email">{{ authStore.user?.email }}</p>
             <p class="profil-user__phone">{{ authStore.user?.telephone }}</p>
             <span class="profil-user__role">{{ authStore.user?.role }}</span>
@@ -262,25 +328,63 @@ async function saveSecurite() {
 }
 
 /* Avatar */
-.profil-avatar {
+.avatar-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.avatar-wrapper {
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+
+.avatar-img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.avatar-initials {
   width: 80px;
   height: 80px;
   border-radius: 50%;
   background: var(--color-primary);
   color: #fff;
-  font-size: 2rem;
+  font-size: 1.8rem;
   font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 1rem;
 }
 
-.profil-user__name {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--color-text);
+.avatar-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.45);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
 }
+
+.avatar-wrapper:hover .avatar-overlay { opacity: 1; }
+
+.avatar-info { text-align: center; }
+.avatar-name { font-size: 1rem; font-weight: 700; color: var(--color-text); }
+.avatar-hint { font-size: 0.75rem; color: var(--color-text-secondary, #6B7280); margin-top: 2px; }
 
 .profil-user__email,
 .profil-user__phone {
