@@ -3,6 +3,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { MessageSquare, BookOpen, Camera } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/authStore'
 import { useToastStore } from '@/stores/toastStore'
+import { uploadImage } from '@/services/cloudinaryService'
 import api from '@/services/api'
 
 const authStore = useAuthStore()
@@ -30,14 +31,12 @@ const handleAvatarChange = (event) => {
 
 const uploadAvatar = async () => {
   if (!avatarFile.value) return
-  const formData = new FormData()
-  formData.append('file', avatarFile.value)
   try {
-    const response = await api.post(
-      `/users/${authStore.user.id}/avatar`,
-      formData
-    )
-    authStore.user.avatar = response.data.avatarUrl
+    // Upload Cloudinary depuis le frontend
+    const url = await uploadImage(avatarFile.value)
+    // Sauvegarder l'URL via PUT /auth/profile — champ photo de UpdateProfileRequestDto
+    await api.put('/auth/profile', { photo: url })
+    authStore.user.photo = url
     localStorage.setItem('user', JSON.stringify(authStore.user))
   } catch {
     toast.error('Erreur upload photo')
@@ -171,8 +170,8 @@ async function saveSecurite() {
             <div class="avatar-container">
               <div class="avatar-wrapper">
                 <img
-                  v-if="previewUrl || authStore.user?.avatar"
-                  :src="previewUrl || authStore.user.avatar"
+                  v-if="previewUrl || authStore.user?.photo"
+                  :src="previewUrl || authStore.user.photo"
                   alt="Photo de profil"
                   class="avatar-img"
                 />
