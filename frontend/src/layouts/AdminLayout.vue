@@ -155,16 +155,20 @@ function isActive(path) {
   font-weight: 500;
   color: var(--color-text);
   text-decoration: none;
-  transition: background 150ms ease, color 150ms ease;
+  transition: all 150ms ease;
+  border-left: 3px solid transparent;
 }
 
 .sidebar__link:hover {
-  background: var(--color-hover-row);
+  color: var(--color-accent);
+  background: #FEF3EE;
+  border-left-color: var(--color-accent);
 }
 
 .sidebar__link--active {
-  background: var(--color-accent);
-  color: #fff;
+  color: var(--color-accent);
+  background: #FEF3EE;
+  border-left-color: var(--color-accent);
 }
 
 .sidebar__link-icon {
@@ -181,11 +185,12 @@ function isActive(path) {
   height: 18px;
 }
 
-.sidebar__link--active .sidebar__link-icon svg {
-  stroke: #fff;
+.sidebar__link--active .sidebar__link-icon svg,
+.sidebar__link:hover .sidebar__link-icon svg {
+  stroke: var(--color-accent);
 }
 
-.sidebar__link:not(.sidebar__link--active) .sidebar__link-icon svg {
+.sidebar__link:not(.sidebar__link--active):not(:hover) .sidebar__link-icon svg {
   stroke: var(--color-text-muted);
 }
 
