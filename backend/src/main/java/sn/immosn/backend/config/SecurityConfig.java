@@ -121,6 +121,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET,  "/api/v1/types-bien").permitAll()
                 .requestMatchers(HttpMethod.GET,  "/api/v1/types-bien/paged").permitAll()
 
+                // ── Localisation : public ───────────────────────────────
+                .requestMatchers(HttpMethod.GET,  "/api/v1/locations/**").permitAll()
+
                 // ── Mutations annonces : ADMIN ou SUPER_ADMIN ───────────
                 .requestMatchers(HttpMethod.POST,   "/api/v1/annonces").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers(HttpMethod.PUT,    "/api/v1/annonces/**").hasAnyRole("ADMIN", "SUPER_ADMIN")

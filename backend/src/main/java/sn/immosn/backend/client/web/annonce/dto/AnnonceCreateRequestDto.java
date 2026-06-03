@@ -1,5 +1,6 @@
 package sn.immosn.backend.client.web.annonce.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -30,9 +31,17 @@ public record AnnonceCreateRequestDto(
     @Positive(message = "Le prix doit être positif")
     BigDecimal prix,
 
-    @NotBlank(message = "L'adresse est obligatoire")
+    @JsonAlias("adresse")
     @Size(max = 500, message = "L'adresse ne peut pas dépasser 500 caractères")
-    String adresse,
+    String adresseExacte,
+
+    String region,
+
+    @NotBlank(message = "Le département est obligatoire")
+    String departement,
+
+    @NotBlank(message = "Le quartier est obligatoire")
+    String quartier,
 
     @NotNull(message = "Le type de bien est obligatoire")
     Long typeBienId,
