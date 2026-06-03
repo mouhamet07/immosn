@@ -46,8 +46,9 @@ function initials(name) {
 onMounted(async () => {
   try {
     const response = await authService.getAdmins(0, 100)
-    // PagedResponse — contenu dans response.data.content
-    admins.value = (response.data?.content ?? []).map(normalize)
+    // PagedResponse: { data: [...], totalElements, totalPages, currentPage }
+    console.log('admins response:', response.data)
+    admins.value = (response.data?.data ?? []).map(normalize)
   } catch (err) {
     toast.value?.show(err.response?.data?.message || 'Erreur lors du chargement des administrateurs.', 'error')
   } finally {
