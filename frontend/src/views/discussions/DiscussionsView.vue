@@ -21,11 +21,12 @@ async function fetchDiscussions(page = 0) {
   loading.value = true
   error.value   = ''
   try {
-    const res = await discussionService.getClientDiscussions(page, 10)
+    const res   = await discussionService.getClientDiscussions(page, 10)
     const paged = res.data
-    discussions.value = paged.data
-    currentPage.value = paged.currentPage
-    totalPages.value  = paged.totalPages
+    // PagedResponse — contenu dans content
+    discussions.value = paged.content ?? paged.data ?? []
+    currentPage.value = paged.currentPage ?? paged.number ?? 0
+    totalPages.value  = paged.totalPages ?? 1
   } catch {
     error.value = 'Impossible de charger vos discussions.'
   } finally {
@@ -34,12 +35,16 @@ async function fetchDiscussions(page = 0) {
 }
 
 async function openDiscussion(id) {
-  selectedId.value = id
+  selectedId.value  = id
   chatLoading.value = true
   try {
-    const res = await discussionService.getMessages(id)
-    selectedChat.value = res.data.data
-    // Mettre à jour le compteur non lus dans la liste
+    const res  = await discussionService.getMessages(id)
+    const data = res.data.data
+    // Trier les messages par date ASC pour l'historique
+    data.messages = (data.messages ?? []).sort(
+      (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+    )
+    selectedChat.value = data
     const disc = discussions.value.find(d => d.id === id)
     if (disc) disc.unreadCount = 0
     await nextTick()
@@ -69,6 +74,24 @@ async function sendMessage() {
 
 function scrollBottom() {
   if (messagesRef.value) messagesRef.value.scrollTop = messagesRef.value.scrollHeight
+}
+
+// Séparateur de date entre messages de jours différents
+function shouldShowDateSeparator(messages, index) {
+  if (index === 0) return true
+  const prev = new Date(messages[index - 1].createdAt)
+  const curr = new Date(messages[index].createdAt)
+  return prev.toDateString() !== curr.toDateString()
+}
+
+function formatSeparatorDate(dt) {
+  const date      = new Date(dt)
+  const today     = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+  if (date.toDateString() === today.toDateString())     return "Aujourd'hui"
+  if (date.toDateString() === yesterday.toDateString()) return 'Hier'
+  return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 function formatDate(dt) {
@@ -163,18 +186,30 @@ onMounted(() => fetchDiscussions(0))
             </RouterLink>
           </div>
 
-          <!-- Messages -->
+          <!-- Messages avec séparateurs de date -->
           <div class="disc-chat__messages" ref="messagesRef">
-            <div
-              v-for="msg in selectedChat.messages"
-              :key="msg.id"
-              class="bubble"
-              :class="msg.senderRole === 'CLIENT' ? 'bubble--right' : 'bubble--left'"
-            >
-              <span class="bubble__sender">{{ msg.senderRole === 'ADMIN' ? 'Agence' : 'Vous' }}</span>
-              <div class="bubble__text">{{ msg.contenu }}</div>
-              <span class="bubble__time">{{ formatTime(msg.createdAt) }}</span>
-            </div>
+            <template v-for="(msg, index) in selectedChat.messages" :key="msg.id">
+              <!-- Séparateur de date -->
+              <div v-if="shouldShowDateSeparator(selectedChat.messages, index)" class="date-separator">
+                <span>{{ formatSeparatorDate(msg.createdAt) }}</span>
+              </div>
+              <!-- Bulle message -->
+              <div
+                class="bubble"
+                :class="msg.senderRole === 'CLIENT' ? 'bubble--right' : 'bubble--left'"
+              >
+                <span class="bubble__sender">{{ msg.senderRole === 'ADMIN' ? 'Agence' : 'Vous' }}</span>
+                <div class="bubble__text">{{ msg.contenu }}</div>
+                <div class="bubble__footer">
+                  <span class="bubble__time">{{ formatTime(msg.createdAt) }}</span>
+                  <!-- Statut lu/non-lu (MessageResponseDto.isRead) -->
+                  <span v-if="msg.senderRole === 'CLIENT'" class="bubble__read" :title="msg.isRead ? 'Lu' : 'Envoyé'">
+                    <svg v-if="msg.isRead" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><polyline points="1 12 5 16 11 8"/><polyline points="9 12 13 16 19 8"/></svg>
+                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><polyline points="5 12 9 16 19 8"/></svg>
+                  </span>
+                </div>
+              </div>
+            </template>
           </div>
 
           <!-- Zone saisie -->
@@ -433,6 +468,35 @@ onMounted(() => fetchDiscussions(0))
   color: var(--color-text);
   opacity: 0.4;
   margin-top: 0.2rem;
+}
+
+.bubble__footer {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.2rem;
+}
+
+.bubble__read { color: var(--color-primary); opacity: 0.7; display: flex; align-items: center; }
+
+/* Séparateur de date */
+.date-separator {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.5rem 0;
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.date-separator::before,
+.date-separator::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
 }
 
 .disc-chat__compose {

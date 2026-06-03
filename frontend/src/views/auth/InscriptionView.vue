@@ -2,7 +2,6 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import authService from '@/services/authService'
-import AppFooter from '@/components/AppFooter.vue'
 
 const router = useRouter()
 
@@ -20,25 +19,12 @@ const loading = ref(false)
 
 async function handleSubmit() {
   errorMessage.value = ''
-  if (!form.nomComplet.trim()) {
-    errorMessage.value = 'Le nom complet est requis.'
-    return
-  }
-  if (!form.email.includes('@')) {
-    errorMessage.value = 'Adresse e-mail invalide.'
-    return
-  }
-  if (!form.telephone.trim()) {
-    errorMessage.value = 'Le numéro de téléphone est requis.'
-    return
-  }
-  if (form.motDePasse.length < 8) {
-    errorMessage.value = 'Le mot de passe doit contenir au moins 8 caractères.'
-    return
-  }
+  if (!form.nomComplet.trim()) { errorMessage.value = 'Le nom complet est requis.'; return }
+  if (!form.email.includes('@')) { errorMessage.value = 'Adresse e-mail invalide.'; return }
+  if (!form.telephone.trim()) { errorMessage.value = 'Le numéro de téléphone est requis.'; return }
+  if (form.motDePasse.length < 8) { errorMessage.value = 'Le mot de passe doit contenir au moins 8 caractères.'; return }
   loading.value = true
   try {
-    // Envoyer exactement les champs du AuthRegisterRequestDto — jamais acceptConditions
     await authService.register(form.nomComplet, form.email, form.telephone, form.motDePasse)
     router.push({ name: 'connexion' })
   } catch (err) {
@@ -50,358 +36,332 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="inscription">
-    <!-- Header pleine largeur : logo gauche + connexion droite -->
-    <header class="inscription__header">
-      <RouterLink to="/annonces" class="inscription__logo">
-        <img src="@/assets/logo nav 1 - orange 1.png" alt="ImmoSN" class="inscription__logo-img" />
-      </RouterLink>
-      <RouterLink to="/connexion" class="inscription__btn-connexion">Connexion</RouterLink>
+  <div class="ins-page">
+
+    <!-- Header fixe -->
+    <header class="ins-header">
+      <div class="ins-header__inner">
+        <RouterLink to="/annonces" class="ins-header__brand">ImmoSN</RouterLink>
+        <div class="ins-header__actions">
+          <RouterLink to="/connexion" class="ins-header__login">Connexion</RouterLink>
+          <a href="#" class="ins-header__support">Contacter le Support</a>
+        </div>
+      </div>
     </header>
 
-    <!-- Body : split gauche/droite -->
-    <div class="inscription__body">
-      <!-- Côté gauche : image -->
-      <div class="inscription__left"></div>
+    <!-- Décoration fond -->
+    <div class="ins-deco ins-deco--right"></div>
+    <div class="ins-deco ins-deco--left"></div>
 
-      <!-- Côté droit : formulaire -->
-      <div class="inscription__right">
-        <div class="inscription__form-wrapper">
-          <h2 class="inscription__title">Créer un compte</h2>
-          <p class="inscription__subtitle">Rejoignez la plateforme ImmoSN dès aujourd'hui.</p>
+    <!-- Contenu principal -->
+    <main class="ins-main">
+      <div class="ins-card">
 
-          <form class="inscription__form" @submit.prevent="handleSubmit">
-            <div class="inscription__field">
-              <label class="inscription__label">
-                NOM COMPLET <span class="inscription__required">*</span>
-              </label>
-              <input
-                v-model="form.nomComplet"
-                type="text"
-                required
-                class="inscription__input"
-                placeholder="Abdoulaye Diop"
-              />
+        <!-- Côté gauche : image + texte -->
+        <div class="ins-card__left">
+          <img src="@/assets/Luxury Home.png" alt="Villa ImmoSN" class="ins-card__img" />
+          <div class="ins-card__overlay">
+            <h2 class="ins-card__overlay-title">Sécurisez Votre Futur au Sénégal</h2>
+            <p class="ins-card__overlay-text">Rejoignez l'écosystème immobilier le plus fiable d'Afrique de l'Ouest, où la beauté architecturale rencontre la fiabilité moderne.</p>
+          </div>
+        </div>
+
+        <!-- Côté droit : formulaire -->
+        <div class="ins-card__right">
+          <h1 class="ins-title">Rejoindre ImmoSN</h1>
+          <p class="ins-subtitle">Créez votre compte pour accéder aux meilleures opportunités immobilières du Sénégal.</p>
+
+          <form class="ins-form" @submit.prevent="handleSubmit">
+
+            <div class="ins-field">
+              <label class="ins-label" for="full_name">Nom Complet</label>
+              <input id="full_name" v-model="form.nomComplet" type="text" class="ins-input" placeholder="Abdoulaye Diop" required />
             </div>
 
-            <div class="inscription__field">
-              <label class="inscription__label">
-                ADRESSE E-MAIL <span class="inscription__required">*</span>
-              </label>
-              <input
-                v-model="form.email"
-                type="email"
-                required
-                class="inscription__input"
-                placeholder="abdoulaye@example.sn"
-              />
+            <div class="ins-field">
+              <label class="ins-label" for="email">Adresse E-mail</label>
+              <input id="email" v-model="form.email" type="email" class="ins-input" placeholder="abdoulaye@example.sn" required />
             </div>
 
-            <div class="inscription__field">
-              <label class="inscription__label">
-                TÉLÉPHONE <span class="inscription__required">*</span>
-              </label>
-              <input
-                v-model="form.telephone"
-                type="tel"
-                required
-                class="inscription__input"
-                placeholder="+221 77 000 00 00"
-              />
+            <div class="ins-field">
+              <label class="ins-label" for="telephone">Téléphone</label>
+              <input id="telephone" v-model="form.telephone" type="tel" class="ins-input" placeholder="+221 77 000 00 00" required />
             </div>
 
-            <div class="inscription__field">
-              <label class="inscription__label">
-                MOT DE PASSE <span class="inscription__required">*</span>
-              </label>
-              <input
-                v-model="form.motDePasse"
-                type="password"
-                required
-                class="inscription__input"
-                placeholder="••••••••"
-              />
+            <div class="ins-field">
+              <label class="ins-label" for="password">Mot de Passe</label>
+              <input id="password" v-model="form.motDePasse" type="password" class="ins-input" placeholder="••••••••" required />
             </div>
 
-            <div class="inscription__checkbox-wrapper">
-              <input
-                id="acceptTerms"
-                v-model="form.acceptConditions"
-                type="checkbox"
-                class="inscription__checkbox"
-              />
-              <label for="acceptTerms" class="inscription__checkbox-label">
-                J'accepte les
-                <a href="#" class="inscription__link">Conditions d'Utilisation</a>
-                et la
-                <a href="#" class="inscription__link">Politique de Confidentialité</a>.
+            <!-- Conditions -->
+            <div class="ins-terms">
+              <input id="terms" v-model="form.acceptConditions" type="checkbox" class="ins-checkbox" />
+              <label for="terms" class="ins-terms-label">
+                J'accepte les <a href="#" class="ins-link">Conditions d'Utilisation</a> et la <a href="#" class="ins-link">Politique de Confidentialité</a>.
               </label>
             </div>
 
-            <p v-if="errorMessage" class="inscription__error">{{ errorMessage }}</p>
+            <p v-if="errorMessage" class="ins-error">{{ errorMessage }}</p>
 
             <button
               type="submit"
-              :disabled="loading"
-              :class="['inscription__btn', form.acceptConditions ? 'inscription__btn--active' : 'inscription__btn--inactive']"
+              :disabled="loading || !form.acceptConditions"
+              class="ins-submit"
+              :class="{ 'ins-submit--active': form.acceptConditions }"
             >
-              <span v-if="loading" class="inscription__spinner"></span>
+              <span v-if="loading" class="ins-spinner"></span>
               {{ loading ? 'Création en cours...' : 'Créer un compte' }}
             </button>
           </form>
 
-          <p class="inscription__login-link">
-            Vous avez déjà un compte ?
-            <RouterLink to="/connexion" class="inscription__link">Se connecter</RouterLink>
-          </p>
+          <div class="ins-footer-link">
+            <p>Vous avez déjà un compte ? <RouterLink to="/connexion" class="ins-link">Se connecter</RouterLink></p>
+          </div>
         </div>
       </div>
-    </div>
+    </main>
 
-    <AppFooter />
+    <!-- Footer -->
+    <footer class="ins-footer">
+      <div class="ins-footer__inner">
+        <div>
+          <div class="ins-footer__brand">ImmoSN</div>
+          <p class="ins-footer__copy">© 2024 ImmoSN. Immobilier Sénégalais Haut de Gamme.</p>
+        </div>
+        <nav class="ins-footer__links">
+          <a href="#">Politique de Confidentialité</a>
+          <a href="#">Conditions d'Utilisation</a>
+          <a href="#">Guide des Quartiers</a>
+          <a href="#">Investir au Sénégal</a>
+        </nav>
+      </div>
+    </footer>
   </div>
 </template>
 
 <style scoped>
-.inscription {
+.ins-page {
   min-height: 100vh;
+  background: #f9faf7;
   display: flex;
   flex-direction: column;
-}
-
-.inscription__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 2rem;
-  background: var(--color-card);
-  border-bottom: 1px solid var(--color-border);
-  border-top: 4px solid var(--color-primary);
-}
-
-.inscription__logo {
-  display: flex;
-  align-items: center;
-}
-
-.inscription__logo-img {
-  height: 40px;
-  object-fit: contain;
-}
-
-.inscription__btn-connexion {
-  background: var(--color-primary);
-  color: #fff;
-  padding: 0.5rem 1.25rem;
-  border-radius: var(--radius-sm);
-  font-weight: 600;
-  font-size: 0.9rem;
-  transition: background 0.2s;
-}
-
-.inscription__btn-connexion:hover {
-  background: var(--color-primary-hover);
-}
-
-.inscription__body {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  max-width: 690px;
-  margin: 0 auto;
-  width: 100%;
-}
-
-.inscription__left {
+  font-family: 'Inter', -apple-system, sans-serif;
   position: relative;
   overflow: hidden;
 }
 
-.inscription__left::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: url('@/assets/Branding.png') left/contain no-repeat;
-  background-color: #fff;
+/* Header */
+.ins-header {
+  position: fixed; top: 0; width: 100%; z-index: 50;
+  background: rgba(249,250,247,0.8);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(192,200,196,0.2);
+  box-shadow: 0 1px 4px rgba(45,55,72,0.05);
+}
+.ins-header__inner {
+  max-width: 1280px; margin: 0 auto;
+  padding: 1rem 1.5rem;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.ins-header__brand {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.5rem; font-weight: 600;
+  color: #316357; text-decoration: none;
+}
+.ins-header__actions { display: flex; align-items: center; gap: 1.5rem; }
+.ins-header__login {
+  font-size: 0.9rem; font-weight: 500;
+  color: #404946; text-decoration: none; transition: color 0.15s;
+}
+.ins-header__login:hover { color: #316357; }
+.ins-header__support {
+  background: #316357; color: #fff;
+  padding: 0.5rem 1.25rem; border-radius: 12px;
+  font-size: 0.875rem; font-weight: 600;
+  text-decoration: none; transition: background 0.15s;
+}
+.ins-header__support:hover { background: #1b4f44; }
+
+/* Décorations */
+.ins-deco {
+  position: absolute; z-index: 0; pointer-events: none;
+}
+.ins-deco--right {
+  top: 0; right: 0;
+  width: 33%; height: 100%;
+  background: rgba(74,124,111,0.1);
+  transform: skewX(-12deg) translateX(50%);
+}
+.ins-deco--left {
+  bottom: 0; left: 0;
+  width: 25%; height: 50%;
+  background: rgba(253,145,104,0.05);
+  border-radius: 50%;
+  filter: blur(48px);
 }
 
-.inscription__right {
-  background: var(--color-background);
-  display: flex;
-  flex-direction: column;
-  padding: 2rem;
-}
-
-.inscription__form-wrapper {
+/* Main */
+.ins-main {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  max-width: 420px;
-  margin: 0 auto;
-  width: 100%;
-}
-
-.inscription__title {
-  font-size: 1.7rem;
-  font-weight: 800;
-  color: var(--color-text);
-  margin-bottom: 0.4rem;
-}
-
-.inscription__subtitle {
-  font-size: 0.9rem;
-  color: var(--color-text);
-  opacity: 0.55;
-  margin-bottom: 2rem;
-}
-
-.inscription__form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.2rem;
-}
-
-.inscription__field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.inscription__label {
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-text);
-  opacity: 0.75;
-}
-
-.inscription__required {
-  color: var(--color-accent);
-}
-
-.inscription__input {
-  width: 100%;
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 0.75rem 1rem;
-  font-size: 0.95rem;
-  color: var(--color-text);
-  background: #fff;
-  transition: border-color 0.2s;
-}
-
-.inscription__input:focus {
-  border-color: var(--color-primary);
-  outline: none;
-}
-
-.inscription__input::placeholder {
-  color: var(--color-text);
-  opacity: 0.35;
-}
-
-.inscription__checkbox-wrapper {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.6rem;
-}
-
-.inscription__checkbox {
-  margin-top: 2px;
-  width: 16px;
-  height: 16px;
-  accent-color: var(--color-primary);
-  flex-shrink: 0;
-  cursor: pointer;
-}
-
-.inscription__checkbox-label {
-  font-size: 0.88rem;
-  color: var(--color-text);
-  opacity: 0.75;
-  line-height: 1.5;
-  cursor: pointer;
-}
-
-.inscription__link {
-  color: var(--color-text);
-  font-weight: 600;
-  text-decoration: underline;
-}
-
-.inscription__link:hover {
-  color: var(--color-primary);
-}
-
-.inscription__error {
-  font-size: 0.85rem;
-  color: var(--color-accent);
-}
-
-.inscription__btn {
-  width: 100%;
-  padding: 0.85rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  transition: background 0.2s, opacity 0.2s;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  padding: 7rem 1rem 3rem;
+  position: relative; z-index: 1;
 }
 
-.inscription__btn--active {
-  background: var(--color-primary);
+/* Card split */
+.ins-card {
+  width: 100%;
+  max-width: 1000px;
+  display: grid;
+  grid-template-columns: 1fr;
+  background: #f9faf7;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(192,200,196,0.2);
+  box-shadow: 0 4px 20px rgba(45,55,72,0.05);
 }
 
-.inscription__btn--active:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+/* Côté gauche image */
+.ins-card__left {
+  display: none;
+  position: relative;
+  min-height: 600px;
+}
+.ins-card__img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+.ins-card__overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(49,99,87,0.8), transparent);
+  display: flex; flex-direction: column;
+  justify-content: flex-end;
+  padding: 2.5rem;
+  color: #fff;
+}
+.ins-card__overlay-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.5rem; font-weight: 500;
+  margin-bottom: 0.75rem;
+}
+.ins-card__overlay-text { font-size: 1rem; opacity: 0.9; line-height: 1.6; }
+
+/* Côté droit formulaire */
+.ins-card__right {
+  padding: 2.5rem;
+  display: flex;
+  flex-direction: column;
 }
 
-.inscription__btn--inactive {
+.ins-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 2rem; font-weight: 600;
+  color: #191c1b; margin-bottom: 0.5rem;
+}
+.ins-subtitle { font-size: 1rem; color: #404946; margin-bottom: 1.75rem; line-height: 1.5; }
+
+/* Form */
+.ins-form { display: flex; flex-direction: column; gap: 1rem; }
+.ins-field { display: flex; flex-direction: column; gap: 6px; }
+.ins-label {
+  font-size: 0.75rem; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: #404946;
+}
+.ins-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(192,200,196,0.4);
+  background: #f3f4f2;
+  font-size: 1rem; color: #191c1b;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+.ins-input:focus { outline: none; border-color: #316357; }
+.ins-input::placeholder { color: #707975; }
+
+/* Terms */
+.ins-terms { display: flex; align-items: flex-start; gap: 0.75rem; padding-top: 4px; }
+.ins-checkbox { margin-top: 2px; width: 16px; height: 16px; accent-color: #316357; cursor: pointer; flex-shrink: 0; }
+.ins-terms-label { font-size: 0.875rem; color: #404946; line-height: 1.5; cursor: pointer; }
+.ins-link { color: #316357; text-decoration: none; }
+.ins-link:hover { text-decoration: underline; }
+
+.ins-error { font-size: 0.85rem; color: #ba1a1a; }
+
+/* Submit */
+.ins-submit {
+  width: 100%;
+  padding: 1rem;
+  border-radius: 12px;
+  border: none;
+  font-size: 1rem; font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 0.5rem;
   background: #9ca3af;
-  cursor: not-allowed;
+  color: #fff;
 }
+.ins-submit--active { background: #4a7c6f; color: #e7fff6; }
+.ins-submit--active:hover:not(:disabled) { filter: brightness(1.1); }
+.ins-submit:active:not(:disabled) { transform: scale(0.98); }
+.ins-submit:disabled { opacity: 0.6; cursor: not-allowed; }
 
-.inscription__btn:disabled {
-  opacity: 0.65;
-}
-
-.inscription__spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.4);
+.ins-spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.4);
   border-top-color: #fff;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
+  margin-right: 6px;
 }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.inscription__login-link {
-  text-align: center;
+.ins-footer-link {
   margin-top: 1.5rem;
-  font-size: 0.9rem;
-  color: var(--color-text);
-  opacity: 0.65;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(192,200,196,0.2);
+  text-align: center;
+  font-size: 0.875rem;
+  color: #707975;
 }
 
-@media (max-width: 768px) {
-  .inscription__body {
-    grid-template-columns: 1fr;
-  }
+/* Footer */
+.ins-footer {
+  position: relative; z-index: 1;
+  background: #e1e3e0;
+  border-top: 1px solid rgba(192,200,196,0.3);
+  margin-top: 3rem;
+}
+.ins-footer__inner {
+  max-width: 1280px; margin: 0 auto;
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+.ins-footer__brand {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.25rem; font-weight: 500;
+  color: #191c1b; margin-bottom: 4px;
+}
+.ins-footer__copy { font-size: 0.8rem; color: #404946; }
+.ins-footer__links { display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; }
+.ins-footer__links a {
+  font-size: 0.8rem; color: #404946; text-decoration: none;
+  transition: color 0.15s, transform 0.15s;
+}
+.ins-footer__links a:hover { color: #316357; transform: translateX(2px); }
 
-  .inscription__left {
-    min-height: 220px;
-  }
+@media (min-width: 768px) {
+  .ins-card { grid-template-columns: 1fr 1fr; }
+  .ins-card__left { display: block; }
+  .ins-footer__inner { flex-direction: row; justify-content: space-between; align-items: flex-start; }
 }
 </style>

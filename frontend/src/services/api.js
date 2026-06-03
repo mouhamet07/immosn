@@ -10,7 +10,7 @@ const api = axios.create({
   timeout: 15000,
 })
 
-// ── Intercepteur requête ───────────────────────────────────
+// Intercepteur requête
 api.interceptors.request.use((config) => {
   if (config.data instanceof FormData) {
     delete config.headers['Content-Type']
@@ -20,7 +20,7 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// ── Intercepteur réponse ──────────────────────────────────
+// Intercepteur réponse
 api.interceptors.response.use(
   (response) => response,
   (error) => {

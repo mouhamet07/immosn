@@ -1,18 +1,18 @@
 @baseUrl = http://localhost:8080/api/v1/favoris
 @clientToken = <client-jwt>
 
-### Toggle favoris
+### Favoris - Toggle favoris
 POST {{baseUrl}}/1/toggle
 Authorization: Bearer {{clientToken}}
 
-### List favoris
+### Favoris - List favoris
 GET {{baseUrl}}?page=0&size=12
 Authorization: Bearer {{clientToken}}
 
-### List favoris ids
+### Favoris - List favoris ids
 GET {{baseUrl}}/ids
 Authorization: Bearer {{clientToken}}
 
-### Check annonce favoris
+### Favoris - Check annonce favoris
 GET {{baseUrl}}/1/check
 Authorization: Bearer {{clientToken}}

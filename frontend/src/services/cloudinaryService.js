@@ -1,15 +1,3 @@
-/**
- * Service d'upload d'images vers Cloudinary.
- *
- * ARCHITECTURE :
- *   Navigateur → Cloudinary (upload direct)
- *               → retourne secure_url
- *   Navigateur → Backend (envoie uniquement l'URL)
- *               → Backend stocke l'URL en base
- *
- * Le backend ne reçoit JAMAIS de fichiers binaires.
- * La validation URL (^https://res\.cloudinary\.com/.*) est appliquée côté backend.
- */
 
 const CLOUD_NAME    = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
 const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET

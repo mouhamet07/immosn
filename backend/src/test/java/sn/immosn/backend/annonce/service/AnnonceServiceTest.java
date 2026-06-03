@@ -37,26 +37,21 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AnnonceService — Tests unitaires")
 class AnnonceServiceTest {
-
-    @Mock AnnonceRepository         annonceRepository;
-    @Mock CommoditeRepository       commoditeRepository;
+    @Mock AnnonceRepository annonceRepository;
+    @Mock CommoditeRepository commoditeRepository;
     @Mock TypeBienAnnonceRepository typeBienAnnonceRepository;
-    @Mock AnnonceMapper             annonceMapper;
-    @Mock ContratRepository         contratRepository; // requis par AnnonceServiceImpl (vérif archivage)
-
+    @Mock AnnonceMapper annonceMapper;
+    @Mock ContratRepository contratRepository; // requis par AnnonceServiceImpl (vérif archivage)
     @InjectMocks
     AnnonceServiceImpl annonceService;
-
     private Annonce annonceActive;
     private AnnonceResponseDto responseDto;
     private AnnonceListDto     listDto;
-
     @BeforeEach
     void setUp() {
         TypeBienAnnonce type = new TypeBienAnnonce();
         type.setId(1L);
         type.setLibelle("Villa");
-
         annonceActive = Annonce.builder()
             .libelle("Villa Almadies")
             .description("Magnifique villa")

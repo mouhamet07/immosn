@@ -11,7 +11,7 @@ const router = createRouter({
     { path: '/inscription', name: 'inscription', component: () => import('@/views/auth/InscriptionView.vue') },
     { path: '/connexion',   name: 'connexion',   component: () => import('@/views/auth/ConnexionView.vue') },
 
-    // ── Interface CLIENT ──────────────────────────────────────
+    // Interface CLIENT
     {
       path: '/',
       component: () => import('@/layouts/ClientLayout.vue'),
@@ -27,7 +27,7 @@ const router = createRouter({
       ],
     },
 
-    // ── Interface ADMIN ───────────────────────────────────────
+    // Interface ADMIN
     {
       path: '/admin',
       component: () => import('@/layouts/AdminLayout.vue'),
@@ -35,8 +35,10 @@ const router = createRouter({
       children: [
         { path: '',                    redirect: '/admin/dashboard' },
         { path: 'dashboard',           name: 'admin-dashboard',      component: () => import('@/views/admin/DashboardView.vue') },
-        { path: 'annonces',            name: 'admin-annonces',       component: () => import('@/views/admin/AnnoncesView.vue') },
-        { path: 'annonces/publier',    name: 'admin-publier',        component: () => import('@/views/admin/PublierAnnonceView.vue') },
+        { path: 'annonces',            name: 'admin-annonces',        component: () => import('@/views/admin/AnnoncesView.vue') },
+        { path: 'annonces/publier',    name: 'admin-publier',         component: () => import('@/views/admin/PublierAnnonceView.vue') },
+        { path: 'annonces/:id',        name: 'admin-detail-annonce',  component: () => import('@/views/admin/DetailAnnonceAdminView.vue') },
+        { path: 'annonces/:id/modifier', name: 'admin-modifier-annonce', component: () => import('@/views/admin/ModifierAnnonceView.vue') },
         { path: 'messages',            name: 'admin-messages',       component: () => import('@/views/admin/DiscussionsAdminView.vue') },
         { path: 'visites',             name: 'admin-visites',        component: () => import('@/views/admin/VisitesAdminView.vue') },
         { path: 'leads',               name: 'admin-leads',          component: () => import('@/views/admin/LeadsAdminView.vue') },

@@ -2,7 +2,7 @@
 @clientToken = <client-jwt>
 @adminToken = <admin-jwt>
 
-### Create or get discussion for annonce (CLIENT)
+### Discussion - Create or get discussion for annonce (CLIENT)
 POST {{baseUrl}}
 Content-Type: application/json
 Authorization: Bearer {{clientToken}}
@@ -12,19 +12,19 @@ Authorization: Bearer {{clientToken}}
   "premierMessage": "Bonjour, est-ce que l'appartement est toujours disponible ?"
 }
 
-### List client discussions
+### Discussion - List client discussions
 GET {{baseUrl}}/client?page=0&size=10
 Authorization: Bearer {{clientToken}}
 
-### List all discussions (ADMIN)
+### Discussion - List all discussions (ADMIN)
 GET {{baseUrl}}/admin?page=0&size=20
 Authorization: Bearer {{adminToken}}
 
-### Get discussion messages
+### Discussion - Get discussion messages
 GET {{baseUrl}}/1/messages
 Authorization: Bearer {{clientToken}}
 
-### Send message in discussion
+### Discussion - Send message in discussion
 POST {{baseUrl}}/1/messages
 Content-Type: application/json
 Authorization: Bearer {{clientToken}}
