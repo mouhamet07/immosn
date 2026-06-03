@@ -46,7 +46,8 @@ function initials(name) {
 onMounted(async () => {
   try {
     const response = await authService.getAdmins(0, 100)
-    admins.value = (response.data?.data ?? []).map(normalize)
+    // PagedResponse — contenu dans response.data.content
+    admins.value = (response.data?.content ?? []).map(normalize)
   } catch (err) {
     toast.value?.show(err.response?.data?.message || 'Erreur lors du chargement des administrateurs.', 'error')
   } finally {
@@ -56,7 +57,8 @@ onMounted(async () => {
 
 async function revokeAccess() {
   try {
-    await authService.archiveAdmin(confirmId.value)
+    // PATCH /auth/admins/{id}/revoke — révoque le rôle ADMIN
+    await authService.revokeAdmin(confirmId.value)
     const idx = admins.value.findIndex(a => a.id === confirmId.value)
     if (idx !== -1) admins.value[idx].statut = 'INACTIF'
     toast.value.show('Accès révoqué avec succès.', 'success')
