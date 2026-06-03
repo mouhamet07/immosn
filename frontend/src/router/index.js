@@ -48,6 +48,7 @@ const router = createRouter({
         { path: 'commodites',          name: 'admin-commodites',     component: () => import('@/views/admin/CommoditesView.vue') },
         { path: 'administrateurs',         name: 'admin-admins',        component: () => import('@/views/admin/AdministrateursView.vue') },
         { path: 'administrateurs/ajouter', name: 'admin-ajouter-admin', component: () => import('@/views/admin/AjouterAdminView.vue') },
+        { path: 'administrateurs/:id/modifier', name: 'admin-modifier-admin', component: () => import('@/views/admin/ModifierAdminView.vue') },
         { path: 'profil',              name: 'admin-profil',         component: () => import('@/views/admin/ProfilAdminView.vue') },
       ],
     },
