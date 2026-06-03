@@ -1,6 +1,7 @@
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { ChevronDown, Eye, EyeOff } from 'lucide-vue-next'
 import authService from '@/services/authService'
 
 const router = useRouter()
@@ -16,6 +17,25 @@ const form = reactive({
 
 const errorMessage = ref('')
 const loading = ref(false)
+const showPassword = ref(false)
+
+// Indicateur de force du mot de passe
+const passwordStrength = computed(() => {
+  const p = form.motDePasse
+  if (!p) return null
+  if (p.length < 6) return 'faible'
+  if (p.length < 10 || !/[A-Z]/.test(p) || !/[0-9]/.test(p)) return 'moyen'
+  return 'fort'
+})
+
+// Formater le numéro de téléphone avec le préfixe +221
+const formatPhoneNumber = (event) => {
+  let value = event.target.value.replace(/\D/g, '')
+  if (value.length > 9) value = value.slice(0, 9)
+  form.telephone = '+221 ' + value
+    .replace(/(\d{2})(\d{3})(\d{2})(\d{2})/, '$1 $2 $3 $4')
+    .trim()
+}
 
 async function handleSubmit() {
   errorMessage.value = ''
@@ -41,10 +61,9 @@ async function handleSubmit() {
     <!-- Header fixe -->
     <header class="ins-header">
       <div class="ins-header__inner">
-        <RouterLink to="/annonces" class="ins-header__brand">ImmoSN</RouterLink>
+        <img src="@/assets/logo nav 1 - orange 1.png" alt="ImmoSN" class="ins-header__logo" />
         <div class="ins-header__actions">
           <RouterLink to="/connexion" class="ins-header__login">Connexion</RouterLink>
-          <a href="#" class="ins-header__support">Contacter le Support</a>
         </div>
       </div>
     </header>
@@ -85,12 +104,62 @@ async function handleSubmit() {
 
             <div class="ins-field">
               <label class="ins-label" for="telephone">Téléphone</label>
-              <input id="telephone" v-model="form.telephone" type="tel" class="ins-input" placeholder="+221 77 000 00 00" required />
+              <div class="ins-phone-wrap">
+                <div class="ins-phone-prefix">
+                  <span class="ins-prefix-text">+221</span>
+                  <ChevronDown :size="14" />
+                </div>
+                <input
+                  id="telephone"
+                  v-model="form.telephone"
+                  type="tel"
+                  class="ins-phone-input"
+                  placeholder="77 123 45 67"
+                  @input="formatPhoneNumber"
+                  required
+                />
+              </div>
             </div>
 
             <div class="ins-field">
               <label class="ins-label" for="password">Mot de Passe</label>
-              <input id="password" v-model="form.motDePasse" type="password" class="ins-input" placeholder="••••••••" required />
+              <div class="ins-input-wrap">
+                <input
+                  id="password"
+                  v-model="form.motDePasse"
+                  :type="showPassword ? 'text' : 'password'"
+                  class="ins-input ins-input--pw"
+                  placeholder="••••••••"
+                  required
+                />
+                <button type="button" class="ins-eye" @click="showPassword = !showPassword">
+                  <EyeOff v-if="showPassword" :size="16" />
+                  <Eye v-else :size="16" />
+                </button>
+              </div>
+              <!-- Indicateur de force -->
+              <div v-if="form.motDePasse" class="ins-strength">
+                <div class="ins-strength__bars">
+                  <span
+                    class="ins-strength__bar"
+                    :class="{ '--active': passwordStrength }"
+                    :style="{ background: passwordStrength === 'faible' ? '#ef4444' : passwordStrength === 'moyen' ? '#f59e0b' : '#22c55e' }"
+                  ></span>
+                  <span
+                    class="ins-strength__bar"
+                    :class="{ '--active': passwordStrength === 'moyen' || passwordStrength === 'fort' }"
+                    :style="{ background: passwordStrength === 'moyen' ? '#f59e0b' : passwordStrength === 'fort' ? '#22c55e' : '' }"
+                  ></span>
+                  <span
+                    class="ins-strength__bar"
+                    :class="{ '--active': passwordStrength === 'fort' }"
+                    :style="{ background: passwordStrength === 'fort' ? '#22c55e' : '' }"
+                  ></span>
+                </div>
+                <span class="ins-strength__label" :class="`ins-strength__label--${passwordStrength}`">
+                  {{ passwordStrength === 'faible' ? 'Faible' : passwordStrength === 'moyen' ? 'Moyen' : 'Fort' }}
+                </span>
+              </div>
             </div>
 
             <!-- Conditions -->
@@ -163,11 +232,7 @@ async function handleSubmit() {
   padding: 1rem 1.5rem;
   display: flex; justify-content: space-between; align-items: center;
 }
-.ins-header__brand {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 1.5rem; font-weight: 600;
-  color: #316357; text-decoration: none;
-}
+.ins-header__logo { height: 40px; object-fit: contain; }
 .ins-header__actions { display: flex; align-items: center; gap: 1.5rem; }
 .ins-header__login {
   font-size: 0.9rem; font-weight: 500;
@@ -283,6 +348,54 @@ async function handleSubmit() {
 }
 .ins-input:focus { outline: none; border-color: #316357; }
 .ins-input::placeholder { color: #707975; }
+
+/* Champ mot de passe avec toggle */
+.ins-input-wrap { position: relative; }
+.ins-input--pw { padding-right: 2.75rem; }
+.ins-eye {
+  position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer; color: #707975;
+  display: flex; align-items: center; transition: color 0.15s;
+}
+.ins-eye:hover { color: #316357; }
+
+/* Indicateur de force du mot de passe */
+.ins-strength { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.ins-strength__bars { display: flex; gap: 4px; }
+.ins-strength__bar {
+  width: 36px; height: 4px; border-radius: 2px;
+  background: #e5e7eb; transition: background 0.2s;
+}
+.ins-strength__label { font-size: 0.75rem; font-weight: 600; }
+.ins-strength__label--faible { color: #ef4444; }
+.ins-strength__label--moyen  { color: #f59e0b; }
+.ins-strength__label--fort   { color: #22c55e; }
+
+/* Champ téléphone avec préfixe +221 */
+.ins-phone-wrap {
+  display: flex;
+  border-radius: 8px;
+  border: 1px solid rgba(192,200,196,0.4);
+  overflow: hidden;
+  background: #f3f4f2;
+}
+.ins-phone-prefix {
+  display: flex; align-items: center; gap: 4px;
+  padding: 0 0.75rem;
+  background: var(--color-border);
+  color: var(--color-text);
+  font-size: 0.875rem; font-weight: 600;
+  flex-shrink: 0;
+  border-right: 1px solid rgba(192,200,196,0.4);
+}
+.ins-prefix-text { font-size: 0.875rem; }
+.ins-phone-input {
+  flex: 1; padding: 0.75rem 1rem;
+  border: none; background: transparent;
+  font-size: 1rem; color: #191c1b; outline: none;
+}
+.ins-phone-input::placeholder { color: #707975; }
+.ins-phone-wrap:focus-within { border-color: var(--color-primary); }
 
 /* Terms */
 .ins-terms { display: flex; align-items: flex-start; gap: 0.75rem; padding-top: 4px; }

@@ -20,19 +20,35 @@ const pageNumbers = computed(() =>
 )
 
 const filtres = reactive({
-  typeBienId: null,
-  prixMax:    null,
-  adresse:    '',
-  nbrPieces:  null,
-  sortBy:     'createdAt',
-  sortDir:    'DESC',
+  typeBienId:   null,
+  budgetRange:  '',
+  adresse:      '',
+  chambresRange: '',
+  sortBy:       'createdAt',
+  sortDir:      'DESC',
 })
 
+// Convertit la tranche de budget en prixMin/prixMax pour l'API
+function parseBudgetFilter(range) {
+  if (!range) return {}
+  if (range === '1000000+') return { prixMin: 1000000 }
+  const [min, max] = range.split('-').map(Number)
+  return { prixMin: min, prixMax: max }
+}
+
+// Convertit la tranche de chambres en nbrMin/nbrMax pour l'API
+function parseChambresFilter(range) {
+  if (!range) return {}
+  if (range === '10+') return { nbrPieces: 10 }
+  const [min] = range.split('-').map(Number)
+  return { nbrPieces: min }
+}
+
 function resetFiltres() {
-  filtres.typeBienId = null
-  filtres.prixMax    = null
-  filtres.adresse    = ''
-  filtres.nbrPieces  = null
+  filtres.typeBienId    = null
+  filtres.budgetRange   = ''
+  filtres.adresse       = ''
+  filtres.chambresRange = ''
   fetchAnnonces(0)
 }
 
@@ -42,9 +58,9 @@ async function fetchAnnonces(page = 0) {
   try {
     const body = { page, size: PAGE_SIZE, sortBy: filtres.sortBy, sortDir: filtres.sortDir }
     if (filtres.typeBienId)      body.typeBienId = filtres.typeBienId
-    if (filtres.prixMax)         body.prixMax    = Number(filtres.prixMax)
     if (filtres.adresse?.trim()) body.adresse    = filtres.adresse.trim()
-    if (filtres.nbrPieces)       body.nbrPieces  = Number(filtres.nbrPieces)
+    Object.assign(body, parseBudgetFilter(filtres.budgetRange))
+    Object.assign(body, parseChambresFilter(filtres.chambresRange))
 
     const response = await annonceService.searchAnnonces(body)
     const paged    = response.data
@@ -112,11 +128,13 @@ onMounted(async () => {
             <label class="filter-label">Budget (FCFA)</label>
             <div class="filter-input-wrap">
               <SvgIcon name="maximize" :size="16" class="filter-icon" />
-              <select v-model.number="filtres.prixMax" class="filter-select">
-                <option :value="null">Toute gamme</option>
-                <option :value="50000000">0 – 50M</option>
-                <option :value="200000000">50M – 200M</option>
-                <option :value="999999999">200M+</option>
+              <select v-model="filtres.budgetRange" class="filter-select">
+                <option value="">Tous les budgets</option>
+                <option value="0-150000">Économique — moins de 150 000</option>
+                <option value="150000-300000">Accessible — 150 000 à 300 000</option>
+                <option value="300000-600000">Confortable — 300 000 à 600 000</option>
+                <option value="600000-1000000">Haut de gamme — 600 000 à 1 000 000</option>
+                <option value="1000000+">Luxe — plus de 1 000 000</option>
               </select>
             </div>
           </div>
@@ -125,11 +143,12 @@ onMounted(async () => {
             <label class="filter-label">Chambres</label>
             <div class="filter-input-wrap">
               <SvgIcon name="bed" :size="16" class="filter-icon" />
-              <select v-model.number="filtres.nbrPieces" class="filter-select">
-                <option :value="null">Tout</option>
-                <option :value="1">1+</option>
-                <option :value="3">3+</option>
-                <option :value="5">5+</option>
+              <select v-model="filtres.chambresRange" class="filter-select">
+                <option value="">Toutes les chambres</option>
+                <option value="1-3">Studio — 1 à 3 pièces</option>
+                <option value="4-6">Appartement — 4 à 6 pièces</option>
+                <option value="7-10">Villa — 7 à 10 pièces</option>
+                <option value="10+">Domaine — 10 pièces et plus</option>
               </select>
             </div>
           </div>

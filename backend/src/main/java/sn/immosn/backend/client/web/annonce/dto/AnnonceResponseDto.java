@@ -12,6 +12,11 @@ public record AnnonceResponseDto(
     Double surface,
     BigDecimal prix,
     String adresse,
+    String region,
+    String departement,
+    String quartier,
+    Double latitude,
+    Double longitude,
     TypeBienResponseDto typeBien,
     List<CommoditeResponseDto> commodites,
     List<String> images,
@@ -19,5 +24,4 @@ public record AnnonceResponseDto(
     LocalDateTime createdAt,
     LocalDateTime updatedAt
 ) {
-    
 }

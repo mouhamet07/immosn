@@ -7,6 +7,7 @@ import annonceService from '@/services/annonceService'
 import discussionService from '@/services/discussionService'
 import { useAuthStore } from '@/stores/authStore'
 import placeholderImg from '@/assets/Penthouse.png'
+import LocationMap from '@/components/LocationMap.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -250,13 +251,17 @@ function getImage(index) {
           <!-- Emplacement -->
           <section class="detail-section">
             <h2 class="detail-section__title">Emplacement</h2>
-            <div class="detail-map">
-              <SvgIcon name="map" :size="24" class="detail-map__icon" />
-              <span>Carte non disponible</span>
-              <a v-if="annonce.gps" :href="`https://www.google.com/maps?q=${annonce.gps}`" target="_blank" class="detail-map__link">
-                <SvgIcon name="map-pin" :size="13" /> Itinéraire vers {{ annonce.adresse }}
-              </a>
-            </div>
+            <p v-if="annonce.departement || annonce.quartier" class="detail-location-label">
+              <SvgIcon name="map-pin" :size="13" />
+              {{ [annonce.quartier, annonce.departement].filter(Boolean).join(', ') }}
+            </p>
+            <LocationMap
+              :latitude="annonce.latitude"
+              :longitude="annonce.longitude"
+              :draggable="false"
+              height="260px"
+              :zoom="15"
+            />
           </section>
         </div>
 
@@ -585,21 +590,12 @@ function getImage(index) {
 }
 .detail-commodite__icon { color: var(--color-primary); flex-shrink: 0; }
 
-/* Map */
-.detail-map {
-  background: var(--color-card);
-  border-radius: var(--radius); height: 200px;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 0.75rem;
-  border: 1px dashed var(--color-border);
-  color: var(--color-text-muted); font-size: 0.9rem;
+/* Localisation */
+.detail-location-label {
+  display: flex; align-items: center; gap: 0.35rem;
+  font-size: 0.85rem; color: var(--color-text-muted);
+  margin-bottom: 0.6rem;
 }
-.detail-map__icon { opacity: 0.35; }
-.detail-map__link {
-  display: flex; align-items: center; gap: 0.3rem;
-  color: var(--color-primary); font-weight: 600; font-size: 0.88rem;
-}
-.detail-map__link:hover { text-decoration: underline; }
 
 /* Sidebar */
 .detail-sidebar {

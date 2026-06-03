@@ -4,7 +4,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -18,11 +20,14 @@ import sn.immosn.backend.annonce.data.repository.AnnonceRepository;
 import sn.immosn.backend.annonce.data.repository.CommoditeRepository;
 import sn.immosn.backend.annonce.data.repository.TypeBienAnnonceRepository;
 import sn.immosn.backend.annonce.service.Impl.AnnonceServiceImpl;
+import sn.immosn.backend.client.web.annonce.dto.AnnonceCreateRequestDto;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceListDto;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceResponseDto;
+import sn.immosn.backend.client.web.annonce.dto.AnnonceUpdateRequestDto;
 import sn.immosn.backend.client.web.annonce.dto.SearchAnnonceRequestDto;
 import sn.immosn.backend.client.web.annonce.mapper.AnnonceMapper;
 import sn.immosn.backend.contrat.data.repository.ContratRepository;
+import sn.immosn.backend.location.GeoCodingService;
 import sn.immosn.backend.shared.exception.EntityNotFoundException;
 
 import java.math.BigDecimal;
@@ -42,6 +47,8 @@ class AnnonceServiceTest {
     @Mock TypeBienAnnonceRepository typeBienAnnonceRepository;
     @Mock AnnonceMapper annonceMapper;
     @Mock ContratRepository contratRepository; // requis par AnnonceServiceImpl (vérif archivage)
+    @Mock GeoCodingService geoCodingService;
+    @Captor ArgumentCaptor<Annonce> annonceCaptor;
     @InjectMocks
     AnnonceServiceImpl annonceService;
     private Annonce annonceActive;
@@ -73,13 +80,15 @@ class AnnonceServiceTest {
         responseDto = new AnnonceResponseDto(
             1L, "Villa Almadies", "Magnifique villa", 5, 250.0,
             BigDecimal.valueOf(150_000_000), "Almadies, Dakar",
+            null, null, null, null, null,
             null, List.of(), List.of(), false,
             LocalDateTime.now(), LocalDateTime.now()
         );
 
         listDto = new AnnonceListDto(
             "1", "Villa Almadies", BigDecimal.valueOf(150_000_000),
-            "Almadies, Dakar", null, 5, 250.0, null, LocalDateTime.now(), false
+            "Almadies, Dakar", null, null, null, null,
+            null, 5, 250.0, null, LocalDateTime.now(), false
         );
     }
 
@@ -123,6 +132,144 @@ class AnnonceServiceTest {
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).libelle()).isEqualTo("Villa Almadies");
+    }
+
+    @Test
+    @DisplayName("createAnnonce — construit l'adresse finale avec adresse exacte")
+    void createAnnonce_buildsFinalAdresseWithExactAddress() {
+        AnnonceCreateRequestDto request = new AnnonceCreateRequestDto(
+            "Villa Almadies",
+            "Magnifique villa",
+            5,
+            250.0,
+            BigDecimal.valueOf(150_000_000),
+            "Route des Almadies",
+            null,
+            "Dakar",
+            "Almadies",
+            1L,
+            null,
+            null
+        );
+
+        TypeBienAnnonce typeBien = new TypeBienAnnonce();
+        typeBien.setId(1L);
+        when(typeBienAnnonceRepository.findByIdAndIsArchivedFalse(1L)).thenReturn(Optional.of(typeBien));
+        when(commoditeRepository.findByIdInAndIsArchivedFalse(any())).thenReturn(List.of());
+
+        Annonce incoming = Annonce.builder()
+            .libelle(request.libelle())
+            .description(request.description())
+            .nbrPieces(request.nbrPieces())
+            .surface(request.surface())
+            .prix(request.prix())
+            .region(request.region())
+            .departement(request.departement())
+            .quartier(request.quartier())
+            .typeBien(typeBien)
+            .isArchived(false)
+            .build();
+
+        when(annonceMapper.toEntity(any(), any(), any())).thenReturn(incoming);
+        when(annonceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(annonceMapper.toResponse(any())).thenReturn(responseDto);
+        when(geoCodingService.geocode("Almadies", "Dakar", "Route des Almadies")).thenReturn(Optional.of(new double[]{14.0, -17.0}));
+
+        annonceService.createAnnonce(request);
+
+        verify(annonceRepository).save(annonceCaptor.capture());
+        assertThat(annonceCaptor.getValue().getAdresse()).isEqualTo("Route des Almadies, Almadies, Dakar");
+    }
+
+    @Test
+    @DisplayName("createAnnonce — construit l'adresse finale sans adresse exacte")
+    void createAnnonce_buildsFinalAdresseWithoutExactAddress() {
+        AnnonceCreateRequestDto request = new AnnonceCreateRequestDto(
+            "Villa Almadies",
+            "Magnifique villa",
+            5,
+            250.0,
+            BigDecimal.valueOf(150_000_000),
+            null,
+            null,
+            "Dakar",
+            "Almadies",
+            1L,
+            null,
+            null
+        );
+
+        TypeBienAnnonce typeBien = new TypeBienAnnonce();
+        typeBien.setId(1L);
+        when(typeBienAnnonceRepository.findByIdAndIsArchivedFalse(1L)).thenReturn(Optional.of(typeBien));
+        when(commoditeRepository.findByIdInAndIsArchivedFalse(any())).thenReturn(List.of());
+
+        Annonce incoming = Annonce.builder()
+            .libelle(request.libelle())
+            .description(request.description())
+            .nbrPieces(request.nbrPieces())
+            .surface(request.surface())
+            .prix(request.prix())
+            .region(request.region())
+            .departement(request.departement())
+            .quartier(request.quartier())
+            .typeBien(typeBien)
+            .isArchived(false)
+            .build();
+
+        when(annonceMapper.toEntity(any(), any(), any())).thenReturn(incoming);
+        when(annonceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(annonceMapper.toResponse(any())).thenReturn(responseDto);
+        when(geoCodingService.geocode("Almadies", "Dakar", null)).thenReturn(Optional.of(new double[]{14.0, -17.0}));
+
+        annonceService.createAnnonce(request);
+
+        verify(annonceRepository).save(annonceCaptor.capture());
+        assertThat(annonceCaptor.getValue().getAdresse()).isEqualTo("Almadies, Dakar");
+    }
+
+    @Test
+    @DisplayName("updateAnnonce — recalcule l'adresse finale quand la localisation change sans adresse exacte")
+    void updateAnnonce_recomputesFinalAdresseWhenLocationChangedWithoutExactAddress() {
+        Annonce existing = Annonce.builder()
+            .id(1L)
+            .libelle("Villa Plateau")
+            .description("Ancienne adresse")
+            .nbrPieces(4)
+            .surface(180.0)
+            .prix(BigDecimal.valueOf(120_000_000))
+            .adresse("Plateau, Dakar")
+            .region("Dakar")
+            .departement("Plateau")
+            .quartier("Plateau")
+            .typeBien(new TypeBienAnnonce())
+            .isArchived(false)
+            .build();
+
+        when(annonceRepository.findByIdAndIsArchivedFalse(1L)).thenReturn(Optional.of(existing));
+        when(annonceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(annonceMapper.toResponse(any())).thenReturn(responseDto);
+        when(geoCodingService.geocode("Almadies", "Dakar", null)).thenReturn(Optional.of(new double[]{14.0, -17.0}));
+
+        AnnonceUpdateRequestDto request = new AnnonceUpdateRequestDto(
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "Dakar",
+            "Almadies",
+            null,
+            null,
+            null
+        );
+
+        annonceService.updateAnnonce(1L, request);
+
+        verify(annonceRepository).save(annonceCaptor.capture());
+        assertThat(annonceCaptor.getValue().getAdresse()).isEqualTo("Almadies, Dakar");
     }
 
     // ── archiveAnnonce ──────────────────────────────────────

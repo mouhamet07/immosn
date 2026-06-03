@@ -47,6 +47,16 @@ public class Annonce {
     private BigDecimal prix;
     @Column(nullable = false)
     private String adresse;
+    @Column(nullable = false)
+    private String region;
+    @Column(nullable = false)
+    private String departement;
+    @Column(nullable = false)
+    private String quartier;
+    @Column(nullable = true)
+    private Double latitude;
+    @Column(nullable = true)
+    private Double longitude;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "type_bien_id", nullable = false)
