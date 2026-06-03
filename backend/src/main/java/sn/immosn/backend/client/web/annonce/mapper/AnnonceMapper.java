@@ -74,7 +74,6 @@ public class AnnonceMapper {
             .nbrPieces(dto.nbrPieces())
             .surface(dto.surface())
             .prix(dto.prix())
-            .adresse(dto.adresse())
             .region(dto.region())
             .departement(dto.departement())
             .quartier(dto.quartier())

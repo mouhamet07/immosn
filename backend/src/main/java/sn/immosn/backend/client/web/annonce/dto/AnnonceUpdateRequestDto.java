@@ -1,5 +1,6 @@
 package sn.immosn.backend.client.web.annonce.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
@@ -24,13 +25,17 @@ public record AnnonceUpdateRequestDto(
     @Positive(message = "Le prix doit être positif")
     BigDecimal prix,
 
+    @JsonAlias("adresse")
     @Size(max = 500)
-    String adresse,
+    String adresseExacte,
 
+    @Size(min = 1, message = "La région ne peut pas être vide")
     String region,
 
+    @Size(min = 1, message = "Le département ne peut pas être vide")
     String departement,
 
+    @Size(min = 1, message = "Le quartier ne peut pas être vide")
     String quartier,
 
     Long typeBienId,

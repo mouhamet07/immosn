@@ -45,9 +45,9 @@ public class Annonce {
     private Double surface;
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal prix;
-    @Column(nullable = true)
+    @Column(nullable = false)
     private String adresse;
-    @Column(nullable = true)
+    @Column(nullable = false)
     private String region;
     @Column(nullable = false)
     private String departement;
