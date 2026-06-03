@@ -1,12 +1,47 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { MessageSquare, BookOpen } from 'lucide-vue-next'
+import { MessageSquare, BookOpen, Camera } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/authStore'
-import ToastNotification from '@/components/admin/ToastNotification.vue'
+import { useToastStore } from '@/stores/toastStore'
+import { uploadImage } from '@/services/cloudinaryService'
 import api from '@/services/api'
 
 const authStore = useAuthStore()
-const toast = ref(null)
+const toast = useToastStore()
+
+// Avatar
+const previewUrl = ref(null)
+const avatarFile = ref(null)
+
+function getInitials(name) {
+  if (!name) return '?'
+  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+}
+
+const handleAvatarChange = (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+  if (file.size > 2 * 1024 * 1024) {
+    toast.error('Photo trop lourde — max 2 Mo')
+    return
+  }
+  avatarFile.value = file
+  previewUrl.value = URL.createObjectURL(file)
+}
+
+const uploadAvatar = async () => {
+  if (!avatarFile.value) return
+  try {
+    // Upload Cloudinary depuis le frontend
+    const url = await uploadImage(avatarFile.value)
+    // Sauvegarder l'URL via PUT /auth/profile — champ photo de UpdateProfileRequestDto
+    await api.put('/auth/profile', { photo: url })
+    authStore.user.photo = url
+    localStorage.setItem('user', JSON.stringify(authStore.user))
+  } catch {
+    toast.error('Erreur upload photo')
+  }
+}
 
 const formInfo = reactive({ nomComplet: '', email: '', telephone: '', langue: 'fr' })
 const formSecurite = reactive({ motDePasseActuel: '', nouveauMotDePasse: '' })
@@ -24,15 +59,17 @@ onMounted(() => {
 async function saveInfo() {
   loadingInfo.value = true
   try {
+    // Upload avatar si un nouveau fichier est sélectionné
+    await uploadAvatar()
     await api.put('/auth/profile', {
       nomComplet: formInfo.nomComplet,
       email:      formInfo.email,
       telephone:  formInfo.telephone,
     })
     await authStore.fetchProfile()
-    toast.value.show('Informations mises à jour.', 'success')
+    toast.success('Informations mises à jour.')
   } catch (err) {
-    toast.value.show(err.response?.data?.message || 'Erreur lors de la mise à jour.', 'error')
+    toast.error(err.response?.data?.message || 'Erreur lors de la mise à jour.')
   } finally {
     loadingInfo.value = false
   }
@@ -51,9 +88,9 @@ async function saveSecurite() {
     })
     formSecurite.motDePasseActuel  = ''
     formSecurite.nouveauMotDePasse = ''
-    toast.value.show('Mot de passe mis à jour.', 'success')
+    toast.success('Mot de passe mis à jour.')
   } catch (err) {
-    toast.value.show(err.response?.data?.message || 'Erreur lors de la mise à jour.', 'error')
+    toast.error(err.response?.data?.message || 'Erreur lors de la mise à jour.')
   } finally {
     loadingSecurite.value = false
   }
@@ -62,7 +99,7 @@ async function saveSecurite() {
 
 <template>
   <div class="profil-admin">
-    <ToastNotification ref="toast" />
+    <!-- Toast via ToastContainer global -->
 
     <h1 class="profil-admin__title">Gestion du profil</h1>
 
@@ -130,10 +167,33 @@ async function saveSecurite() {
       <!-- Colonne droite -->
       <div class="profil-right">
         <section class="profil-card profil-card--center">
-          <div class="profil-avatar">
-            {{ authStore.user?.nomComplet?.charAt(0)?.toUpperCase() || '?' }}
-          </div>
-          <h3 class="profil-user__name">{{ authStore.user?.nomComplet }}</h3>
+            <div class="avatar-container">
+              <div class="avatar-wrapper">
+                <img
+                  v-if="previewUrl || authStore.user?.photo"
+                  :src="previewUrl || authStore.user.photo"
+                  alt="Photo de profil"
+                  class="avatar-img"
+                />
+                <div v-else class="avatar-initials">
+                  {{ getInitials(authStore.user?.nomComplet) }}
+                </div>
+                <label class="avatar-overlay" title="Changer la photo">
+                  <Camera :size="18" />
+                  <span>Modifier</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    @change="handleAvatarChange"
+                    hidden
+                  />
+                </label>
+              </div>
+              <div class="avatar-info">
+                <p class="avatar-name">{{ authStore.user?.nomComplet }}</p>
+                <p class="avatar-hint">JPG, PNG ou WebP — max 2 Mo</p>
+              </div>
+            </div>
           <p class="profil-user__email">{{ authStore.user?.email }}</p>
           <p class="profil-user__phone">{{ authStore.user?.telephone }}</p>
           <span class="profil-user__role">{{ authStore.user?.role }}</span>
@@ -248,7 +308,25 @@ async function saveSecurite() {
 .btn-update:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* Avatar */
-.profil-avatar {
+.avatar-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.avatar-wrapper {
+  position: relative;
+  width: 72px;
+  height: 72px;
+}
+.avatar-img {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.avatar-initials {
   width: 72px;
   height: 72px;
   border-radius: 50%;
@@ -259,8 +337,28 @@ async function saveSecurite() {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 1rem;
 }
+.avatar-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.45);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.avatar-wrapper:hover .avatar-overlay { opacity: 1; }
+.avatar-info { text-align: center; }
+.avatar-name { font-size: 1rem; font-weight: 700; color: var(--color-text); }
+.avatar-hint { font-size: 0.72rem; color: #6B7280; margin-top: 2px; }
 
 .profil-user__name { font-size: 1rem; font-weight: 700; color: var(--color-text); }
 .profil-user__email, .profil-user__phone { font-size: 0.82rem; color: #6B7280; margin-top: 0.2rem; }
