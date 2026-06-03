@@ -24,6 +24,7 @@ function normalize(admin) {
     role:     Array.from(admin.roles ?? []).join(', '),
     statut:   admin.archived ? 'INACTIF' : 'ACTIF',
     dateAjout: admin.creationDate,
+    photo:    admin.photo || null,
   }
 }
 
@@ -132,7 +133,10 @@ async function restoreAccess(id) {
           <tr v-for="admin in paginated" :key="admin.id" class="admins-table__row">
             <td>
               <div class="admin-identity">
-                <div class="admin-avatar">{{ initials(admin.nomComplet) }}</div>
+                <div class="admin-avatar">
+                  <img v-if="admin.photo" :src="admin.photo" :alt="admin.nomComplet" class="admin-avatar-img" />
+                  <span v-else>{{ initials(admin.nomComplet) }}</span>
+                </div>
                 <div>
                   <div class="admin-name">{{ admin.nomComplet }}</div>
                   <div class="admin-role">{{ Array.from(admin.roles ?? []).join(', ') }}</div>
@@ -326,6 +330,14 @@ async function restoreAccess(id) {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.admin-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .admin-name { font-weight: 600; font-size: 0.88rem; }
