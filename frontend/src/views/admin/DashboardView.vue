@@ -1,10 +1,8 @@
 <script setup>
 import { ref, computed, onMounted, defineComponent, h } from 'vue'
-import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import dashboardService from '@/services/dashboardService'
 
-const router    = useRouter()
 const authStore = useAuthStore()
 
 // Composant icône SVG inline — remplace les emojis
