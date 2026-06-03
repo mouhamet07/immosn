@@ -1,7 +1,10 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
-import { Home, MessageSquare, Send } from 'lucide-vue-next'
+import { Home, MessageSquare, Send, MessageCircle, Search, AlertCircle, RefreshCw } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
 import discussionService from '@/services/discussionService'
+
+const router = useRouter()
 
 const discussions   = ref([])
 const loading       = ref(false)
@@ -121,11 +124,29 @@ onMounted(() => fetchDiscussions(0))
           <div class="spinner"></div>
         </div>
 
-        <div v-else-if="error" class="disc-list__error">{{ error }}</div>
+        <!-- Erreur API -->
+        <div v-else-if="error" class="disc-list__empty">
+          <AlertCircle :size="40" color="var(--color-accent)" />
+          <p class="empty-title">Une erreur est survenue.</p>
+          <button class="btn-retry" @click="fetchDiscussions(0)">
+            <RefreshCw :size="14" />
+            Réessayer
+          </button>
+        </div>
 
+        <!-- Aucune discussion -->
         <div v-else-if="!discussions.length" class="disc-list__empty">
-          <p>Aucune discussion pour l'instant.</p>
-          <RouterLink to="/annonces" class="disc-list__link">Parcourir les annonces →</RouterLink>
+          <MessageCircle :size="56" color="var(--color-border)" />
+          <p class="empty-title">Aucune conversation pour le moment</p>
+          <p class="empty-desc">
+            Vous n'avez pas encore échangé avec notre agence.
+            Consultez une annonce et cliquez sur
+            <strong>"Contacter l'agence"</strong>.
+          </p>
+          <button class="btn-browse" @click="router.push('/annonces')">
+            <Search :size="16" />
+            Parcourir les annonces
+          </button>
         </div>
 
         <ul v-else class="disc-list__items">
@@ -265,24 +286,60 @@ onMounted(() => fetchDiscussions(0))
   color: var(--color-text);
 }
 .disc-list__loading,
-.disc-list__error,
 .disc-list__empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  padding: 2rem;
+  padding: 2rem 1.5rem;
   text-align: center;
+}
+
+.empty-title {
+  font-size: 0.95rem;
+  font-weight: 700;
   color: var(--color-text);
-  opacity: 0.55;
-  font-size: 0.9rem;
 }
-.disc-list__link {
-  color: var(--color-primary);
+
+.empty-desc {
+  font-size: 0.82rem;
+  color: var(--color-text-secondary, #6B7280);
+  line-height: 1.5;
+}
+
+.btn-browse {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.55rem 1.1rem;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
   font-weight: 600;
-  font-size: 0.88rem;
+  cursor: pointer;
+  margin-top: 0.25rem;
+  transition: opacity 0.15s;
 }
+.btn-browse:hover { opacity: 0.85; }
+
+.btn-retry {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.45rem 1rem;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-retry:hover { background: var(--color-background); }
 .disc-list__items {
   flex: 1;
   overflow-y: auto;
