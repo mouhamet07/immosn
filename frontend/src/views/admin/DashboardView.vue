@@ -55,8 +55,8 @@ const statCards = computed(() => {
     { icon: 'target',       label: 'Leads en cours',       value: s.leadsEnCours,         total: s.totalLeads,           color: 'purple',  to: '/admin/leads' },
     { icon: 'alert',        label: 'Signalements ouverts', value: s.signalementsOuverts,  total: s.totalSignalements,    color: 'red',     to: '/admin/signalements' },
     { icon: 'chat',         label: 'Discussions',          value: s.totalDiscussions,     total: null,                   color: 'teal',    to: '/admin/messages' },
-    // Carte admins visible seulement pour SUPER_ADMIN
-    ...(authStore.user?.role === 'SUPER_ADMIN'
+    // Carte admins visible seulement pour SUPER_ADMIN — utilise authStore.role (fiable)
+    ...(authStore.role === 'SUPER_ADMIN'
       ? [{ icon: 'people', label: 'Administrateurs', value: s.totalAdmins, total: null, color: 'gray', to: '/admin/administrateurs' }]
       : []),
   ]
