@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
-import { MessageSquare } from 'lucide-vue-next'
+import { MessageSquare, ArrowLeft, Home, User, Send } from 'lucide-vue-next'
 import discussionService from '@/services/discussionService'
 
 const discussions  = ref([])
@@ -69,11 +69,14 @@ function scrollBottom() {
   if (messagesRef.value) messagesRef.value.scrollTop = messagesRef.value.scrollHeight
 }
 
-const filteredDiscussions = computed(() => discussions.value.filter(d =>
-  !searchQuery.value ||
-  d.annonceLibelle?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-  d.clientNom?.toLowerCase().includes(searchQuery.value.toLowerCase())
-))
+const filteredDiscussions = computed(() => {
+  if (!searchQuery.value) return discussions.value
+  const q = searchQuery.value.toLowerCase()
+  return discussions.value.filter(d =>
+    d.annonceLibelle?.toLowerCase().includes(q) ||
+    d.clientNom?.toLowerCase().includes(q)
+  )
+})
 
 function formatDate(dt) {
   return new Date(dt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
@@ -117,7 +120,7 @@ onMounted(() => fetchDiscussions(0))
 
         <ul v-else class="adm-list__items">
           <li
-            v-for="d in discussions"
+            v-for="d in filteredDiscussions"
             :key="d.id"
             class="adm-item"
             :class="{ '--active': selectedId === d.id, '--unread': d.unreadCount > 0 }"
@@ -131,7 +134,11 @@ onMounted(() => fetchDiscussions(0))
                 <p class="adm-item__client">{{ d.clientNom }}</p>
                 <span class="adm-item__date">{{ formatDate(d.dernierMessageAt || d.createdAt) }}</span>
               </div>
-              <p class="adm-item__annonce">{{ d.annonceLibelle }}</p>
+              <!-- Référence annonce -->
+              <div class="adm-item__annonce-ref">
+                <Home :size="12" />
+                <span>{{ d.annonceLibelle }}</span>
+              </div>
               <p class="adm-item__last">{{ truncate(d.dernierMessage) }}</p>
             </div>
             <span v-if="d.unreadCount" class="adm-item__badge">{{ d.unreadCount }}</span>
@@ -157,14 +164,24 @@ onMounted(() => fetchDiscussions(0))
         <div v-else-if="chatLoading" class="adm-chat__loading"><div class="spinner"></div></div>
 
         <template v-else-if="selectedChat">
-          <!-- Header -->
+          <!-- Header avec bouton retour + contexte annonce + client -->
           <div class="adm-chat__header">
-            <div>
-              <p class="adm-chat__client">{{ selectedChat.clientNom }}</p>
-              <RouterLink :to="`/annonces/${selectedChat.annonceId}`" class="adm-chat__annonce" target="_blank">
-                {{ selectedChat.annonceLibelle }} – {{ selectedChat.annonceAdresse }}
-              </RouterLink>
+            <button class="adm-chat__back" @click="selectedId = null; selectedChat = null">
+              <ArrowLeft :size="18" />
+            </button>
+            <div class="adm-chat__header-info">
+              <div class="adm-chat__annonce-ref">
+                <Home :size="14" />
+                <span>{{ selectedChat.annonceLibelle }}</span>
+              </div>
+              <div class="adm-chat__client-ref">
+                <User :size="13" />
+                <span>{{ selectedChat.clientNom }}</span>
+              </div>
             </div>
+            <RouterLink :to="`/admin/annonces/${selectedChat.annonceId}`" class="adm-chat__annonce-link">
+              Voir l'annonce →
+            </RouterLink>
           </div>
 
           <!-- Messages -->
@@ -181,7 +198,7 @@ onMounted(() => fetchDiscussions(0))
             </div>
           </div>
 
-          <!-- Saisie -->
+          <!-- Zone saisie -->
           <div class="adm-chat__compose">
             <input
               v-model="newMessage"
@@ -194,7 +211,7 @@ onMounted(() => fetchDiscussions(0))
               :disabled="sending || !newMessage.trim()"
               @click="sendMessage"
             >
-              Envoyer
+              <Send :size="18" />
             </button>
           </div>
         </template>
@@ -327,13 +344,11 @@ onMounted(() => fetchDiscussions(0))
   text-overflow: ellipsis;
 }
 .adm-item__date { font-size: 0.7rem; color: var(--color-text); opacity: 0.4; flex-shrink: 0; }
-.adm-item__annonce {
-  font-size: 0.75rem;
-  color: var(--color-primary);
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.adm-item__annonce-ref {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 0.75rem; color: var(--color-primary); font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-bottom: 0.1rem;
 }
 .adm-item__last {
   font-size: 0.78rem;
@@ -398,20 +413,34 @@ onMounted(() => fetchDiscussions(0))
 }
 
 .adm-chat__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   padding: 1rem 1.5rem;
   border-bottom: 1px solid var(--color-border);
   background: var(--color-card);
 }
-.adm-chat__client {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--color-text);
+.adm-chat__back {
+  background: none; border: none; cursor: pointer;
+  color: var(--color-text); display: flex; align-items: center;
+  padding: 4px; border-radius: 6px; transition: background 0.15s; flex-shrink: 0;
 }
-.adm-chat__annonce {
-  font-size: 0.8rem;
-  color: var(--color-primary);
-  font-weight: 500;
+.adm-chat__back:hover { background: var(--color-background); }
+.adm-chat__header-info { flex: 1; min-width: 0; }
+.adm-chat__annonce-ref {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.92rem; font-weight: 700; color: var(--color-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+.adm-chat__client-ref {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 0.78rem; color: var(--color-text-secondary, #6B7280); margin-top: 2px;
+}
+.adm-chat__annonce-link {
+  font-size: 0.8rem; color: var(--color-primary); font-weight: 600;
+  white-space: nowrap; text-decoration: none;
+}
+.adm-chat__annonce-link:hover { text-decoration: underline; }
 
 .adm-chat__messages {
   flex: 1;
