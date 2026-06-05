@@ -5,6 +5,12 @@ import { useRoute } from 'vue-router'
 const authStore = useAuthStore()
 const route = useRoute()
 
+// FIX 7 : initiales du nom de l'utilisateur connecté
+function getInitials(name) {
+  if (!name) return 'A'
+  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+}
+
 const navLinks = [
   { to: '/admin/dashboard',       label: 'Dashboard',      icon: 'grid' },
   { to: '/admin/annonces',        label: 'Annonces',       icon: 'building' },
@@ -33,7 +39,26 @@ function isActive(path) {
         <img src="@/assets/logo nav 1 - orange 1.png" alt="ImmoSN" class="sidebar__logo-img" />
       </RouterLink>
 
-      <!-- Navigation principale -->
+      <!-- FIX 7 : info utilisateur connecté -->
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">
+          <img
+            v-if="authStore.user?.photo"
+            :src="authStore.user.photo"
+            :alt="authStore.user.nomComplet"
+            class="sidebar-avatar-img"
+          />
+          <div v-else class="sidebar-avatar-initials">
+            {{ getInitials(authStore.user?.nomComplet) }}
+          </div>
+        </div>
+        <div class="sidebar-user-info">
+          <p class="sidebar-user-name">{{ authStore.user?.nomComplet }}</p>
+          <span class="sidebar-user-role">
+            {{ authStore.user?.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Administrateur' }}
+          </span>
+        </div>
+      </div>
       <nav class="sidebar__nav">
         <RouterLink
           v-for="link in navLinks"
@@ -136,6 +161,45 @@ function isActive(path) {
   display: block;
 }
 
+/* FIX 7 : info utilisateur connecté */
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border-solid);
+  margin-bottom: 4px;
+}
+.sidebar-avatar {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 2px solid var(--color-border);
+}
+.sidebar-avatar-img { width: 100%; height: 100%; object-fit: cover; }
+.sidebar-avatar-initials {
+  width: 100%; height: 100%;
+  background: var(--color-primary);
+  color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 600;
+}
+.sidebar-user-info { min-width: 0; }
+.sidebar-user-name {
+  font-size: 13px; font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 130px;
+}
+.sidebar-user-role {
+  font-size: 10px;
+  color: var(--color-primary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 /* Navigation */
 .sidebar__nav {
   flex: 1;
@@ -180,18 +244,16 @@ function isActive(path) {
   justify-content: center;
 }
 
+/* FIX 8 : icônes vertes par défaut, terracotta au hover/actif */
 .sidebar__link-icon svg {
-  width: 18px;
-  height: 18px;
+  width: 18px; height: 18px;
+  stroke: var(--color-primary);
+  transition: stroke 150ms ease;
 }
 
 .sidebar__link--active .sidebar__link-icon svg,
 .sidebar__link:hover .sidebar__link-icon svg {
   stroke: var(--color-accent);
-}
-
-.sidebar__link:not(.sidebar__link--active):not(:hover) .sidebar__link-icon svg {
-  stroke: var(--color-text-muted);
 }
 
 /* Bas */
