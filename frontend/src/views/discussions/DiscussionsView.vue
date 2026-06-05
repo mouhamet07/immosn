@@ -1,7 +1,10 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
-import { Home, MessageSquare, Send } from 'lucide-vue-next'
+import { Home, MessageSquare, Send, ArrowLeft, MessageCircle, Search, AlertCircle, RefreshCw } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
 import discussionService from '@/services/discussionService'
+
+const router = useRouter()
 
 const discussions   = ref([])
 const loading       = ref(false)
@@ -121,11 +124,26 @@ onMounted(() => fetchDiscussions(0))
           <div class="spinner"></div>
         </div>
 
-        <div v-else-if="error" class="disc-list__error">{{ error }}</div>
+        <!-- Erreur API -->
+        <div v-else-if="error" class="disc-list__empty">
+          <AlertCircle :size="40" color="var(--color-accent)" />
+          <p class="empty-title">Une erreur est survenue.</p>
+          <button class="btn-retry" @click="fetchDiscussions(0)">
+            <RefreshCw :size="14" /> Réessayer
+          </button>
+        </div>
 
+        <!-- Aucune discussion -->
         <div v-else-if="!discussions.length" class="disc-list__empty">
-          <p>Aucune discussion pour l'instant.</p>
-          <RouterLink to="/annonces" class="disc-list__link">Parcourir les annonces →</RouterLink>
+          <MessageCircle :size="56" color="var(--color-border)" />
+          <p class="empty-title">Aucune conversation pour le moment</p>
+          <p class="empty-desc">
+            Consultez une annonce et cliquez sur
+            <strong>"Contacter l'agence"</strong>.
+          </p>
+          <button class="btn-browse" @click="router.push('/annonces')">
+            <Search :size="16" /> Parcourir les annonces
+          </button>
         </div>
 
         <ul v-else class="disc-list__items">
@@ -175,10 +193,16 @@ onMounted(() => fetchDiscussions(0))
         </div>
 
         <template v-else-if="selectedChat">
-          <!-- Header chat -->
+          <!-- Header chat avec bouton retour + référence annonce -->
           <div class="disc-chat__header">
+            <button class="disc-chat__back" @click="selectedId = null; selectedChat = null">
+              <ArrowLeft :size="18" />
+            </button>
             <div class="disc-chat__header-info">
-              <p class="disc-chat__annonceTitle">{{ selectedChat.annonceLibelle }}</p>
+              <div class="disc-chat__annonce-ref">
+                <Home :size="14" />
+                <span>{{ selectedChat.annonceLibelle }}</span>
+              </div>
               <p class="disc-chat__annonceAddr">{{ selectedChat.annonceAdresse }}</p>
             </div>
             <RouterLink :to="`/annonces/${selectedChat.annonceId}`" class="disc-chat__link">
@@ -265,24 +289,34 @@ onMounted(() => fetchDiscussions(0))
   color: var(--color-text);
 }
 .disc-list__loading,
-.disc-list__error,
 .disc-list__empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  padding: 2rem;
+  padding: 2rem 1.5rem;
   text-align: center;
-  color: var(--color-text);
-  opacity: 0.55;
-  font-size: 0.9rem;
 }
-.disc-list__link {
-  color: var(--color-primary);
-  font-weight: 600;
-  font-size: 0.88rem;
+.empty-title { font-size: 0.95rem; font-weight: 700; color: var(--color-text); }
+.empty-desc  { font-size: 0.8rem; color: var(--color-text-secondary, #6B7280); line-height: 1.5; }
+.btn-browse {
+  display: flex; align-items: center; gap: 6px;
+  padding: 0.55rem 1.1rem;
+  background: var(--color-primary); color: #fff;
+  border: none; border-radius: 8px;
+  font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  transition: opacity 0.15s;
 }
+.btn-browse:hover { opacity: 0.85; }
+.btn-retry {
+  display: flex; align-items: center; gap: 6px;
+  padding: 0.45rem 1rem;
+  background: transparent; border: 1px solid var(--color-border);
+  border-radius: 8px; font-size: 0.82rem; font-weight: 600;
+  color: var(--color-text); cursor: pointer; transition: background 0.15s;
+}
+.btn-retry:hover { background: var(--color-background); }
 .disc-list__items {
   flex: 1;
   overflow-y: auto;
@@ -404,15 +438,25 @@ onMounted(() => fetchDiscussions(0))
 
 .disc-chat__header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 0.75rem;
   padding: 1rem 1.5rem;
   border-bottom: 1px solid var(--color-border);
 }
-.disc-chat__annonceTitle {
-  font-weight: 700;
-  font-size: 0.95rem;
-  color: var(--color-text);
+.disc-chat__back {
+  background: none; border: none; cursor: pointer;
+  color: var(--color-text); display: flex; align-items: center;
+  padding: 4px; border-radius: 6px; transition: background 0.15s;
+  flex-shrink: 0;
+}
+.disc-chat__back:hover { background: var(--color-background); }
+.disc-chat__header-info { flex: 1; min-width: 0; }
+.disc-chat__annonce-ref {
+  display: flex; align-items: center; gap: 6px;
+  font-weight: 700; font-size: 0.92rem; color: var(--color-text);
+}
+.disc-chat__annonce-ref span {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .disc-chat__annonceAddr {
   font-size: 0.78rem;

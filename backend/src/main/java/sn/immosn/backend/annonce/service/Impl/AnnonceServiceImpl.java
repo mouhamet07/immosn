@@ -27,6 +27,7 @@ import sn.immosn.backend.client.web.annonce.dto.SearchAnnonceRequestDto;
 import sn.immosn.backend.client.web.annonce.mapper.AnnonceMapper;
 import sn.immosn.backend.contrat.data.entity.StatutContrat;
 import sn.immosn.backend.contrat.data.repository.ContratRepository;
+import sn.immosn.backend.location.GeoCodingService;
 import sn.immosn.backend.shared.exception.EntityNotFoundException;
 
 import java.util.List;
@@ -42,6 +43,7 @@ public class AnnonceServiceImpl implements AnnonceService {
     private final TypeBienAnnonceRepository typeBienAnnonceRepository;
     private final AnnonceMapper             annonceMapper;
     private final ContratRepository         contratRepository;
+    private final GeoCodingService          geoCodingService;
 
     @Override
     @Transactional
@@ -57,8 +59,15 @@ public class AnnonceServiceImpl implements AnnonceService {
             : List.of();
 
         Annonce annonce = annonceMapper.toEntity(requestDto, typeBien, commodites);
-        Annonce saved   = annonceRepository.save(annonce);
+        annonce.setRegion(resolveRegion(requestDto.region()));
+        annonce.setAdresse(buildFinalAdresse(requestDto.adresseExacte(), annonce.getQuartier(), annonce.getDepartement()));
 
+        String rawGeocodeAddress = normalize(requestDto.adresseExacte());
+        boolean geoOk = applyGeolocation(annonce, annonce.getQuartier(), annonce.getDepartement(), rawGeocodeAddress);
+        Annonce saved = annonceRepository.save(annonce);
+
+        if (geoOk) geoCodingService.logGeolocation(saved.getId());
+        else        geoCodingService.logGeolocationFailed(saved.getId());
         log.info("Annonce créée : id={}", saved.getId());
         return annonceMapper.toResponse(saved);
     }
@@ -90,8 +99,43 @@ public class AnnonceServiceImpl implements AnnonceService {
         if (requestDto.nbrPieces()   != null) annonce.setNbrPieces(requestDto.nbrPieces());
         if (requestDto.surface()     != null) annonce.setSurface(requestDto.surface());
         if (requestDto.prix()        != null) annonce.setPrix(requestDto.prix());
-        if (requestDto.adresse()     != null) annonce.setAdresse(requestDto.adresse());
         if (requestDto.images()      != null) annonce.setImages(requestDto.images());
+
+        boolean locationChanged = requestDto.adresseExacte() != null
+                               || requestDto.departement() != null
+                               || requestDto.quartier()    != null
+                               || requestDto.region()      != null;
+
+        if (requestDto.departement() != null) {
+            if (requestDto.departement().isBlank()) {
+                throw new IllegalArgumentException("Le département ne peut pas être vide");
+            }
+            annonce.setDepartement(requestDto.departement().trim());
+        }
+        if (requestDto.quartier() != null) {
+            if (requestDto.quartier().isBlank()) {
+                throw new IllegalArgumentException("Le quartier ne peut pas être vide");
+            }
+            annonce.setQuartier(requestDto.quartier().trim());
+        }
+        if (requestDto.region() != null) {
+            if (requestDto.region().isBlank()) {
+                throw new IllegalArgumentException("La région ne peut pas être vide");
+            }
+            annonce.setRegion(requestDto.region().trim());
+        }
+
+        if (locationChanged) {
+            annonce.setAdresse(buildFinalAdresse(requestDto.adresseExacte(), annonce.getQuartier(), annonce.getDepartement()));
+            if (annonce.getRegion() == null) {
+                annonce.setRegion("Dakar");
+            }
+        }
+
+        boolean geoOk = false;
+        if (locationChanged) {
+            geoOk = applyGeolocation(annonce, annonce.getQuartier(), annonce.getDepartement(), normalize(requestDto.adresseExacte()));
+        }
 
         if (requestDto.typeBienId() != null) {
             TypeBienAnnonce typeBien = typeBienAnnonceRepository
@@ -108,7 +152,15 @@ public class AnnonceServiceImpl implements AnnonceService {
             ));
         }
 
+        if (annonce.getRegion() == null) {
+            annonce.setRegion("Dakar");
+        }
+
         Annonce updated = annonceRepository.save(annonce);
+        if (locationChanged) {
+            if (geoOk) geoCodingService.logGeolocation(updated.getId());
+            else        geoCodingService.logGeolocationFailed(updated.getId());
+        }
         log.info("Annonce modifiée : id={}", updated.getId());
         return annonceMapper.toResponse(updated);
     }
@@ -172,5 +224,42 @@ public class AnnonceServiceImpl implements AnnonceService {
         Pageable pageable = PageRequest.of(page, size, Sort.by(dir, sort));
         Specification<Annonce> spec = AnnonceSpecification.fromRequest(request);
         return annonceRepository.findAll(spec, pageable).map(annonceMapper::toListDto);
+    }
+
+    private boolean applyGeolocation(Annonce annonce, String quartier, String departement, String adresse) {
+        if (quartier == null || departement == null) return false;
+        return geoCodingService.geocode(quartier, departement, adresse)
+            .map(coords -> {
+                annonce.setLatitude(coords[0]);
+                annonce.setLongitude(coords[1]);
+                return true;
+            })
+            .orElseGet(() -> {
+                log.warn("Coordonnées introuvables pour quartier='{}', departement='{}'", quartier, departement);
+                return false;
+            });
+    }
+
+    private String normalize(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String resolveRegion(String region) {
+        String normalized = normalize(region);
+        return normalized != null ? normalized : "Dakar";
+    }
+
+    private String buildFinalAdresse(String adresseExacte, String quartier, String departement) {
+        String normalizedQuartier = normalize(quartier);
+        String normalizedDepartement = normalize(departement);
+        if (normalizedQuartier == null || normalizedDepartement == null) {
+            throw new IllegalArgumentException("Le quartier et le département sont obligatoires pour construire l'adresse finale");
+        }
+        String exact = normalize(adresseExacte);
+        return exact != null
+            ? exact + ", " + normalizedQuartier + ", " + normalizedDepartement
+            : normalizedQuartier + ", " + normalizedDepartement;
     }
 }

@@ -2,11 +2,8 @@
 import { useAuthStore } from '@/stores/authStore'
 import { useRouter } from 'vue-router'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { useFavorisStore } from '@/stores/favorisStore'
-
-const authStore    = useAuthStore()
-const favorisStore = useFavorisStore()
-const router       = useRouter()
+const authStore = useAuthStore()
+const router    = useRouter()
 
 async function handleLogout() {
   await authStore.logout()

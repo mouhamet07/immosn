@@ -1,6 +1,9 @@
 <script setup>
 import { ref, computed, onMounted, defineComponent, h } from 'vue'
+import { useAuthStore } from '@/stores/authStore'
 import dashboardService from '@/services/dashboardService'
+
+const authStore = useAuthStore()
 
 // Composant icône SVG inline — remplace les emojis
 const SVGS = {
@@ -69,6 +72,11 @@ const loading = ref(true)
 const error   = ref('')
 const stats   = ref(null)
 
+// Date du jour en français
+const dateAujourdhui = new Date().toLocaleDateString('fr-FR', {
+  weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+})
+
 // ── Chargement ─────────────────────────────────────────────
 onMounted(async () => {
   try {
@@ -85,16 +93,20 @@ onMounted(async () => {
 const statCards = computed(() => {
   if (!stats.value) return []
   const s = stats.value
-  return [
+  const cards = [
     { icon: 'building',     label: 'Annonces actives',    value: s.annoncesActives,      total: s.totalAnnonces,        color: 'primary', to: '/admin/annonces' },
     { icon: 'user',         label: 'Clients',              value: s.totalClients,         total: null,                   color: 'blue',    to: null },
     { icon: 'calendar',     label: 'Visites en attente',   value: s.visitesEnAttente,     total: s.totalVisites,         color: 'orange',  to: '/admin/visites' },
     { icon: 'document',     label: 'Contrats actifs',      value: s.contratsActifs,       total: s.totalContrats,        color: 'green',   to: '/admin/contrats' },
     { icon: 'target',       label: 'Leads en cours',       value: s.leadsEnCours,         total: s.totalLeads,           color: 'purple',  to: '/admin/leads' },
     { icon: 'alert',        label: 'Signalements ouverts', value: s.signalementsOuverts,  total: s.totalSignalements,    color: 'red',     to: '/admin/signalements' },
-    { icon: 'chat',         label: 'Discussions',          value: s.totalDiscussions,     total: null,                   color: 'teal',    to: '/admin/messages' },
-    { icon: 'people',       label: 'Administrateurs',      value: s.totalAdmins,          total: null,                   color: 'gray',    to: '/admin/administrateurs' },
+    { icon: 'chat', label: 'Discussions', value: s.totalDiscussions, total: null, color: 'teal', to: '/admin/messages' },
   ]
+  // Carte admins visible uniquement pour SUPER_ADMIN
+  if (authStore.role === 'SUPER_ADMIN') {
+    cards.push({ icon: 'people', label: 'Administrateurs', value: s.totalAdmins, total: null, color: 'gray', to: '/admin/administrateurs' })
+  }
+  return cards
 })
 
 const recentActivities = computed(() => stats.value?.activitesRecentes ?? [])
@@ -138,8 +150,8 @@ const shortcuts = [
 
     <div class="dash__header">
       <div>
-        <h1 class="dash__title">Tableau de bord</h1>
-        <p class="dash__sub">Bienvenue sur l'interface d'administration ImmoSN.</p>
+        <h1 class="dash__title">Bonjour, {{ authStore.user?.nomComplet?.split(' ')[0] }} 👋</h1>
+        <p class="dash__sub">{{ dateAujourdhui }}</p>
       </div>
       <div v-if="stats" class="dash__today">
         <span class="dash__today-label">Visites aujourd'hui</span>

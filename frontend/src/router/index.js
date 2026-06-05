@@ -18,12 +18,12 @@ const router = createRouter({
       children: [
         { path: 'annonces',          name: 'annonces',          component: () => import('@/views/annonces/ListeAnnoncesView.vue') },
         { path: 'annonces/:id',      name: 'detail-annonce',    component: () => import('@/views/annonces/DetailAnnonceView.vue') },
-        { path: 'profil',            name: 'profil',            component: () => import('@/views/profil/ProfilView.vue'),                   meta: { requiresAuth: true } },
-        { path: 'discussions',       name: 'discussions',       component: () => import('@/views/discussions/DiscussionsView.vue'),         meta: { requiresAuth: true } },
-        { path: 'mes-visites',       name: 'mes-visites',       component: () => import('@/views/visites/MesVisitesView.vue'),              meta: { requiresAuth: true } },
-        { path: 'mes-contrats',      name: 'mes-contrats',      component: () => import('@/views/contrats/MesContratsView.vue'),            meta: { requiresAuth: true } },
-        { path: 'mes-signalements',  name: 'mes-signalements',  component: () => import('@/views/signalements/MesSignalementsView.vue'),   meta: { requiresAuth: true } },
-        { path: 'favoris',           name: 'favoris',           component: () => import('@/views/favoris/FavorisView.vue'),                 meta: { requiresAuth: true } },
+        { path: 'profil',            name: 'profil',            component: () => import('@/views/profil/ProfilView.vue'),                   meta: { requiresAuth: true, role: 'CLIENT' } },
+        { path: 'discussions',       name: 'discussions',       component: () => import('@/views/discussions/DiscussionsView.vue'),         meta: { requiresAuth: true, role: 'CLIENT' } },
+        { path: 'mes-visites',       name: 'mes-visites',       component: () => import('@/views/visites/MesVisitesView.vue'),              meta: { requiresAuth: true, role: 'CLIENT' } },
+        { path: 'mes-contrats',      name: 'mes-contrats',      component: () => import('@/views/contrats/MesContratsView.vue'),            meta: { requiresAuth: true, role: 'CLIENT' } },
+        { path: 'mes-signalements',  name: 'mes-signalements',  component: () => import('@/views/signalements/MesSignalementsView.vue'),   meta: { requiresAuth: true, role: 'CLIENT' } },
+        { path: 'favoris',           name: 'favoris',           component: () => import('@/views/favoris/FavorisView.vue'),                 meta: { requiresAuth: true, role: 'CLIENT' } },
       ],
     },
 
@@ -48,6 +48,7 @@ const router = createRouter({
         { path: 'commodites',          name: 'admin-commodites',     component: () => import('@/views/admin/CommoditesView.vue') },
         { path: 'administrateurs',         name: 'admin-admins',        component: () => import('@/views/admin/AdministrateursView.vue') },
         { path: 'administrateurs/ajouter', name: 'admin-ajouter-admin', component: () => import('@/views/admin/AjouterAdminView.vue') },
+        { path: 'administrateurs/:id/modifier', name: 'admin-modifier-admin', component: () => import('@/views/admin/ModifierAdminView.vue') },
         { path: 'profil',              name: 'admin-profil',         component: () => import('@/views/admin/ProfilAdminView.vue') },
       ],
     },
@@ -62,6 +63,11 @@ router.beforeEach((to) => {
 
   if (!authStore.isAuthenticated) {
     return { name: 'connexion' }
+  }
+
+  // Bloquer les admins sur les routes réservées aux clients
+  if (to.meta.role === 'CLIENT' && (authStore.role === 'ADMIN' || authStore.role === 'SUPER_ADMIN')) {
+    return { path: '/admin/dashboard' }
   }
 
   if (to.meta.role === 'ADMIN' && authStore.role !== 'ADMIN' && authStore.role !== 'SUPER_ADMIN') {

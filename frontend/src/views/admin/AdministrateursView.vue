@@ -24,6 +24,7 @@ function normalize(admin) {
     role:     Array.from(admin.roles ?? []).join(', '),
     statut:   admin.archived ? 'INACTIF' : 'ACTIF',
     dateAjout: admin.creationDate,
+    photo:    admin.photo || null,
   }
 }
 
@@ -46,8 +47,8 @@ function initials(name) {
 onMounted(async () => {
   try {
     const response = await authService.getAdmins(0, 100)
-    // PagedResponse — contenu dans response.data.content
-    admins.value = (response.data?.content ?? []).map(normalize)
+    // PagedResponse: { data: [...], totalElements, totalPages, currentPage }
+    admins.value = (response.data?.data ?? []).map(normalize)
   } catch (err) {
     toast.value?.show(err.response?.data?.message || 'Erreur lors du chargement des administrateurs.', 'error')
   } finally {
@@ -132,7 +133,10 @@ async function restoreAccess(id) {
           <tr v-for="admin in paginated" :key="admin.id" class="admins-table__row">
             <td>
               <div class="admin-identity">
-                <div class="admin-avatar">{{ initials(admin.nomComplet) }}</div>
+                <div class="admin-avatar">
+                  <img v-if="admin.photo" :src="admin.photo" :alt="admin.nomComplet" class="admin-avatar-img" />
+                  <span v-else>{{ initials(admin.nomComplet) }}</span>
+                </div>
                 <div>
                   <div class="admin-name">{{ admin.nomComplet }}</div>
                   <div class="admin-role">{{ Array.from(admin.roles ?? []).join(', ') }}</div>
@@ -155,6 +159,9 @@ async function restoreAccess(id) {
             </td>
             <td>
               <div class="td-actions">
+                <button class="action-btn" title="Modifier" @click="router.push(`/admin/administrateurs/${admin.id}/modifier`)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
                 <button v-if="admin.statut === 'INACTIF'" class="action-btn" title="Restaurer l'accès" @click="restoreAccess(admin.id)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
                 </button>
@@ -323,6 +330,14 @@ async function restoreAccess(id) {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.admin-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .admin-name { font-weight: 600; font-size: 0.88rem; }

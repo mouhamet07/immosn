@@ -8,12 +8,15 @@ public record AnnonceListDto (
     String libelle,
     BigDecimal prix,
     String adresse,
+    String departement,
+    String quartier,
+    Double latitude,
+    Double longitude,
     TypeBienResponseDto typeBien,
     Integer nbrPieces,
     Double surface,
-    String imagePrincipale,          
+    String imagePrincipale,
     LocalDateTime createdAt,
     Boolean archived
-){
-    
+) {
 }

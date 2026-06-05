@@ -21,6 +21,13 @@ async function handleSubmit() {
   loading.value = true
   try {
     await authStore.login(form.email, form.motDePasse)
+    // FIX 2 : rediriger vers la page demandée avant la connexion
+    const redirect = localStorage.getItem('redirectAfterLogin')
+    if (redirect) {
+      localStorage.removeItem('redirectAfterLogin')
+      router.push(redirect)
+    }
+    // authStore.login gère déjà la redirection par rôle si pas de redirect
   } catch (err) {
     errors.global = err.response?.status === 401
       ? 'Email ou mot de passe incorrect.'
@@ -47,7 +54,7 @@ async function handleSubmit() {
     <div class="cx-main">
       <!-- Brand -->
       <div class="cx-brand">
-        <RouterLink to="/annonces" class="cx-brand__name">ImmoSN</RouterLink>
+        <img src="@/assets/logo nav 1 - orange 1.png" alt="ImmoSN" class="cx-brand__logo" />
         <p class="cx-brand__tagline">Curateur d'immobilier haut de gamme au Sénégal</p>
       </div>
 
@@ -77,10 +84,7 @@ async function handleSubmit() {
 
           <!-- Mot de passe -->
           <div class="cx-field">
-            <div class="cx-label-row">
-              <label class="cx-label" for="password">Mot de passe</label>
-              <a href="#" class="cx-forgot">Mot de passe oublié ?</a>
-            </div>
+            <label class="cx-label" for="password">Mot de passe</label>
             <div class="cx-input-wrap">
               <svg class="cx-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
@@ -106,10 +110,9 @@ async function handleSubmit() {
             <span v-if="errors.motDePasse" class="cx-error">{{ errors.motDePasse }}</span>
           </div>
 
-          <!-- Remember -->
-          <div class="cx-remember">
-            <input id="remember" type="checkbox" class="cx-checkbox" />
-            <label for="remember" class="cx-remember-label">Rester connecté pendant 30 jours</label>
+          <!-- Mot de passe oublié -->
+          <div class="cx-forgot-wrap">
+            <a href="#" class="cx-forgot">Mot de passe oublié ?</a>
           </div>
 
           <!-- Erreur globale -->
@@ -118,11 +121,7 @@ async function handleSubmit() {
           <!-- Submit -->
           <button type="submit" class="cx-submit" :disabled="loading">
             <span v-if="loading" class="cx-spinner"></span>
-            {{ loading ? 'Connexion...' : 'Se connecter au tableau de bord' }}
-            <svg v-if="!loading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-              <line x1="5" y1="12" x2="19" y2="12"/>
-              <polyline points="12 5 19 12 12 19"/>
-            </svg>
+            {{ loading ? 'Connexion en cours...' : 'Se connecter' }}
           </button>
         </form>
 
@@ -134,17 +133,7 @@ async function handleSubmit() {
         </div>
       </div>
 
-      <!-- Lien explorer -->
-      <div class="cx-explore">
-        <RouterLink to="/annonces" class="cx-explore-link">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="2" y1="12" x2="22" y2="12"/>
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-          </svg>
-          Explorer la Collection Sénégal
-        </RouterLink>
-      </div>
+      <!-- Lien explorer supprimé -->
     </div>
 
     <!-- Footer -->
@@ -224,19 +213,8 @@ async function handleSubmit() {
 
 /* Brand */
 .cx-brand { text-align: center; }
-.cx-brand__name {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 2rem;
-  font-weight: 600;
-  color: #316357;
-  text-decoration: none;
-  display: block;
-}
-.cx-brand__tagline {
-  font-size: 0.85rem;
-  color: #404946;
-  margin-top: 4px;
-}
+.cx-brand__logo { height: 52px; object-fit: contain; display: block; margin: 0 auto; }
+.cx-brand__tagline { font-size: 0.85rem; color: #404946; margin-top: 4px; }
 
 /* Card */
 .cx-card {
@@ -272,8 +250,8 @@ async function handleSubmit() {
   text-transform: uppercase;
   color: #404946;
 }
-.cx-label-row { display: flex; justify-content: space-between; align-items: center; }
-.cx-forgot { font-size: 0.75rem; font-weight: 600; color: #9a4522; text-decoration: none; }
+.cx-forgot-wrap { text-align: right; }
+.cx-forgot { font-size: 0.75rem; font-weight: 600; color: var(--color-accent); text-decoration: none; }
 .cx-forgot:hover { text-decoration: underline; }
 
 .cx-input-wrap { position: relative; }
@@ -303,11 +281,6 @@ async function handleSubmit() {
 .cx-eye:hover { color: #316357; }
 
 .cx-error { font-size: 0.78rem; color: #ba1a1a; }
-
-/* Remember */
-.cx-remember { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
-.cx-checkbox { width: 20px; height: 20px; border-radius: 4px; accent-color: #316357; cursor: pointer; }
-.cx-remember-label { font-size: 0.875rem; color: #404946; cursor: pointer; }
 
 /* Alert */
 .cx-alert {
