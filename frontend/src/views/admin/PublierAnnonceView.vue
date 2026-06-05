@@ -1,5 +1,5 @@
 <script setup>
-import { Camera, X } from 'lucide-vue-next'
+import { Camera, X, Star, Images, ImagePlus, Plus } from 'lucide-vue-next'
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import FormStepper from '@/components/admin/FormStepper.vue'
@@ -112,29 +112,38 @@ function nextStep() {
   currentStep.value++
 }
 
-const photoFiles     = ref([])
-const photoPreviews  = ref([])
-const uploadProgress = ref({ done: 0, total: 0 })
+// FIX 5 : photo principale + sous-photos séparément
+const mainPhoto        = ref(null)
+const mainPhotoPreview = ref(null)
+const subPhotos        = ref([])  // [{ file, preview }]
+const uploadProgress   = ref({ done: 0, total: 0 })
+
+const handleMainPhoto = (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+  if (file.size > 5 * 1024 * 1024) { toast.value?.show('Photo trop lourde — max 5 Mo', 'error'); return }
+  mainPhoto.value = file
+  mainPhotoPreview.value = URL.createObjectURL(file)
+}
+const handleMainDrop = (event) => {
+  const file = event.dataTransfer.files[0]
+  if (file) handleMainPhoto({ target: { files: [file] } })
+}
+const removeMainPhoto = () => { mainPhoto.value = null; mainPhotoPreview.value = null }
+
+const handleSubPhotos = (event) => {
+  const remaining = 10 - subPhotos.value.length
+  Array.from(event.target.files).slice(0, remaining).forEach(file => {
+    if (file.size > 5 * 1024 * 1024) { toast.value?.show(`${file.name} trop lourd — ignoré`, 'error'); return }
+    subPhotos.value.push({ file, preview: URL.createObjectURL(file) })
+  })
+}
+const removeSubPhoto = (index) => subPhotos.value.splice(index, 1)
 
 function toggleCommodite(id) {
   const idx = form.commoditeIds.indexOf(id)
   if (idx === -1) form.commoditeIds.push(id)
   else form.commoditeIds.splice(idx, 1)
-}
-
-function handleFileUpload(e) {
-  const files = Array.from(e.target.files)
-  files.forEach(file => {
-    photoFiles.value.push(file)
-    const reader = new FileReader()
-    reader.onload = ev => photoPreviews.value.push(ev.target.result)
-    reader.readAsDataURL(file)
-  })
-}
-
-function removePhoto(i) {
-  photoFiles.value.splice(i, 1)
-  photoPreviews.value.splice(i, 1)
 }
 
 const loading = ref(false)
@@ -150,14 +159,18 @@ async function submit() {
   }
   loading.value = true
   try {
+    // Upload photo principale en premier (index 0 = principal)
     let imageUrls = []
-    const cloudName   = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
-    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
-    if (photoFiles.value.length && cloudName && uploadPreset) {
-      uploadProgress.value = { done: 0, total: photoFiles.value.length }
-      imageUrls = await uploadImages(photoFiles.value, (done, total) => {
+    if (mainPhoto.value) {
+      const [mainUrl] = await uploadImages([mainPhoto.value])
+      imageUrls.push(mainUrl)
+    }
+    if (subPhotos.value.length) {
+      uploadProgress.value = { done: 0, total: subPhotos.value.length }
+      const subUrls = await uploadImages(subPhotos.value.map(p => p.file), (done, total) => {
         uploadProgress.value = { done, total }
       })
+      imageUrls.push(...subUrls)
     }
     await annonceService.createAnnonce({
       libelle:      form.libelle,
@@ -575,34 +588,64 @@ async function submit() {
   font-weight: 600;
 }
 
-.photo-previews { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.75rem; }
+.photo-block { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; }
+.photo-block-title { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; font-weight: 700; color: var(--color-text); }
+.photo-hint { font-size: 0.82rem; color: var(--color-text-muted); }
+.required-badge { font-size: 10px; background: #FDECEA; color: #C0392B; padding: 2px 6px; border-radius: 4px; margin-left: 4px; }
+.optional-badge { font-size: 10px; background: var(--color-background); color: var(--color-text-muted); padding: 2px 6px; border-radius: 4px; margin-left: 4px; }
 
-.photo-thumb {
-  position: relative;
-  width: 90px;
-  height: 90px;
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  border: 1px solid #e8e0d4;
+.main-zone {
+  border: 2px dashed var(--color-primary);
+  border-radius: 12px;
+  padding: 32px;
+  text-align: center;
+  cursor: pointer;
+  background: #E8F2EF;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  transition: all 150ms ease;
+}
+.main-zone:hover { background: #D4E8E2; }
+.upload-hint { font-size: 12px; color: var(--color-text-muted); }
+
+.main-preview {
+  position: relative; border-radius: 12px;
+  overflow: hidden; height: 200px;
+}
+.main-preview img { width: 100%; height: 100%; object-fit: cover; }
+.main-badge {
+  position: absolute; bottom: 8px; left: 8px;
+  background: var(--color-accent); color: white;
+  font-size: 11px; padding: 2px 8px; border-radius: 4px;
 }
 
-.photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
-
-.photo-thumb__remove {
-  position: absolute;
-  top: 3px;
-  right: 3px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: rgba(45, 55, 72, 0.7);
-  color: #fff;
-  font-size: 0.65rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
+.sub-photos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 10px;
 }
+.sub-photo-item { position: relative; height: 100px; border-radius: 8px; overflow: hidden; }
+.sub-photo-item img { width: 100%; height: 100%; object-fit: cover; }
+
+.sub-zone {
+  height: 100px;
+  border: 1.5px dashed var(--color-border);
+  border-radius: 8px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  cursor: pointer; gap: 4px; font-size: 12px;
+  color: var(--color-text-muted);
+  transition: all 150ms ease;
+}
+.sub-zone:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+.remove-photo {
+  position: absolute; top: 6px; right: 6px;
+  background: rgba(45,55,72,0.7); color: white;
+  border: none; border-radius: 50%;
+  width: 24px; height: 24px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.photos-count { font-size: 12px; color: var(--color-text-muted); }
 
 .form-nav {
   display: flex;

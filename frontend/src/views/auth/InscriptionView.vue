@@ -3,6 +3,7 @@ import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ChevronDown, Eye, EyeOff } from 'lucide-vue-next'
 import authService from '@/services/authService'
+import AppFooter from '@/components/AppFooter.vue'
 
 const router = useRouter()
 
@@ -191,20 +192,7 @@ async function handleSubmit() {
     </main>
 
     <!-- Footer -->
-    <footer class="ins-footer">
-      <div class="ins-footer__inner">
-        <div>
-          <div class="ins-footer__brand">ImmoSN</div>
-          <p class="ins-footer__copy">© 2024 ImmoSN. Immobilier Sénégalais Haut de Gamme.</p>
-        </div>
-        <nav class="ins-footer__links">
-          <a href="#">Politique de Confidentialité</a>
-          <a href="#">Conditions d'Utilisation</a>
-          <a href="#">Guide des Quartiers</a>
-          <a href="#">Investir au Sénégal</a>
-        </nav>
-      </div>
-    </footer>
+    <AppFooter />
   </div>
 </template>
 

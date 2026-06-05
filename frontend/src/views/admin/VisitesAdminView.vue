@@ -72,10 +72,10 @@ onMounted(() => fetchVisites(0))
         <p class="va-toolbar__count">{{ totalItems }} demande{{ totalItems !== 1 ? 's' : '' }}</p>
       </div>
       <div class="va-filters">
-        <button v-for="s in STATUTS" :key="s" class="va-filter-btn"
-          :class="{ '--active': filtreStatut === s }"
+        <button v-for="s in STATUTS" :key="s" class="filter-tab"
+          :class="{ active: filtreStatut === s }"
           @click="filtreStatut = s; fetchVisites(0)">
-          {{ s ? STATUT_LABELS[s] : 'Tous' }}
+          {{ s ? STATUT_LABELS[s] : 'Toutes' }}
         </button>
       </div>
     </div>
@@ -159,8 +159,9 @@ onMounted(() => fetchVisites(0))
 .va-toolbar__title { font-size: 1.4rem; font-weight: 800; color: var(--color-text); }
 .va-toolbar__count { font-size: .82rem; color: var(--color-text); opacity: .5; margin-top: .15rem; }
 .va-filters { display: flex; flex-wrap: wrap; gap: .4rem; }
-.va-filter-btn { padding: .3rem .8rem; border: 1.5px solid var(--color-border); border-radius: 20px; font-size: .78rem; background: var(--color-card); color: var(--color-text); cursor: pointer; transition: all .15s; }
-.va-filter-btn:hover, .va-filter-btn.--active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+.filter-tab { padding: 6px 16px; border-radius: 20px; border: 1px solid var(--color-border); background: var(--color-card); color: var(--color-text-secondary, #6B7280); font-size: 13px; cursor: pointer; transition: all 150ms ease; }
+.filter-tab:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.filter-tab.active { background: var(--color-primary); border-color: var(--color-primary); color: white; }
 
 .va-loading { display: flex; justify-content: center; padding: 4rem; }
 .va-empty { text-align: center; padding: 3rem; color: var(--color-text); opacity: .45; }
