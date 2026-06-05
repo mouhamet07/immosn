@@ -2,45 +2,60 @@
 defineProps({
   label: String,
   value: [String, Number],
-  color: { type: String, default: 'primary' }, // primary | accent | neutral
 })
 </script>
 
 <template>
-  <div class="stats-card" :class="`stats-card--${color}`">
-    <span class="stats-card__value">{{ value }}</span>
-    <span class="stats-card__label">{{ label }}</span>
+  <div class="stats-card">
+    <div class="stats-card__content">
+      <span class="stats-card__value">{{ value }}</span>
+      <span class="stats-card__label">{{ label }}</span>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .stats-card {
-  background: var(--color-card);
-  border-radius: var(--radius);
-  padding: 1.25rem 1.5rem;
-  box-shadow: var(--shadow-card);
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 1.5rem;
+  min-height: 120px;
+
   display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  border-left: 4px solid transparent;
+  align-items: center;
+
+  border: 1px solid #f1f3f5;
+
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.04),
+    0 2px 4px rgba(0, 0, 0, 0.02);
+
+  transition: all 0.25s ease;
 }
 
-.stats-card--primary { border-left-color: var(--color-primary); }
-.stats-card--accent  { border-left-color: var(--color-accent); }
-.stats-card--neutral { border-left-color: #6B7280; }
+.stats-card:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 12px 24px rgba(0, 0, 0, 0.08),
+    0 4px 8px rgba(0, 0, 0, 0.04);
+}
+
+.stats-card__content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
 
 .stats-card__value {
-  font-size: 2rem;
+  font-size: 2.2rem;
   font-weight: 800;
-  color: var(--color-text);
+  color: #111827;
   line-height: 1;
 }
 
 .stats-card__label {
-  font-size: 0.78rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #6B7280;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #6b7280;
 }
 </style>

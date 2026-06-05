@@ -1,5 +1,16 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+
+// Formate le numéro en +221 XX XXX XX XX
+function formatTelephone(val) {
+  const digits = val.replace(/\D/g, '')
+  const local = digits.startsWith('221') ? digits.slice(3) : digits
+  const d = local.slice(0, 9)
+  if (d.length <= 2) return '+221 ' + d
+  if (d.length <= 5) return '+221 ' + d.slice(0,2) + ' ' + d.slice(2)
+  if (d.length <= 7) return '+221 ' + d.slice(0,2) + ' ' + d.slice(2,5) + ' ' + d.slice(5)
+  return '+221 ' + d.slice(0,2) + ' ' + d.slice(2,5) + ' ' + d.slice(5,7) + ' ' + d.slice(7,9)
+}
 import { MessageSquare, BookOpen, Camera } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/authStore'
 import { useToastStore } from '@/stores/toastStore'
@@ -43,7 +54,7 @@ const uploadAvatar = async () => {
   }
 }
 
-const formInfo = reactive({ nomComplet: '', email: '', telephone: '', langue: 'fr' })
+const formInfo = reactive({ nomComplet: '', email: '', telephone: '' })
 const formSecurite = reactive({ motDePasseActuel: '', nouveauMotDePasse: '' })
 const loadingInfo = ref(false)
 const loadingSecurite = ref(false)
@@ -52,7 +63,7 @@ onMounted(() => {
   if (authStore.user) {
     formInfo.nomComplet = authStore.user.nomComplet || ''
     formInfo.email      = authStore.user.email      || ''
-    formInfo.telephone  = authStore.user.telephone  || ''
+    formInfo.telephone  = formatTelephone(authStore.user.telephone || '')
   }
 })
 
@@ -77,7 +88,7 @@ async function saveInfo() {
 
 async function saveSecurite() {
   if (!formSecurite.motDePasseActuel || !formSecurite.nouveauMotDePasse) {
-    toast.value.show('Veuillez remplir les deux champs.', 'error')
+    toast.error('Veuillez remplir les deux champs.')
     return
   }
   loadingSecurite.value = true
@@ -125,15 +136,6 @@ async function saveSecurite() {
             <div class="field">
               <label class="field__label">TÉLÉPHONE</label>
               <input v-model="formInfo.telephone" type="text" class="field__input" placeholder="+221 77 000 00 00" />
-            </div>
-
-            <div class="field">
-              <label class="field__label">LANGUE PRÉFÉRÉE</label>
-              <select v-model="formInfo.langue" class="field__input">
-                <option value="fr">Français (Standard)</option>
-                <option value="wo">Wolof</option>
-                <option value="en">English</option>
-              </select>
             </div>
 
             <button type="submit" class="btn-save" :disabled="loadingInfo">
@@ -191,7 +193,7 @@ async function saveSecurite() {
               </div>
               <div class="avatar-info">
                 <p class="avatar-name">{{ authStore.user?.nomComplet }}</p>
-                <p class="avatar-hint">JPG, PNG ou WebP — max 2 Mo</p>
+
               </div>
             </div>
           <p class="profil-user__email">{{ authStore.user?.email }}</p>

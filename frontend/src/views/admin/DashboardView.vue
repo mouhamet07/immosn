@@ -1,17 +1,61 @@
 <script setup>
 import { ref, computed, onMounted, defineComponent, h } from 'vue'
+import { useAuthStore } from '@/stores/authStore'
 import dashboardService from '@/services/dashboardService'
+
+const authStore = useAuthStore()
 
 // Composant icône SVG inline — remplace les emojis
 const SVGS = {
-  building:  `<path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-4h6v4"/>`,
-  user:      `<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>`,
-  calendar:  `<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>`,
-  document:  `<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>`,
-  target:    `<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>`,
-  alert:     `<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>`,
-  chat:      `<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>`,
-  people:    `<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>`,
+  building: `
+    <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18"/>
+    <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/>
+    <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/>
+    <path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>`,
+
+  user: `
+    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+    <circle cx="12" cy="8" r="4"/>
+    <path d="M12 12v1"/>`,
+
+  calendar: `
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+    <line x1="16" y1="2" x2="16" y2="6"/>
+    <line x1="8" y1="2" x2="8" y2="6"/>
+    <line x1="3" y1="10" x2="21" y2="10"/>
+    <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>`,
+
+  document: `
+    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <line x1="9" y1="13" x2="15" y2="13"/>
+    <line x1="9" y1="17" x2="13" y2="17"/>`,
+
+  target: `
+    <circle cx="12" cy="12" r="10"/>
+    <circle cx="12" cy="12" r="6"/>
+    <circle cx="12" cy="12" r="2"/>
+    <line x1="12" y1="2" x2="12" y2="4"/>
+    <line x1="12" y1="20" x2="12" y2="22"/>
+    <line x1="2" y1="12" x2="4" y2="12"/>
+    <line x1="20" y1="12" x2="22" y2="12"/>`,
+
+  alert: `
+    <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+    <line x1="12" y1="8" x2="12" y2="12"/>
+    <line x1="12" y1="16" x2="12.01" y2="16" stroke-linecap="round" stroke-width="2.5"/>`,
+
+  chat: `
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    <line x1="9" y1="10" x2="15" y2="10"/>
+    <line x1="9" y1="14" x2="13" y2="14"/>`,
+
+  people: `
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+    <circle cx="9" cy="7" r="4"/>
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    <line x1="19" y1="8" x2="21" y2="10"/>`,
 }
 const DashIcon = defineComponent({
   props: { name: String },
@@ -27,6 +71,11 @@ const DashIcon = defineComponent({
 const loading = ref(true)
 const error   = ref('')
 const stats   = ref(null)
+
+// Date du jour en français
+const dateAujourdhui = new Date().toLocaleDateString('fr-FR', {
+  weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+})
 
 // ── Chargement ─────────────────────────────────────────────
 onMounted(async () => {
@@ -44,16 +93,20 @@ onMounted(async () => {
 const statCards = computed(() => {
   if (!stats.value) return []
   const s = stats.value
-  return [
+  const cards = [
     { icon: 'building',     label: 'Annonces actives',    value: s.annoncesActives,      total: s.totalAnnonces,        color: 'primary', to: '/admin/annonces' },
     { icon: 'user',         label: 'Clients',              value: s.totalClients,         total: null,                   color: 'blue',    to: null },
     { icon: 'calendar',     label: 'Visites en attente',   value: s.visitesEnAttente,     total: s.totalVisites,         color: 'orange',  to: '/admin/visites' },
     { icon: 'document',     label: 'Contrats actifs',      value: s.contratsActifs,       total: s.totalContrats,        color: 'green',   to: '/admin/contrats' },
     { icon: 'target',       label: 'Leads en cours',       value: s.leadsEnCours,         total: s.totalLeads,           color: 'purple',  to: '/admin/leads' },
     { icon: 'alert',        label: 'Signalements ouverts', value: s.signalementsOuverts,  total: s.totalSignalements,    color: 'red',     to: '/admin/signalements' },
-    { icon: 'chat',         label: 'Discussions',          value: s.totalDiscussions,     total: null,                   color: 'teal',    to: '/admin/messages' },
-    { icon: 'people',       label: 'Administrateurs',      value: s.totalAdmins,          total: null,                   color: 'gray',    to: '/admin/administrateurs' },
+    { icon: 'chat', label: 'Discussions', value: s.totalDiscussions, total: null, color: 'teal', to: '/admin/messages' },
   ]
+  // Carte admins visible uniquement pour SUPER_ADMIN
+  if (authStore.role === 'SUPER_ADMIN') {
+    cards.push({ icon: 'people', label: 'Administrateurs', value: s.totalAdmins, total: null, color: 'gray', to: '/admin/administrateurs' })
+  }
+  return cards
 })
 
 const recentActivities = computed(() => stats.value?.activitesRecentes ?? [])
@@ -97,8 +150,8 @@ const shortcuts = [
 
     <div class="dash__header">
       <div>
-        <h1 class="dash__title">Tableau de bord</h1>
-        <p class="dash__sub">Bienvenue sur l'interface d'administration ImmoSN.</p>
+        <h1 class="dash__title">Bonjour, {{ authStore.user?.nomComplet?.split(' ')[0] }} 👋</h1>
+        <p class="dash__sub">{{ dateAujourdhui }}</p>
       </div>
       <div v-if="stats" class="dash__today">
         <span class="dash__today-label">Visites aujourd'hui</span>
@@ -199,32 +252,128 @@ const shortcuts = [
 .dash__empty   { padding: 2rem; text-align: center; font-size: .88rem; color: var(--color-text); opacity: .45; }
 
 /* Grille 8 stats */
-.dash__stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: .9rem; }
+.dash__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.75rem;
+}
 
 .stat-card {
-  background: var(--color-card); border-radius: var(--radius); padding: 1.1rem 1.25rem;
-  display: flex; align-items: center; gap: .9rem; box-shadow: var(--shadow-card);
-  text-decoration: none; border-left: 4px solid transparent;
-  transition: transform .15s, box-shadow .15s;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  padding: 0.9rem 1rem;
+  min-height: 85px;
+
+  background: #fff;
+  border: 1px solid #eef2f7;
+  border-radius: 16px;
+
+  text-decoration: none;
+  color: inherit;
+
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+  transition: all 0.25s ease;
 }
-.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-card-hover); }
-.stat-card__icon  { width: 2rem; height: 2rem; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-.stat-card__icon svg { width: 1.5rem; height: 1.5rem; }
-.stat-card__body  { min-width: 0; }
-.stat-card__row   { display: flex; align-items: baseline; gap: .25rem; }
-.stat-card__value { font-size: 1.4rem; font-weight: 800; color: var(--color-text); line-height: 1; }
-.stat-card__total { font-size: .75rem; color: var(--color-text); opacity: .4; }
-.stat-card__label { font-size: .73rem; color: var(--color-text); opacity: .55; margin-top: .15rem; }
 
-.stat-card--primary { border-left-color: var(--color-primary); }
-.stat-card--blue    { border-left-color: #3b82f6; }
-.stat-card--orange  { border-left-color: #f59e0b; }
-.stat-card--green   { border-left-color: #10b981; }
-.stat-card--purple  { border-left-color: #8b5cf6; }
-.stat-card--red     { border-left-color: #ef4444; }
-.stat-card--teal    { border-left-color: #14b8a6; }
-.stat-card--gray    { border-left-color: #6b7280; }
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12);
+}
 
+.stat-card__icon {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 12px;
+}
+
+.stat-card__icon svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.stat-card__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.stat-card__row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+
+.stat-card__value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #111827;
+}
+
+.stat-card__total {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #9ca3af;
+}
+
+.stat-card__label {
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+/* Couleurs */
+
+.stat-card--primary .stat-card__icon {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+.stat-card--blue .stat-card__icon {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.stat-card--orange .stat-card__icon {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.stat-card--green .stat-card__icon {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.stat-card--purple .stat-card__icon {
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+
+.stat-card--red .stat-card__icon {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.stat-card--teal .stat-card__icon {
+  background: #f0fdfa;
+  color: #0f766e;
+}
+
+.stat-card--gray .stat-card__icon {
+  background: #f3f4f6;
+  color: #4b5563;
+}
 /* Grille 2 colonnes */
 .dash__grid { display: grid; grid-template-columns: 1fr 300px; gap: 1.5rem; align-items: start; }
 

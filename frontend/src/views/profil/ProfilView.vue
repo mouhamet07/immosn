@@ -1,5 +1,16 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+
+// Formate le numéro en +221 XX XXX XX XX
+function formatTelephone(val) {
+  const digits = val.replace(/\D/g, '')
+  const local = digits.startsWith('221') ? digits.slice(3) : digits
+  const d = local.slice(0, 9)
+  if (d.length <= 2) return '+221 ' + d
+  if (d.length <= 5) return '+221 ' + d.slice(0,2) + ' ' + d.slice(2)
+  if (d.length <= 7) return '+221 ' + d.slice(0,2) + ' ' + d.slice(2,5) + ' ' + d.slice(5)
+  return '+221 ' + d.slice(0,2) + ' ' + d.slice(2,5) + ' ' + d.slice(5,7) + ' ' + d.slice(7,9)
+}
 import { Camera } from 'lucide-vue-next'
 import InputField from '@/components/InputField.vue'
 import ButtonPrimary from '@/components/ButtonPrimary.vue'
@@ -70,7 +81,7 @@ onMounted(() => {
   if (authStore.user) {
     formInfo.nomComplet = authStore.user.nomComplet || ''
     formInfo.email      = authStore.user.email      || ''
-    formInfo.telephone  = authStore.user.telephone  || ''
+    formInfo.telephone  = formatTelephone(authStore.user.telephone || '')
   }
 })
 
@@ -192,7 +203,7 @@ async function saveSecurite() {
               </div>
               <div class="avatar-info">
                 <p class="avatar-name">{{ authStore.user?.nomComplet }}</p>
-                <p class="avatar-hint">JPG, PNG ou WebP — max 2 Mo</p>
+
               </div>
             </div>
             <p class="profil-user__email">{{ authStore.user?.email }}</p>

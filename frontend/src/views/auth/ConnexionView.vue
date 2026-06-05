@@ -21,6 +21,13 @@ async function handleSubmit() {
   loading.value = true
   try {
     await authStore.login(form.email, form.motDePasse)
+    // FIX 2 : rediriger vers la page demandée avant la connexion
+    const redirect = localStorage.getItem('redirectAfterLogin')
+    if (redirect) {
+      localStorage.removeItem('redirectAfterLogin')
+      router.push(redirect)
+    }
+    // authStore.login gère déjà la redirection par rôle si pas de redirect
   } catch (err) {
     errors.global = err.response?.status === 401
       ? 'Email ou mot de passe incorrect.'

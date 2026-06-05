@@ -3,31 +3,27 @@ import { ref, computed, onMounted } from 'vue'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import commoditeService from '@/services/commoditeService'
 
-const allItems    = ref([])  // toutes les données brutes
-const loading     = ref(false)
-const activeFilter = ref('actifs') // 'tous' | 'actifs' | 'archives'
+const allItems     = ref([])
+const loading      = ref(false)
+const activeFilter = ref('actifs')
 const ITEMS_PER_PAGE = 10
-const currentPage = ref(1)
+const currentPage  = ref(1)
 
-// Modal création / édition
 const showModal    = ref(false)
 const editId       = ref(null)
 const modalLibelle = ref('')
 const saving       = ref(false)
 
-// Modal confirmation suppression
 const showConfirm = ref(false)
 const deleteId    = ref(null)
 const deleting    = ref(false)
 
-// Toast inline
 const toast = ref({ show: false, message: '', type: 'success' })
 function notify(message, type = 'success') {
   toast.value = { show: true, message, type }
   setTimeout(() => { toast.value.show = false }, 3000)
 }
 
-// Charger tous les items — filtrage côté frontend
 async function fetchItems() {
   loading.value = true
   try {
@@ -41,14 +37,12 @@ async function fetchItems() {
   }
 }
 
-// Filtrage côté frontend
 const filteredItems = computed(() => {
   if (activeFilter.value === 'actifs')   return allItems.value.filter(i => !i.isArchived)
   if (activeFilter.value === 'archives') return allItems.value.filter(i => i.isArchived)
   return allItems.value
 })
 
-// Pagination côté frontend
 const totalPages = computed(() => Math.ceil(filteredItems.value.length / ITEMS_PER_PAGE))
 const paginatedItems = computed(() => {
   const start = (currentPage.value - 1) * ITEMS_PER_PAGE
@@ -139,8 +133,8 @@ onMounted(() => fetchItems())
       </div>
       <div class="cm-toolbar__right">
         <div class="cm-filter">
-          <button class="cm-filter__btn" :class="{ 'cm-filter__btn--active': activeFilter === 'tous' }" @click="setFilter('tous')">Tous</button>
-          <button class="cm-filter__btn" :class="{ 'cm-filter__btn--active': activeFilter === 'actifs' }" @click="setFilter('actifs')">Actifs</button>
+          <button class="cm-filter__btn" :class="{ 'cm-filter__btn--active': activeFilter === 'tous' }"     @click="setFilter('tous')">Tous</button>
+          <button class="cm-filter__btn" :class="{ 'cm-filter__btn--active': activeFilter === 'actifs' }"   @click="setFilter('actifs')">Actifs</button>
           <button class="cm-filter__btn" :class="{ 'cm-filter__btn--active': activeFilter === 'archives' }" @click="setFilter('archives')">Archivés</button>
         </div>
         <button class="btn-primary" @click="openCreate">+ Nouvelle commodité</button>
@@ -205,10 +199,12 @@ onMounted(() => fetchItems())
     <div v-if="showConfirm" class="modal-overlay" @click.self="showConfirm = false">
       <div class="modal">
         <h2 class="modal__title">Archiver cette commodité ?</h2>
-        <p class="modal__body">Cette action est réversible.</p>
+        <p class="modal__body">Cette action est réversible. La commodité ne sera plus proposée lors de la création d'annonces.</p>
         <div class="modal__actions">
           <button class="btn-cancel" @click="showConfirm = false">Annuler</button>
-          <button class="btn-delete" :disabled="deleting" @click="doDelete">{{ deleting ? 'Archivage...' : 'Confirmer' }}</button>
+          <button class="btn-delete" :disabled="deleting" @click="doDelete">
+            {{ deleting ? 'Archivage...' : 'Confirmer' }}
+          </button>
         </div>
       </div>
     </div>
@@ -230,24 +226,33 @@ onMounted(() => fetchItems())
 .cm-filter__btn { padding: 0.45rem 0.9rem; font-size: 0.82rem; font-weight: 600; background: var(--color-card); color: var(--color-text-muted); border: none; cursor: pointer; transition: background 0.15s, color 0.15s; }
 .cm-filter__btn:hover { background: var(--color-hover-row); color: var(--color-text); }
 .cm-filter__btn--active { background: var(--color-primary); color: #fff; }
+
 .cm-card { background: var(--color-card); border-radius: var(--radius); box-shadow: var(--shadow-card); overflow: hidden; }
+
 .cm-table { width: 100%; border-collapse: collapse; }
 .cm-table th { padding: 0.75rem 1rem; text-align: left; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; background: var(--color-background); border-bottom: 1px solid var(--color-border); }
 .cm-table td { padding: 0.85rem 1rem; border-bottom: 1px solid var(--color-border); font-size: 0.88rem; color: var(--color-text); }
 .cm-table tbody tr:last-child td { border-bottom: none; }
 .cm-table tbody tr:hover { background: var(--color-hover-row); }
-.cm-id { color: #9ca3af; font-size: 0.8rem; } .cm-label { font-weight: 600; } .cm-actions { display: flex; gap: 0.5rem; }
+.cm-id    { color: #9ca3af; font-size: 0.8rem; }
+.cm-label { font-weight: 600; }
+.cm-actions { display: flex; gap: 0.5rem; }
+
 .badge { padding: 0.25rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
-.badge--success { background: #dcfce7; color: #16a34a; } .badge--neutral { background: #f3f4f6; color: #6b7280; }
+.badge--success { background: #dcfce7; color: #16a34a; }
+.badge--neutral { background: #f3f4f6; color: #6b7280; }
+
 .cm-pagination { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 1rem; border-top: 1px solid var(--color-border); }
 .cm-pagination button { width: 32px; height: 32px; border: 1px solid var(--color-border); border-radius: 6px; background: var(--color-card); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.82rem; transition: background .15s; }
 .cm-pagination button:hover:not(:disabled) { background: var(--color-hover-row); }
 .cm-pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
 .cm-page-btn { font-weight: 600; color: var(--color-text); }
 .cm-page-btn--active { background: var(--color-primary) !important; color: #fff !important; border-color: var(--color-primary) !important; }
+
 .cm-loading, .cm-empty { display: flex; align-items: center; justify-content: center; padding: 3rem; color: #6b7280; font-size: 0.9rem; }
 .spinner { width: 32px; height: 32px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 100; display: flex; align-items: center; justify-content: center; }
 .modal { background: var(--color-card); border-radius: var(--radius); padding: 2rem; width: 100%; max-width: 440px; box-shadow: 0 8px 32px rgba(0,0,0,.2); }
 .modal__title { font-size: 1.1rem; font-weight: 800; margin-bottom: 1.25rem; color: var(--color-text); }
@@ -261,14 +266,12 @@ onMounted(() => fetchItems())
 .btn-primary { padding: 0.55rem 1.1rem; background: var(--color-accent); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: background .15s; }
 .btn-primary:hover:not(:disabled) { background: var(--color-accent-hover); }
 .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
-.btn-edit { padding: 0.35rem 0.75rem; background: transparent; border: 1px solid var(--color-primary); color: var(--color-primary); border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+.btn-edit    { padding: 0.35rem 0.75rem; background: transparent; border: 1px solid var(--color-primary); color: var(--color-primary); border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
 .btn-edit:hover { background: rgba(74,124,111,.1); }
-.btn-delete { padding: 0.35rem 0.75rem; background: transparent; border: 1px solid #ef4444; color: #ef4444; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+.btn-delete  { padding: 0.35rem 0.75rem; background: transparent; border: 1px solid #ef4444; color: #ef4444; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
 .btn-delete:hover:not(:disabled) { background: rgba(239,68,68,.1); }
 .btn-delete:disabled { opacity: .6; cursor: not-allowed; }
 .btn-restore { padding: 0.35rem 0.75rem; background: transparent; border: 1px solid var(--color-primary); color: var(--color-primary); border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
-.btn-restore:hover { background: rgba(74,124,111,.1); }
-.btn-cancel { padding: 0.55rem 1rem; background: transparent; border: 1px solid var(--color-border); color: var(--color-text); border-radius: var(--radius-sm); font-size: 0.88rem; cursor: pointer; }
+.btn-cancel  { padding: 0.55rem 1rem; background: transparent; border: 1px solid var(--color-border); color: var(--color-text); border-radius: var(--radius-sm); font-size: 0.88rem; cursor: pointer; }
 .btn-cancel:hover { background: var(--color-hover-row); }
 </style>
-
