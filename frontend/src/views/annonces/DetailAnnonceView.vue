@@ -1,22 +1,28 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { Heart, Phone, Mail, Share2, FileText, Flag } from 'lucide-vue-next'
 import ButtonPrimary from '@/components/ButtonPrimary.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import annonceService from '@/services/annonceService'
+import favorisService from '@/services/favorisService'
 import discussionService from '@/services/discussionService'
 import { useAuthStore } from '@/stores/authStore'
+import { useToastStore } from '@/stores/toastStore'
 import placeholderImg from '@/assets/Penthouse.png'
 import LocationMap from '@/components/LocationMap.vue'
+import logoImg from '@/assets/logo nav 1 - orange 1.png'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
+const toastStore = useToastStore()
+
 const annonce = ref(null)
 const loading = ref(false)
 const error = ref('')
-const favoris = ref(false)
+const isFavori = ref(false)
 const imageActive = ref(0)
 
 // ── Modal visite ──────────────────────────────────────────
@@ -48,9 +54,20 @@ function closeVisiteModal() {
   visiteDate.value = ''; visiteComment.value = ''; visiteError.value = ''
 }
 
+// FIX 2 : wrapper avec sauvegarde de la destination pour redirect après connexion
+function handleReserverVisite() {
+  if (!authStore.isAuthenticated) {
+    localStorage.setItem('redirectAfterLogin', route.fullPath)
+    toastStore.info('Connectez-vous pour réserver une visite')
+    router.push('/connexion')
+    return
+  }
+  showVisiteModal.value = true
+  visiteSuccess.value = false
+}
+
 function openVisite() {
-  if (!authStore.isAuthenticated) { router.push({ name: 'connexion' }); return }
-  showVisiteModal.value = true; visiteSuccess.value = false
+  handleReserverVisite()
 }
 
 // ── Modal contact ──────────────────────────────────────────
@@ -67,14 +84,21 @@ const chatMessages = ref([])
 const newMessage = ref('')
 const sendingMessage = ref(false)
 
-async function openContact() {
+// FIX 2 : guard auth avec sauvegarde destination
+function handleContactAgent() {
   if (!authStore.isAuthenticated) {
-    router.push({ name: 'connexion' })
+    localStorage.setItem('redirectAfterLogin', route.fullPath)
+    toastStore.info("Connectez-vous pour contacter l'agence")
+    router.push('/connexion')
     return
   }
   showContactModal.value = true
   contactSuccess.value   = false
   contactError.value     = ''
+}
+
+async function openContact() {
+  handleContactAgent()
 }
 
 async function sendFirstMessage() {
@@ -130,11 +154,34 @@ function closeModal() {
   discussionId.value     = null
 }
 
+// FIX 3 : toggle favori via favorisService
+const toggleFavori = async () => {
+  if (!authStore.isAuthenticated) {
+    localStorage.setItem('redirectAfterLogin', route.fullPath)
+    router.push('/connexion')
+    return
+  }
+  try {
+    await favorisService.toggle(annonce.value.id)
+    isFavori.value = !isFavori.value
+    toastStore[isFavori.value ? 'success' : 'info'](
+      isFavori.value ? 'Ajouté aux favoris' : 'Retiré des favoris'
+    )
+  } catch {
+    toastStore.error('Erreur lors de la mise à jour des favoris')
+  }
+}
+
 onMounted(async () => {
   loading.value = true
   try {
     const response = await annonceService.getAnnonceById(route.params.id)
     annonce.value = response.data.data
+    // Vérifier si l'annonce est en favori pour l'utilisateur connecté
+    if (authStore.isAuthenticated) {
+      const res = await favorisService.checkFavoris(route.params.id)
+      isFavori.value = res.data?.data ?? false
+    }
   } catch {
     error.value = 'Annonce introuvable ou une erreur est survenue.'
   } finally {
@@ -175,8 +222,18 @@ function getImage(index) {
         <!-- Image principale -->
         <div class="detail-gallery__main">
           <img :src="getImage(imageActive)" :alt="annonce.libelle" class="detail-gallery__img" />
-          <button class="detail-gallery__fav" :class="{ 'detail-gallery__fav--active': favoris }" @click="favoris = !favoris">
-            <SvgIcon :name="favoris ? 'heart-filled' : 'heart'" :size="18" />
+          <!-- FIX 3 : Heart Lucide avec état favori réel -->
+          <button
+            class="detail-gallery__fav"
+            :class="{ 'detail-gallery__fav--active': isFavori }"
+            @click="toggleFavori"
+            :title="isFavori ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+          >
+            <Heart
+              :size="18"
+              :fill="isFavori ? 'var(--color-accent)' : 'none'"
+              :color="isFavori ? 'var(--color-accent)' : 'currentColor'"
+            />
           </button>
         </div>
         <!-- Miniatures empilées -->
@@ -265,38 +322,40 @@ function getImage(index) {
           </section>
         </div>
 
-        <!-- Sidebar agent -->
+        <!-- Sidebar agent — FIX 1 : branding ImmoSN -->
         <aside class="detail-sidebar">
-          <!-- Card agent -->
           <div class="detail-sidebar__card">
             <div class="detail-agent">
-              <div class="detail-agent__avatar">A</div>
+              <div class="agent-logo-wrapper">
+                <img :src="logoImg" alt="ImmoSN" class="agent-logo" />
+              </div>
               <div>
-                <p class="detail-agent__name">Aminata Diop</p>
-                <p class="detail-agent__role">PARTENAIRE LUXE SENIOR</p>
+                <p class="agent-name">ImmoSN</p>
+                <p class="agent-title">Agence Immobilière Sénégalaise</p>
               </div>
             </div>
 
             <div class="detail-sidebar__contact">
               <p class="detail-sidebar__contact-item">
-                <SvgIcon name="phone" :size="14" />
+                <Phone :size="15" color="var(--color-primary)" />
                 <a href="tel:+221770000000">+221 77 000 00 00</a>
               </p>
               <p class="detail-sidebar__contact-item">
-                <SvgIcon name="mail" :size="14" />
+                <Mail :size="15" color="var(--color-primary)" />
                 <a href="mailto:contact@immosn.sn">contact@immosn.sn</a>
               </p>
             </div>
 
+            <!-- FIX 2 : boutons avec guard auth -->
             <div class="detail-sidebar__actions">
-              <ButtonPrimary full-width @click="openContact">Contacter l'agent</ButtonPrimary>
-              <ButtonPrimary variant="outline" full-width @click="openVisite">Réserver une visite privée</ButtonPrimary>
+              <ButtonPrimary full-width @click="handleContactAgent">Contacter l'agent</ButtonPrimary>
+              <ButtonPrimary variant="outline" full-width @click="handleReserverVisite">Réserver une visite privée</ButtonPrimary>
             </div>
 
             <div class="detail-sidebar__links">
-              <a href="#" class="detail-sidebar__link"><SvgIcon name="share-2" :size="13" /> Partager</a>
-              <a href="#" class="detail-sidebar__link"><SvgIcon name="file-text" :size="13" /> Brochure</a>
-              <a href="#" class="detail-sidebar__link"><SvgIcon name="flag" :size="13" /> Signaler</a>
+              <button class="detail-sidebar__link"><Share2 :size="13" /> Partager</button>
+              <button class="detail-sidebar__link"><FileText :size="13" /> Brochure</button>
+              <button class="detail-sidebar__link"><Flag :size="13" /> Signaler</button>
             </div>
           </div>
 
@@ -610,47 +669,33 @@ function getImage(index) {
   box-shadow: var(--shadow-card);
 }
 
-/* Agent */
+/* Agent — branding ImmoSN */
 .detail-agent {
   display: flex; align-items: center; gap: 1rem;
   margin-bottom: 1.25rem;
 }
-.detail-agent__avatar {
-  width: 64px; height: 64px; border-radius: 50%;
-  background: var(--color-primary); color: #fff;
+.agent-logo-wrapper {
+  width: 56px; height: 56px; flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  background: var(--color-card);
   display: flex; align-items: center; justify-content: center;
-  font-size: 1.5rem; font-weight: 700; flex-shrink: 0;
+  overflow: hidden;
+  padding: 4px;
+  box-sizing: border-box;
 }
-.detail-agent__name {
-  font-family: var(--font-serif);
-  font-size: 1.1rem; font-weight: 600; color: var(--color-text);
-}
-.detail-agent__role {
+.agent-logo { width: 100%; height: 100%; object-fit: contain; }
+.agent-name { font-size: 1rem; font-weight: 600; color: var(--color-text); }
+.agent-title {
   font-size: 0.7rem; font-weight: 700;
-  letter-spacing: 0.08em; text-transform: uppercase;
-  color: var(--color-text-muted); margin-top: 0.2rem;
-}
-
-.detail-sidebar__contact {
-  display: flex; flex-direction: column; gap: 0.5rem;
-  margin-bottom: 1.25rem;
-}
-.detail-sidebar__contact-item {
-  display: flex; align-items: center; gap: 0.5rem;
-  font-size: 0.9rem; color: var(--color-text-muted);
-}
-.detail-sidebar__contact-item a { color: var(--color-primary); font-weight: 500; }
-.detail-sidebar__actions {
-  display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.25rem;
-}
-.detail-sidebar__links {
-  display: flex; justify-content: space-between;
-  padding-top: 0.75rem; border-top: 1px solid var(--color-border);
+  letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--color-primary); margin-top: 0.15rem;
 }
 .detail-sidebar__link {
   display: flex; align-items: center; gap: 0.3rem;
   font-size: 0.82rem; color: var(--color-text-muted);
   transition: color var(--transition);
+  background: none; border: none; cursor: pointer;
 }
 .detail-sidebar__link:hover { color: var(--color-primary); }
 
