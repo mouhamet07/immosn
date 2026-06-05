@@ -87,8 +87,8 @@ onMounted(() => fetchLeads(0))
         <p class="la-toolbar__count">{{ totalItems }} lead{{ totalItems !== 1 ? 's' : '' }}</p>
       </div>
       <div class="la-filters">
-        <button v-for="s in STATUTS" :key="s" class="la-filter-btn"
-          :class="{ '--active': filtreStatut === s }"
+        <button v-for="s in STATUTS" :key="s" class="filter-tab"
+          :class="{ active: filtreStatut === s }"
           @click="filtreStatut = s; fetchLeads(0)">
           {{ s ? STATUT_LABELS[s] : 'Tous' }}
         </button>
@@ -181,8 +181,9 @@ onMounted(() => fetchLeads(0))
 .la-toolbar__title { font-size: 1.4rem; font-weight: 800; color: var(--color-text); }
 .la-toolbar__count { font-size: .82rem; color: var(--color-text); opacity: .5; }
 .la-filters { display: flex; flex-wrap: wrap; gap: .4rem; }
-.la-filter-btn { padding: .3rem .8rem; border: 1.5px solid var(--color-border); border-radius: 20px; font-size: .78rem; background: var(--color-card); color: var(--color-text); cursor: pointer; transition: all .15s; }
-.la-filter-btn:hover, .la-filter-btn.--active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+.filter-tab { padding: 6px 16px; border-radius: 20px; border: 1px solid var(--color-border); background: var(--color-card); color: var(--color-text-secondary, #6B7280); font-size: 13px; cursor: pointer; transition: all 150ms ease; }
+.filter-tab:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.filter-tab.active { background: var(--color-primary); border-color: var(--color-primary); color: white; }
 
 .la-loading { display: flex; justify-content: center; padding: 4rem; }
 .la-empty { text-align: center; padding: 3rem; color: var(--color-text); opacity: .45; }
