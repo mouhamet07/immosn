@@ -132,7 +132,7 @@ const handleMainDrop = (event) => {
 const removeMainPhoto = () => { mainPhoto.value = null; mainPhotoPreview.value = null }
 
 const handleSubPhotos = (event) => {
-  const remaining = 10 - subPhotos.value.length
+  const remaining = 2 - subPhotos.value.length
   Array.from(event.target.files).slice(0, remaining).forEach(file => {
     if (file.size > 5 * 1024 * 1024) { toast.value?.show(`${file.name} trop lourd — ignoré`, 'error'); return }
     subPhotos.value.push({ file, preview: URL.createObjectURL(file) })
@@ -360,19 +360,19 @@ async function submit() {
             Photos supplémentaires
             <span class="optional-badge">Optionnel</span>
           </h4>
-          <p class="photo-hint">Ajoutez jusqu'à 10 photos supplémentaires pour mieux présenter le bien.</p>
+          <p class="photo-hint">Ajoutez jusqu'à 2 photos supplémentaires pour mieux présenter le bien.</p>
           <div class="sub-photos-grid">
             <div v-for="(photo, i) in subPhotos" :key="i" class="sub-photo-item">
               <img :src="photo.preview" alt="photo" />
               <button class="remove-photo" @click="removeSubPhoto(i)"><X :size="14" /></button>
             </div>
-            <div v-if="subPhotos.length < 10" class="upload-zone sub-zone" @click="$refs.subInput.click()">
+            <div v-if="subPhotos.length < 2" class="upload-zone sub-zone" @click="$refs.subInput.click()">
               <Plus :size="24" color="var(--color-primary)" />
               <span>Ajouter</span>
               <input ref="subInput" type="file" accept="image/jpeg,image/png,image/webp" multiple @change="handleSubPhotos" hidden />
             </div>
           </div>
-          <p class="photos-count">{{ subPhotos.length }} / 10 photos supplémentaires</p>
+          <p class="photos-count">{{ subPhotos.length }} / 2 photos supplémentaires</p>
         </div>
       </section>
 
