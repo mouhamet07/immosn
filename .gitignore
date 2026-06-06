@@ -12,7 +12,6 @@ backend/*.jar
 
 # ENV FILES
 .env
-*.env
 .env.dev
 
 # IDE / EDITORS
