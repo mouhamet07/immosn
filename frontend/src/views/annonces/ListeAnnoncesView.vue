@@ -32,26 +32,15 @@ const filtres = reactive({
   sortDir:       'DESC',
 })
 
-// Présets budget marché sénégalais
-const budgetPresets = [
-  { label: '< 150K',       min: 0,       max: 150000  },
-  { label: '150K — 300K', min: 150000,  max: 300000  },
-  { label: '300K — 600K', min: 300000,  max: 600000  },
-  { label: '600K — 1M',  min: 600000,  max: 1000000 },
-  { label: '> 1M',         min: 1000000, max: null    },
-]
 
-function applyBudgetPreset(preset) {
-  filtres.prixMin = preset.min
-  filtres.prixMax = preset.max
-}
-
-// Convertit la tranche de chambres en nbrMin/nbrMax pour l'API
+// Convertit la tranche de chambres en nbrPieces pour l'API (champ exact SearchAnnonceRequestDto)
 function parseChambresFilter(range) {
   if (!range) return {}
-  if (range === '10+') return { nbrPieces: 10 }
-  const [min] = range.split('-').map(Number)
-  return { nbrPieces: min }
+  if (range === '1-3')  return { nbrPieces: 1 }
+  if (range === '4-6')  return { nbrPieces: 4 }
+  if (range === '7-10') return { nbrPieces: 7 }
+  if (range === '10+')  return { nbrPieces: 10 }
+  return {}
 }
 
 function resetFiltres() {
@@ -68,13 +57,14 @@ async function fetchAnnonces(page = 0) {
   loading.value = true
   error.value   = ''
   try {
+    // Corps exact selon SearchAnnonceRequestDto du backend
     const body = { page, size: PAGE_SIZE, sortBy: filtres.sortBy, sortDir: filtres.sortDir }
-    if (filtres.typeBienId)       body.typeBienId = filtres.typeBienId
-    if (filtres.adresse?.trim())  body.adresse    = filtres.adresse.trim()
-    if (filtres.prixMin)          body.prixMin    = filtres.prixMin
-    if (filtres.prixMax)          body.prixMax    = filtres.prixMax
-    if (filtres.chambresRange)    Object.assign(body, parseChambresFilter(filtres.chambresRange))
-    if (selectedCommoditeIds.value.length) body.commoditeIds = selectedCommoditeIds.value
+    if (filtres.typeBienId)              body.typeBienId   = filtres.typeBienId
+    if (filtres.adresse?.trim())         body.adresse      = filtres.adresse.trim()
+    if (filtres.prixMin)                 body.prixMin      = filtres.prixMin
+    if (filtres.prixMax)                 body.prixMax      = filtres.prixMax
+    if (filtres.chambresRange)           Object.assign(body, parseChambresFilter(filtres.chambresRange))
+    if (selectedCommoditeIds.value.length > 0) body.commoditeIds = selectedCommoditeIds.value
 
     const response = await annonceService.searchAnnonces(body)
     const paged    = response.data
@@ -111,95 +101,62 @@ onMounted(async () => {
   <div class="liste-page">
     <main class="liste-main">
 
-      <!-- Hero -->
-      <div class="liste-hero">
-        <h1 class="liste-hero__title">Explorer les Propriétés</h1>
-        <p class="liste-hero__sub">
-          Découvrez notre sélection exclusive de biens immobiliers de luxe au Sénégal,
-          des villas côtières aux appartements contemporains.
-        </p>
-      </div>
+      <!-- Sous-titre page annonces -->
+      <p class="liste-hero__sub">
+        Découvrez notre sélection exclusive de biens immobiliers de luxe au Sénégal,
+        des villas côtières aux appartements contemporains.
+      </p>
 
-      <!-- Filtres horizontaux -->
+      <!-- Filtres compacts sur une ligne -->
       <div class="liste-filters">
-        <div class="filters-grid">
-          <div class="filter-field">
-            <label class="filter-label">Quartier</label>
-            <div class="filter-input-wrap">
-              <SvgIcon name="map-pin" :size="16" class="filter-icon" />
-              <input v-model="filtres.adresse" type="text" class="filter-input" placeholder="Almadies, Plateau…" />
-            </div>
-          </div>
-
-          <div class="filter-field">
-            <label class="filter-label">Type de bien</label>
-            <div class="filter-input-wrap">
-              <SvgIcon name="home" :size="16" class="filter-icon" />
-              <select v-model="filtres.typeBienId" class="filter-select">
-                <option :value="null">Tous types</option>
-                <option v-for="t in typesBien" :key="t.id" :value="t.id">{{ t.libelle }}</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- FIX 4 : budget min/max -->
-          <div class="filter-field">
-            <label class="filter-label">Budget min (FCFA)</label>
-            <input v-model.number="filtres.prixMin" type="number" class="filter-input filter-input--noicon" placeholder="Ex: 150 000" min="0" step="50000" />
-          </div>
-          <div class="filter-field">
-            <label class="filter-label">Budget max (FCFA)</label>
-            <input v-model.number="filtres.prixMax" type="number" class="filter-input filter-input--noicon" placeholder="Ex: 600 000" min="0" step="50000" />
-          </div>
-
-          <div class="filter-field">
-            <label class="filter-label">Chambres</label>
-            <div class="filter-input-wrap">
-              <SvgIcon name="bed" :size="16" class="filter-icon" />
-              <select v-model="filtres.chambresRange" class="filter-select">
-                <option value="">Toutes les chambres</option>
-                <option value="1-3">Studio — 1 à 3 pièces</option>
-                <option value="4-6">Appartement — 4 à 6 pièces</option>
-                <option value="7-10">Villa — 7 à 10 pièces</option>
-                <option value="10+">Domaine — 10 pièces et plus</option>
-              </select>
-            </div>
-          </div>
+        <div class="filter-input-wrap">
+          <SvgIcon name="map-pin" :size="14" class="filter-icon" />
+          <input v-model="filtres.adresse" type="text" class="filter-input" placeholder="Quartier..." />
         </div>
 
-        <!-- Présets budget -->
-        <div class="budget-presets">
-          <button
-            v-for="preset in budgetPresets"
-            :key="preset.label"
-            class="preset-btn"
-            :class="{ active: filtres.prixMin === preset.min && filtres.prixMax === preset.max }"
-            @click="applyBudgetPreset(preset)"
-          >
-            {{ preset.label }}
-          </button>
+        <div class="filter-input-wrap">
+          <SvgIcon name="home" :size="14" class="filter-icon" />
+          <select v-model="filtres.typeBienId" class="filter-select">
+            <option :value="null">Type de bien</option>
+            <option v-for="t in typesBien" :key="t.id" :value="t.id">{{ t.libelle }}</option>
+          </select>
         </div>
 
-        <!-- FIX 4 : commodités -->
-        <div v-if="commodites.length" class="commodites-filter">
-          <label class="filter-label">Équipements</label>
-          <div class="commodites-grid">
-            <label
-              v-for="c in commodites"
-              :key="c.id"
-              class="commodite-chip"
-              :class="{ selected: selectedCommoditeIds.includes(c.id) }"
-            >
-              <input type="checkbox" :value="c.id" v-model="selectedCommoditeIds" hidden />
-              {{ c.libelle }}
-            </label>
-          </div>
+        <input v-model.number="filtres.prixMin" type="number" class="filter-input filter-input--noicon" placeholder="Prix min" min="0" step="50000" />
+        <input v-model.number="filtres.prixMax" type="number" class="filter-input filter-input--noicon" placeholder="Prix max" min="0" step="50000" />
+
+        <div class="filter-input-wrap">
+          <SvgIcon name="bed" :size="14" class="filter-icon" />
+          <select v-model="filtres.chambresRange" class="filter-select">
+            <option value="">Pièces</option>
+            <option value="1-3">1 — 3 pièces</option>
+            <option value="4-6">4 — 6 pièces</option>
+            <option value="7-10">7 — 10 pièces</option>
+            <option value="10+">10+ pièces</option>
+          </select>
         </div>
 
         <button class="filters-btn" @click="fetchAnnonces(0)">
-          <SvgIcon name="search" :size="16" />
+          <SvgIcon name="search" :size="14" />
           Rechercher
         </button>
+
+        <button v-if="filtres.adresse || filtres.typeBienId || filtres.prixMin || filtres.prixMax || filtres.chambresRange || selectedCommoditeIds.length" class="filters-reset" @click="resetFiltres">
+          <SvgIcon name="x" :size="14" />
+        </button>
+      </div>
+
+      <!-- Filtres commodités sous la barre principale -->
+      <div v-if="commodites.length" class="commodites-filter">
+        <label
+          v-for="c in commodites"
+          :key="c.id"
+          class="commodite-chip"
+          :class="{ selected: selectedCommoditeIds.includes(c.id) }"
+        >
+          <input type="checkbox" :value="c.id" v-model="selectedCommoditeIds" hidden />
+          {{ c.libelle }}
+        </label>
       </div>
 
       <!-- Chargement -->
@@ -275,56 +232,39 @@ onMounted(async () => {
   padding: 2.5rem 1.5rem 4rem;
 }
 
-/* Hero */
-.liste-hero { margin-bottom: 2rem; }
-.liste-hero__title {
-  font-family: var(--font-serif);
-  font-size: 3rem;
-  font-weight: 700;
-  color: var(--color-primary);
-  line-height: 1.1;
-  margin-bottom: 0.5rem;
-}
+/* Sous-titre */
 .liste-hero__sub {
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   color: var(--color-text-muted);
   max-width: 600px;
   line-height: 1.6;
+  margin-bottom: 1.25rem;
 }
 
-/* Filtres */
+/* Filtres compacts sur une ligne */
 .liste-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  margin-bottom: 1rem;
   background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  padding: 1.25rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 2.5rem;
+  padding: 0.75rem 1rem;
   box-shadow: var(--shadow-card);
 }
-.filters-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 1rem;
-}
-.filter-field { display: flex; flex-direction: column; gap: 0.35rem; }
-.filter-label {
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
+
 .filter-input-wrap {
   position: relative;
   display: flex;
   align-items: center;
+  flex: 1;
+  min-width: 0;
 }
 .filter-icon {
   position: absolute;
-  left: 0.65rem;
+  left: 0.55rem;
   color: var(--color-text-muted);
   pointer-events: none;
   flex-shrink: 0;
@@ -332,51 +272,70 @@ onMounted(async () => {
 .filter-input,
 .filter-select {
   width: 100%;
-  padding: 0.6rem 0.75rem 0.6rem 2.2rem;
+  padding: 0.45rem 0.6rem 0.45rem 1.8rem;
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-background);
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   color: var(--color-text);
   transition: border-color 0.2s;
   appearance: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .filter-input--noicon {
-  padding-left: 0.75rem;
+  padding-left: 0.6rem;
+  flex: 1;
+  min-width: 80px;
 }
 .filter-input:focus,
-.filter-select:focus { border-color: var(--color-primary); }
+.filter-select:focus { border-color: var(--color-primary); outline: none; }
 
-/* Présets budget */
-.budget-presets {
+.filters-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0.45rem 0.9rem;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.filters-btn:hover { background: var(--color-primary-hover); }
+
+.filters-reset {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.filters-reset:hover { border-color: var(--color-accent); color: var(--color-accent); }
+
+/* Commodités sous la barre */
+.commodites-filter {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  margin-bottom: 1.5rem;
 }
-.preset-btn {
-  padding: 4px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: 20px;
-  font-size: 12px;
-  background: var(--color-card);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all 150ms ease;
-}
-.preset-btn:hover, .preset-btn.active {
-  border-color: var(--color-primary);
-  background: #E8F2EF;
-  color: var(--color-primary);
-}
-
-/* Commodités */
-.commodites-filter { display: flex; flex-direction: column; gap: 8px; }
-.commodites-grid { display: flex; flex-wrap: wrap; gap: 6px; }
 .commodite-chip {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 5px 10px;
+  padding: 4px 10px;
   border: 1px solid var(--color-border);
   border-radius: 20px;
   cursor: pointer;
@@ -386,28 +345,7 @@ onMounted(async () => {
   user-select: none;
 }
 .commodite-chip:hover { border-color: var(--color-primary); color: var(--color-primary); }
-.commodite-chip.selected {
-  border-color: var(--color-primary);
-  background: #E8F2EF;
-  color: var(--color-primary);
-}
-
-.filters-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.65rem 1.5rem;
-  background: var(--color-primary);
-  color: #fff;
-  border-radius: var(--radius-sm);
-  font-size: 0.9rem;
-  font-weight: 600;
-  white-space: nowrap;
-  transition: background 0.2s;
-  flex-shrink: 0;
-  align-self: flex-start;
-}
-.filters-btn:hover { background: var(--color-primary-hover); }
+.commodite-chip.selected { border-color: var(--color-primary); background: #E8F2EF; color: var(--color-primary); }
 
 /* Chargement */
 .liste-loading {
