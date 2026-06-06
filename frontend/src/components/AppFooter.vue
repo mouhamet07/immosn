@@ -1,37 +1,51 @@
+<script setup>
+// Année courante pour le copyright
+const currentYear = new Date().getFullYear()
+</script>
+
 <template>
-  <footer class="footer">
-    <span>ImmoSN © 2026</span>
-    <div class="footer__links">
-      <a href="#">Confidentialité</a>
-      <a href="#">Conditions</a>
-      <a href="#">Contact</a>
+  <footer class="app-footer">
+    <div class="footer-content">
+      <div class="footer-brand">
+        <img src="@/assets/logo nav 1 - orange 1.png" alt="ImmoSN" class="footer-logo" />
+        <p class="footer-tagline">© {{ currentYear }} ImmoSN. Immobilier Sénégalais Haut de Gamme.</p>
+      </div>
+      <div class="footer-links">
+        <a href="#">Politique de confidentialité</a>
+        <a href="#">Conditions d'utilisation</a>
+        <a href="#">Assistance</a>
+      </div>
     </div>
   </footer>
 </template>
 
 <style scoped>
-.footer {
-  background: #f9fafb;
+.app-footer {
+  background: var(--color-card);
   border-top: 1px solid var(--color-border);
-  padding: 1rem 2rem;
+  padding: 20px 32px;
+  margin-top: auto;
+}
+
+.footer-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.78rem;
-  color: var(--color-text);
-  opacity: 0.55;
+  flex-wrap: wrap;
+  gap: 12px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-.footer__links {
-  display: flex;
-  gap: 1.25rem;
-}
+.footer-logo { height: 28px; object-fit: contain; }
+.footer-tagline { font-size: 12px; color: var(--color-text-secondary, #6B7280); margin-top: 4px; }
 
-.footer a {
-  color: inherit;
+.footer-links { display: flex; gap: 20px; flex-wrap: wrap; }
+.footer-links a {
+  font-size: 12px;
+  color: var(--color-text-secondary, #6B7280);
+  text-decoration: none;
+  transition: color 150ms ease;
 }
-
-.footer a:hover {
-  text-decoration: underline;
-}
+.footer-links a:hover { color: var(--color-primary); }
 </style>

@@ -1,25 +1,3 @@
-# ImmoSN — Docker Compose PRODUCTION (VPS Linux)
-# Prérequis : fichier .env à la racine du projet avec :
-#   JWT_SECRET=<64 caractères minimum>
-#   DB_HOST=<ep-xxx.us-east-1.aws.neon.tech>
-#   DB_NAME=<neondb>
-#   DB_USER=<neondb_owner>
-#   DB_PASSWORD=<mot_de_passe_neon>
-#   CORS_ORIGINS=https://immosn.sn,https://www.immosn.sn
-#   SUPER_ADMIN_EMAIL=<email>
-#   SUPER_ADMIN_PASSWORD=<mot_de_passe_fort>
-#   SUPER_ADMIN_NOM=<nom>
-#   SUPER_ADMIN_TELEPHONE=<telephone>
-#   VITE_API_URL=/api/v1
-#   VITE_CLOUDINARY_CLOUD_NAME=<cloudinary_name>
-#   VITE_CLOUDINARY_UPLOAD_PRESET=<cloudinary_preset>
-# Utilisation :
-#   docker compose -f docker-compose.prod.yml up -d --build
-#   docker compose -f docker-compose.prod.yml logs -f backend
-# Logs accessibles sur le VPS :
-#   tail -f ./logs/immosn-app.log
-#   tail -f ./logs/immosn-errors.log
-
 services:
 
   # Backend Spring Boot (Neon PostgreSQL)

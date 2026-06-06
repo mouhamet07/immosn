@@ -1,6 +1,7 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
+import AppFooter from '@/components/AppFooter.vue'
 
 const authStore = useAuthStore()
 const form = reactive({ email: '', motDePasse: '' })
@@ -137,14 +138,7 @@ async function handleSubmit() {
     </div>
 
     <!-- Footer -->
-    <footer class="cx-footer">
-      <p class="cx-footer__copy">© 2024 ImmoSN. Immobilier de luxe au Sénégal.</p>
-      <div class="cx-footer__links">
-        <a href="#">Politique de confidentialité</a>
-        <a href="#">Conditions d'utilisation</a>
-        <a href="#">Assistance</a>
-      </div>
-    </footer>
+    <AppFooter />
   </div>
 </template>
 

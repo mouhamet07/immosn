@@ -213,18 +213,15 @@ onMounted(() => fetchItems())
 
 <style scoped>
 .cm-page { display: flex; flex-direction: column; gap: 1.5rem; position: relative; }
-
 .cm-toast { position: fixed; bottom: 2rem; right: 2rem; padding: 0.85rem 1.5rem; border-radius: 10px; font-size: 0.9rem; font-weight: 600; z-index: 200; box-shadow: 0 8px 24px rgba(0,0,0,.18); min-width: 260px; max-width: 380px; }
 .cm-toast--success { background: var(--color-primary); color: #fff; }
 .cm-toast--error   { background: var(--color-accent);  color: #fff; }
 .fade-enter-active, .fade-leave-active { transition: opacity .25s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
-
 .cm-toolbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 .cm-toolbar__title { font-size: 1.5rem; font-weight: 800; color: var(--color-text); }
 .cm-toolbar__count { font-size: 0.85rem; color: #6b7280; margin-top: 0.2rem; }
 .cm-toolbar__right { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
-
 .cm-filter { display: flex; border: 1px solid var(--color-border); border-radius: var(--radius-sm); overflow: hidden; }
 .cm-filter__btn { padding: 0.45rem 0.9rem; font-size: 0.82rem; font-weight: 600; background: var(--color-card); color: var(--color-text-muted); border: none; cursor: pointer; transition: background 0.15s, color 0.15s; }
 .cm-filter__btn:hover { background: var(--color-hover-row); color: var(--color-text); }
@@ -261,15 +258,13 @@ onMounted(() => fetchItems())
 .modal__title { font-size: 1.1rem; font-weight: 800; margin-bottom: 1.25rem; color: var(--color-text); }
 .modal__body  { font-size: 0.88rem; color: #6b7280; margin-bottom: 1.25rem; line-height: 1.5; }
 .modal__actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; }
-
 .field { display: flex; flex-direction: column; gap: 0.4rem; }
 .field__label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--color-text); }
 .req { color: var(--color-accent); }
 .field__input { padding: 0.7rem 0.9rem; border: 1.5px solid #e8e0d4; border-radius: var(--radius-sm); font-size: 0.9rem; color: var(--color-text); background: #fff; transition: border-color .2s; width: 100%; }
 .field__input:focus { border-color: var(--color-primary); outline: none; }
-
-.btn-primary { padding: 0.55rem 1.1rem; background: var(--color-primary); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: background .15s; }
-.btn-primary:hover:not(:disabled) { background: var(--color-primary-hover); }
+.btn-primary { padding: 0.55rem 1.1rem; background: var(--color-accent); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: background .15s; }
+.btn-primary:hover:not(:disabled) { background: var(--color-accent-hover); }
 .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
 .btn-edit    { padding: 0.35rem 0.75rem; background: transparent; border: 1px solid var(--color-primary); color: var(--color-primary); border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
 .btn-edit:hover { background: rgba(74,124,111,.1); }
@@ -277,7 +272,6 @@ onMounted(() => fetchItems())
 .btn-delete:hover:not(:disabled) { background: rgba(239,68,68,.1); }
 .btn-delete:disabled { opacity: .6; cursor: not-allowed; }
 .btn-restore { padding: 0.35rem 0.75rem; background: transparent; border: 1px solid var(--color-primary); color: var(--color-primary); border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
-.btn-restore:hover { background: rgba(74,124,111,.1); }
 .btn-cancel  { padding: 0.55rem 1rem; background: transparent; border: 1px solid var(--color-border); color: var(--color-text); border-radius: var(--radius-sm); font-size: 0.88rem; cursor: pointer; }
 .btn-cancel:hover { background: var(--color-hover-row); }
 </style>
