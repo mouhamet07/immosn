@@ -1,4 +1,5 @@
-﻿services:
+services:
+  # Backend Spring Boot (Neon PostgreSQL)
   backend:
     build: ./backend
     container_name: immosn-backend
@@ -24,16 +25,17 @@
       SUPER_ADMIN_TELEPHONE: ${SUPER_ADMIN_TELEPHONE}
       CONTRAT_EXPIRATION_CRON: ${CONTRAT_EXPIRATION_CRON:-0 5 0 * * *}
     volumes:
+      # Persistance des logs 
       - ./logs:/app/logs
     networks:
-      - app-network-prod
+      - app-network
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/v1/annonces"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 60s
-
+  # Nginx (frontend + reverse proxy SSL)
   nginx:
     build:
       context: .
@@ -42,7 +44,7 @@
         VITE_API_URL: ${VITE_API_URL:-/api/v1}
         VITE_CLOUDINARY_CLOUD_NAME: ${VITE_CLOUDINARY_CLOUD_NAME:-}
         VITE_CLOUDINARY_UPLOAD_PRESET: ${VITE_CLOUDINARY_UPLOAD_PRESET:-}
-    container_name: immosn-nginx-prod
+    container_name: immosn-nginx
     restart: unless-stopped
     ports:
       - "80:80"
@@ -53,8 +55,8 @@
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt:ro
     networks:
-      - app-network-prod
+      - app-network
 
 networks:
-  app-network-prod:
+  app-network:
     driver: bridge
