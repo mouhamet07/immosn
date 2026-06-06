@@ -150,7 +150,7 @@ const shortcuts = [
 
     <div class="dash__header">
       <div>
-        <h1 class="dash__title">Bonjour, {{ authStore.user?.nomComplet?.split(' ')[0] }} 👋</h1>
+        <h1 class="dash__title">Bonjour, {{ authStore.user?.nomComplet?.split(' ')[0] }} </h1>
         <p class="dash__sub">{{ dateAujourdhui }}</p>
       </div>
       <div v-if="stats" class="dash__today">
