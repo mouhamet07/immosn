@@ -1,5 +1,13 @@
 package sn.immosn.backend.client.web.annonce.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -31,27 +39,76 @@ import sn.immosn.backend.shared.response.RestResponse;
 @RequestMapping("/api/v1/commodites")
 @RequiredArgsConstructor
 @Validated
+@Tag(name = "COMMODITES", description = "Gestion du référentiel des commodités disponibles pour les annonces (piscine, garage, climatisation, etc.)")
 public class CommoditeController {
 
     private final CommoditeService commoditeService;
 
-    /**
-     * POST /api/v1/commodites
-     * Crée une nouvelle commodité (piscine, garage, jardin, climatisation, etc.)
-     */
+    @Operation(
+        summary = "Créer une commodité",
+        description = """
+            Ajoute une nouvelle commodité au référentiel de la plateforme.
+
+            Les commodités créées sont ensuite disponibles pour être associées aux annonces.
+            Exemples : Piscine, Garage, Climatisation, Jardin, Ascenseur, Gardiennage.
+
+            Le libellé doit être unique.
+
+            **Accès : ADMIN ou SUPER_ADMIN**
+            """,
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Commodité créée avec succès",
+            content = @Content(mediaType = "application/json",
+                examples = @ExampleObject(value = """
+                    {
+                      "success": true, "status": 201,
+                      "data": {"id": 5, "libelle": "Piscine", "isArchived": false}
+                    }"""))),
+        @ApiResponse(responseCode = "400", description = "Libellé manquant ou vide",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "409", description = "Une commodité avec ce libellé existe déjà",
+            content = @Content(mediaType = "application/json"))
+    })
     @PostMapping
     public ResponseEntity<RestResponse<CommoditeResponseDto>> create(
-        @RequestBody @Valid CommoditeRequestDto req) 
+        @RequestBody @Valid CommoditeRequestDto req)
     {
         return ResponseEntity
             .status(HttpStatus.CREATED)
             .body(RestResponse.success(commoditeService.createCommodite(req), HttpStatus.CREATED));
     }
 
-    /**
-     * GET /api/v1/commodites
-     * Récupère la liste de toutes les commodités actives disponibles
-     */
+    @Operation(
+        summary = "Lister toutes les commodités actives",
+        description = """
+            Retourne la liste complète (non paginée) de toutes les commodités **actives**.
+
+            Utilisé pour alimenter les formulaires de création/modification d'annonces
+            et les filtres de recherche multicritère.
+
+            **Accès : PUBLIC — aucun token requis**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Liste des commodités actives",
+            content = @Content(mediaType = "application/json",
+                examples = @ExampleObject(value = """
+                    {
+                      "success": true, "status": 200,
+                      "data": [
+                        {"id": 1, "libelle": "Climatisation", "isArchived": false},
+                        {"id": 2, "libelle": "Garage",        "isArchived": false},
+                        {"id": 3, "libelle": "Piscine",       "isArchived": false},
+                        {"id": 4, "libelle": "Gardiennage",   "isArchived": false}
+                      ]
+                    }""")))
+    })
     @GetMapping
     public ResponseEntity<RestResponse<List<CommoditeResponseDto>>> getAll() {
         return ResponseEntity
@@ -59,13 +116,25 @@ public class CommoditeController {
             .body(RestResponse.success(commoditeService.getAllCommodites(), HttpStatus.OK));
     }
 
-    /**
-     * GET /api/v1/commodites
-     * Récupère la liste de toutes les commodités pagines actif comme inactives disponibles
-     */
+    @Operation(
+        summary = "Lister toutes les commodités paginées (vue admin)",
+        description = """
+            Retourne la liste paginée de **toutes** les commodités — actives et archivées.
+
+            Utilisé par l'interface d'administration pour gérer le référentiel complet.
+
+            **Accès : PUBLIC (mais généralement appelé par les admins)**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Liste paginée des commodités (actives + archivées)",
+            content = @Content(mediaType = "application/json"))
+    })
     @GetMapping("/paged")
     public ResponseEntity<PagedResponse<CommoditeResponseDto>> getAllPaged(
+        @Parameter(description = "Numéro de page (commence à 0)", example = "0")
         @RequestParam(defaultValue = "0") int page,
+        @Parameter(description = "Nombre d'éléments par page", example = "10")
         @RequestParam(defaultValue = "10") int size
     ) {
         Pageable pageable = PageRequest.of(page, size);
@@ -75,12 +144,28 @@ public class CommoditeController {
             .body(PagedResponse.fromPage(result));
     }
 
-    /**
-     * GET /api/v1/commodites/{id}
-     * Récupère les détails d'une commodité spécifique
-     */
+    @Operation(
+        summary = "Détail d'une commodité",
+        description = """
+            Retourne les informations d'une commodité spécifique par son identifiant.
+
+            **Accès : PUBLIC — aucun token requis**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Commodité trouvée",
+            content = @Content(mediaType = "application/json",
+                examples = @ExampleObject(value = """
+                    {"success":true,"status":200,"data":{"id":3,"libelle":"Piscine","isArchived":false}}"""))),
+        @ApiResponse(responseCode = "400", description = "Identifiant invalide (null ou ≤ 0)",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Commodité non trouvée",
+            content = @Content(mediaType = "application/json"))
+    })
     @GetMapping("/{id}")
-    public ResponseEntity<RestResponse<CommoditeResponseDto>> getById(@PathVariable Long id) {
+    public ResponseEntity<RestResponse<CommoditeResponseDto>> getById(
+            @Parameter(description = "Identifiant de la commodité", required = true, example = "3")
+            @PathVariable Long id) {
         if (id == null || id <= 0) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(RestResponse.badRequest("Identifiant de commodité invalide", null));
@@ -90,12 +175,34 @@ public class CommoditeController {
             .body(RestResponse.success(commoditeService.getCommoditeById(id), HttpStatus.OK));
     }
 
-    /**
-     * PUT /api/v1/commodites/{id}
-     * Modifie complètement une commodité existante
-     */
+    @Operation(
+        summary = "Modifier une commodité",
+        description = """
+            Met à jour le libellé d'une commodité existante.
+
+            Le nouveau libellé doit être unique dans le référentiel.
+
+            **Accès : ADMIN ou SUPER_ADMIN**
+            """,
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Commodité modifiée avec succès",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Identifiant invalide ou libellé vide",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Commodité non trouvée",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "409", description = "Ce libellé est déjà utilisé par une autre commodité",
+            content = @Content(mediaType = "application/json"))
+    })
     @PutMapping("/{id}")
     public ResponseEntity<RestResponse<CommoditeResponseDto>> update(
+        @Parameter(description = "Identifiant de la commodité à modifier", required = true, example = "3")
         @PathVariable Long id,
         @RequestBody @Valid CommoditeRequestDto req) {
         if (id == null || id <= 0) {
@@ -107,12 +214,33 @@ public class CommoditeController {
             .body(RestResponse.success(commoditeService.updateCommodite(id, req), HttpStatus.OK));
     }
 
-    /**
-     * DELETE /api/v1/commodites/{id}
-     * Archive (soft delete) une commodité sans supprimer les données
-     */
+    @Operation(
+        summary = "Archiver une commodité (soft delete)",
+        description = """
+            Archive une commodité : elle n'apparaît plus dans la liste publique
+            mais les annonces qui l'utilisaient déjà la conservent.
+
+            La commodité peut être restaurée via `PATCH /{id}/restore`.
+
+            **Accès : ADMIN ou SUPER_ADMIN**
+            """,
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "Commodité archivée — aucun contenu retourné"),
+        @ApiResponse(responseCode = "400", description = "Identifiant invalide",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Commodité non trouvée",
+            content = @Content(mediaType = "application/json"))
+    })
     @DeleteMapping("/{id}")
-    public ResponseEntity<RestResponse<Void>> archive(@PathVariable Long id) {
+    public ResponseEntity<RestResponse<Void>> archive(
+            @Parameter(description = "Identifiant de la commodité à archiver", required = true, example = "3")
+            @PathVariable Long id) {
         if (id == null || id <= 0) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(RestResponse.badRequest("Identifiant de commodité invalide", null));
@@ -123,12 +251,31 @@ public class CommoditeController {
             .body(RestResponse.success(null, HttpStatus.NO_CONTENT));
     }
 
-    /**
-     * PATCH /api/v1/commodites/{id}/restore
-     * Restaure une commodité archivée — réservé ADMIN/SUPER_ADMIN
-     */
+    @Operation(
+        summary = "Restaurer une commodité archivée",
+        description = """
+            Réactive une commodité archivée. Elle redevient disponible pour les nouvelles annonces.
+
+            **Accès : ADMIN ou SUPER_ADMIN**
+            """,
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Commodité restaurée avec succès",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Identifiant invalide",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Commodité non trouvée",
+            content = @Content(mediaType = "application/json"))
+    })
     @PatchMapping("/{id}/restore")
-    public ResponseEntity<RestResponse<CommoditeResponseDto>> restore(@PathVariable Long id) {
+    public ResponseEntity<RestResponse<CommoditeResponseDto>> restore(
+            @Parameter(description = "Identifiant de la commodité à restaurer", required = true, example = "3")
+            @PathVariable Long id) {
         if (id == null || id <= 0) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(RestResponse.badRequest("Identifiant de commodité invalide", null));

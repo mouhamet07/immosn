@@ -1,5 +1,13 @@
 package sn.immosn.backend.client.web.lead.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -19,27 +27,128 @@ import sn.immosn.backend.shared.response.RestResponse;
 @RequestMapping("/api/v1/leads")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
+@Tag(name = "LEADS", description = "Gestion du pipeline commercial : qualification des prospects intéressés par une annonce, issus des visites")
+@SecurityRequirement(name = "bearerAuth")
 public class LeadController {
 
     private final LeadService service;
 
+    @Operation(
+        summary = "Créer un lead",
+        description = """
+            Crée un lead (prospect qualifié) pour un client qui a montré un intérêt sérieux
+            pour une annonce, généralement après une visite.
+
+            Le lead peut être lié à une demande de visite et sert d'étape intermédiaire
+            avant la création d'un contrat.
+
+            Statuts : `EN_COURS` → `CONVERTI` (contrat créé) ou `ABANDONNE`
+
+            **Accès : ADMIN uniquement**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Lead créé avec succès",
+            content = @Content(mediaType = "application/json",
+                examples = @ExampleObject(value = """
+                    {
+                      "success": true, "status": 201,
+                      "data": {
+                        "id": 3,
+                        "clientNom": "Aminata Diallo",
+                        "clientEmail": "aminata@immosn.sn",
+                        "annonceLibelle": "Villa F5 - Almadies",
+                        "annonceAdresse": "Route des Almadies",
+                        "visiteId": 12,
+                        "statut": "EN_COURS",
+                        "noteAdmin": "Cliente très intéressée, budget confirmé",
+                        "createdAt": "2024-01-22T10:00:00"
+                      }
+                    }"""))),
+        @ApiResponse(responseCode = "400", description = "Données invalides — client ou annonce manquant",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Client, annonce ou visite non trouvé",
+            content = @Content(mediaType = "application/json"))
+    })
     @PostMapping
     public ResponseEntity<RestResponse<LeadResponseDto>> create(@RequestBody @Valid LeadCreateRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(RestResponse.success(service.create(request), HttpStatus.CREATED));
     }
 
+    @Operation(
+        summary = "Lister tous les leads",
+        description = """
+            Retourne la liste paginée de tous les leads, triée par date de création décroissante.
+
+            Peut être filtrée par statut pour suivre le pipeline commercial :
+            `EN_COURS` | `CONVERTI` | `ABANDONNE`
+
+            **Accès : ADMIN uniquement**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Liste des leads",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+            content = @Content(mediaType = "application/json"))
+    })
     @GetMapping
     public ResponseEntity<PagedResponse<LeadResponseDto>> getAll(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) StatutLead statut) {
+            @Parameter(description = "Numéro de page", example = "0") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Taille de la page", example = "20") @RequestParam(defaultValue = "20") int size,
+            @Parameter(description = "Filtre optionnel par statut du lead") @RequestParam(required = false) StatutLead statut) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         return ResponseEntity.ok(PagedResponse.fromPage(service.getAll(statut, pageable)));
     }
 
+    @Operation(
+        summary = "Détail d'un lead",
+        description = """
+            Retourne les informations complètes d'un lead spécifique.
+
+            **Accès : ADMIN uniquement**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Détail du lead",
+            content = @Content(mediaType = "application/json",
+                examples = @ExampleObject(value = """
+                    {
+                      "success": true, "status": 200,
+                      "data": {
+                        "id": 3,
+                        "clientId": 42,
+                        "clientNom": "Aminata Diallo",
+                        "clientEmail": "aminata@immosn.sn",
+                        "annonceId": 15,
+                        "annonceLibelle": "Villa F5 - Almadies",
+                        "visiteId": 12,
+                        "statut": "EN_COURS",
+                        "noteAdmin": "Cliente très intéressée, budget confirmé",
+                        "createdAt": "2024-01-22T10:00:00",
+                        "updatedAt": "2024-01-22T10:00:00"
+                      }
+                    }"""))),
+        @ApiResponse(responseCode = "400", description = "Identifiant invalide",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Lead non trouvé",
+            content = @Content(mediaType = "application/json"))
+    })
     @GetMapping("/{id}")
-    public ResponseEntity<RestResponse<LeadResponseDto>> getById(@PathVariable Long id) {
+    public ResponseEntity<RestResponse<LeadResponseDto>> getById(
+            @Parameter(description = "Identifiant du lead", required = true, example = "3")
+            @PathVariable Long id) {
         if (id == null || id <= 0) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(RestResponse.badRequest("Identifiant de lead invalide", null));
@@ -47,8 +156,36 @@ public class LeadController {
         return ResponseEntity.ok(RestResponse.success(service.getById(id), HttpStatus.OK));
     }
 
+    @Operation(
+        summary = "Mettre à jour le statut d'un lead",
+        description = """
+            Change le statut d'un lead dans le pipeline commercial.
+
+            - `EN_COURS` → `CONVERTI` : lead transformé en contrat
+            - `EN_COURS` → `ABANDONNE` : prospect non concluant
+
+            Une note admin peut être mise à jour en même temps pour documenter la décision.
+
+            **Accès : ADMIN uniquement**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Statut du lead mis à jour",
+            content = @Content(mediaType = "application/json",
+                examples = @ExampleObject(value = """
+                    {"success":true,"status":200,"data":{"id":3,"statut":"CONVERTI","noteAdmin":"Contrat signé le 25/01/2024"}}"""))),
+        @ApiResponse(responseCode = "400", description = "Identifiant invalide",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Lead non trouvé",
+            content = @Content(mediaType = "application/json"))
+    })
     @PutMapping("/{id}/status")
     public ResponseEntity<RestResponse<LeadResponseDto>> updateStatut(
+            @Parameter(description = "Identifiant du lead", required = true, example = "3")
             @PathVariable Long id,
             @RequestBody @Valid UpdateStatutLeadDto dto) {
         if (id == null || id <= 0) {

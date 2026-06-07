@@ -1,5 +1,13 @@
 package sn.immosn.backend.client.web.visite.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -20,11 +28,51 @@ import java.security.Principal;
 @RestController
 @RequestMapping("/api/v1/visites")
 @RequiredArgsConstructor
+@Tag(name = "VISITES", description = "Gestion des demandes de visite immobilière : création, suivi des statuts et planification")
+@SecurityRequirement(name = "bearerAuth")
 public class DemandeVisiteController {
 
     private final DemandeVisiteService service;
 
-    /** POST /api/v1/visites — CLIENT : créer une demande */
+    @Operation(
+        summary = "Demander une visite",
+        description = """
+            Soumet une demande de visite pour une annonce spécifique.
+
+            La demande est créée avec le statut **EN_ATTENTE**.
+            L'administrateur peut ensuite l'accepter ou la refuser.
+
+            Statuts possibles : `EN_ATTENTE` → `ACCEPTEE` / `REFUSEE` / `ANNULEE` → `TERMINEE`
+
+            **Accès : CLIENT uniquement**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Demande de visite créée avec succès",
+            content = @Content(mediaType = "application/json",
+                examples = @ExampleObject(value = """
+                    {
+                      "success": true, "status": 201,
+                      "data": {
+                        "id": 12,
+                        "clientNom": "Aminata Diallo",
+                        "annonceLibelle": "Villa F5 - Almadies",
+                        "annonceAdresse": "Route des Almadies, Villa 12",
+                        "dateVisite": "2024-01-20T10:00:00",
+                        "statut": "EN_ATTENTE",
+                        "commentaire": "Je souhaite visiter avec mon architecte.",
+                        "createdAt": "2024-01-15T11:30:00"
+                      }
+                    }"""))),
+        @ApiResponse(responseCode = "400", description = "Données invalides — annonce ou date manquante",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle CLIENT requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Annonce non trouvée",
+            content = @Content(mediaType = "application/json"))
+    })
     @PostMapping
     @PreAuthorize("hasRole('CLIENT')")
     public ResponseEntity<RestResponse<DemandeVisiteResponseDto>> create(
@@ -37,33 +85,96 @@ public class DemandeVisiteController {
             .body(RestResponse.success(service.create(request, principal.getName()), HttpStatus.CREATED));
     }
 
-    /** GET /api/v1/visites/client — CLIENT : ses demandes */
+    @Operation(
+        summary = "Mes demandes de visite (vue client)",
+        description = """
+            Retourne la liste paginée des demandes de visite du client connecté,
+            triée par date de création décroissante.
+
+            Peut être filtrée par statut :
+            `EN_ATTENTE` | `ACCEPTEE` | `REFUSEE` | `ANNULEE` | `TERMINEE`
+
+            **Accès : CLIENT uniquement**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Liste des demandes de visite du client",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle CLIENT requis",
+            content = @Content(mediaType = "application/json"))
+    })
     @GetMapping("/client")
     @PreAuthorize("hasRole('CLIENT')")
     public ResponseEntity<PagedResponse<DemandeVisiteResponseDto>> getClientVisites(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) StatutDemandeVisite statut,
+            @Parameter(description = "Numéro de page", example = "0") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Taille de la page", example = "10") @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "Filtre optionnel par statut") @RequestParam(required = false) StatutDemandeVisite statut,
             Principal principal) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         return ResponseEntity.ok(PagedResponse.fromPage(
             service.getClientVisites(principal.getName(), statut, pageable)));
     }
 
-    /** GET /api/v1/visites/admin — ADMIN ou SUPER_ADMIN : toutes les demandes */
+    @Operation(
+        summary = "Toutes les demandes de visite (vue admin)",
+        description = """
+            Retourne la liste paginée de toutes les demandes de visite de la plateforme,
+            triée par date de création décroissante.
+
+            Peut être filtrée par statut pour faciliter la planification.
+
+            **Accès : ADMIN ou SUPER_ADMIN**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Liste de toutes les demandes de visite",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json"))
+    })
     @GetMapping("/admin")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<PagedResponse<DemandeVisiteResponseDto>> getAllVisites(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) StatutDemandeVisite statut) {
+            @Parameter(description = "Numéro de page", example = "0") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Taille de la page", example = "20") @RequestParam(defaultValue = "20") int size,
+            @Parameter(description = "Filtre optionnel par statut") @RequestParam(required = false) StatutDemandeVisite statut) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         return ResponseEntity.ok(PagedResponse.fromPage(service.getAllVisites(statut, pageable)));
     }
 
-    /** PUT /api/v1/visites/{id}/status — changer le statut */
+    @Operation(
+        summary = "Changer le statut d'une demande de visite",
+        description = """
+            Met à jour le statut d'une demande de visite.
+
+            **Règles selon le rôle :**
+            - **ADMIN/SUPER_ADMIN** : peut passer à `ACCEPTEE`, `REFUSEE`, `TERMINEE`
+            - **CLIENT** : peut seulement passer à `ANNULEE` (sa propre demande)
+
+            **Accès : CLIENT (annulation) ou ADMIN/SUPER_ADMIN (acceptation/refus/termination)**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Statut mis à jour avec succès",
+            content = @Content(mediaType = "application/json",
+                examples = @ExampleObject(value = """
+                    {"success":true,"status":200,"data":{"id":12,"statut":"ACCEPTEE","commentaire":"Confirmé pour samedi 10h"}}"""))),
+        @ApiResponse(responseCode = "400", description = "Identifiant invalide ou transition de statut non autorisée",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — opération non permise pour ce rôle",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Demande de visite non trouvée",
+            content = @Content(mediaType = "application/json"))
+    })
     @PutMapping("/{id}/status")
     public ResponseEntity<RestResponse<DemandeVisiteResponseDto>> updateStatut(
+            @Parameter(description = "Identifiant de la demande de visite", required = true, example = "12")
             @PathVariable Long id,
             @RequestBody @Valid UpdateStatutVisiteDto dto,
             Principal principal) {
@@ -80,10 +191,32 @@ public class DemandeVisiteController {
             service.updateStatut(id, dto, principal.getName(), isAdmin), HttpStatus.OK));
     }
 
-    /** PUT /api/v1/visites/{id}/date — ADMIN ou SUPER_ADMIN : modifier la date */
+    @Operation(
+        summary = "Modifier la date d'une visite",
+        description = """
+            Permet à un administrateur de reprogrammer la date d'une visite acceptée.
+
+            Utile pour les modifications de planning sans changer le statut de la demande.
+
+            **Accès : ADMIN ou SUPER_ADMIN**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Date de visite modifiée avec succès",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Identifiant invalide ou date invalide",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Demande de visite non trouvée",
+            content = @Content(mediaType = "application/json"))
+    })
     @PutMapping("/{id}/date")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<RestResponse<DemandeVisiteResponseDto>> updateDate(
+            @Parameter(description = "Identifiant de la demande de visite", required = true, example = "12")
             @PathVariable Long id,
             @RequestBody @Valid UpdateDateVisiteDto dto) {
         if (id == null || id <= 0) {
@@ -93,10 +226,33 @@ public class DemandeVisiteController {
         return ResponseEntity.ok(RestResponse.success(service.updateDate(id, dto), HttpStatus.OK));
     }
 
-    /** DELETE /api/v1/visites/{id} — CLIENT : annuler */
+    @Operation(
+        summary = "Annuler une demande de visite",
+        description = """
+            Permet au client d'annuler sa demande de visite en attente ou acceptée.
+
+            Le statut passe à **ANNULEE**. Une demande refusée ou déjà terminée
+            ne peut pas être annulée.
+
+            **Accès : CLIENT uniquement (sa propre demande)**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "Demande annulée avec succès — aucun contenu retourné"),
+        @ApiResponse(responseCode = "400", description = "Identifiant invalide ou annulation non possible",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle CLIENT requis ou demande appartenant à un autre client",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Demande de visite non trouvée",
+            content = @Content(mediaType = "application/json"))
+    })
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('CLIENT')")
-    public ResponseEntity<RestResponse<Void>> annuler(@PathVariable Long id, Principal principal) {
+    public ResponseEntity<RestResponse<Void>> annuler(
+            @Parameter(description = "Identifiant de la demande de visite à annuler", required = true, example = "12")
+            @PathVariable Long id, Principal principal) {
         if (id == null || id <= 0) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(RestResponse.badRequest("Identifiant de demande de visite invalide", null));

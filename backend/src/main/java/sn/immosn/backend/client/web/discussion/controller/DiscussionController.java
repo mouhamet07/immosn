@@ -1,5 +1,13 @@
 package sn.immosn.backend.client.web.discussion.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -20,14 +28,60 @@ import java.security.Principal;
 @RestController
 @RequestMapping("/api/v1/discussions")
 @RequiredArgsConstructor
+@Tag(name = "DISCUSSIONS", description = "Messagerie entre clients et agents immobiliers, organisée par annonce")
+@SecurityRequirement(name = "bearerAuth")
 public class DiscussionController {
 
     private final DiscussionService discussionService;
 
-    /**
-     * POST /api/v1/discussions
-     * Crée ou récupère une discussion depuis une annonce (CLIENT uniquement)
-     */
+    @Operation(
+        summary = "Démarrer ou récupérer une discussion",
+        description = """
+            Crée une discussion entre le client connecté et l'équipe ImmoSN à propos d'une annonce,
+            ou retourne la discussion existante si elle existe déjà (idempotent).
+
+            La contrainte d'unicité est `(client_id, annonce_id)` : un client ne peut avoir
+            qu'une seule discussion par annonce.
+
+            Le premier message est envoyé dans le corps de la requête.
+
+            **Accès : CLIENT uniquement**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Discussion créée (ou existante retournée) avec le premier message",
+            content = @Content(mediaType = "application/json",
+                examples = @ExampleObject(value = """
+                    {
+                      "success": true, "status": 201,
+                      "data": {
+                        "id": 7,
+                        "annonceId": 15,
+                        "annonceLibelle": "Villa F5 - Almadies",
+                        "clientNom": "Aminata Diallo",
+                        "messages": [
+                          {
+                            "id": 1,
+                            "contenu": "Bonjour, est-il possible de visiter cette villa ce weekend ?",
+                            "senderRole": "CLIENT",
+                            "senderName": "Aminata Diallo",
+                            "isRead": false,
+                            "createdAt": "2024-01-15T11:00:00"
+                          }
+                        ],
+                        "unreadCount": 0,
+                        "createdAt": "2024-01-15T11:00:00"
+                      }
+                    }"""))),
+        @ApiResponse(responseCode = "400", description = "Données invalides — annonce ou message manquant",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle CLIENT requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Annonce non trouvée",
+            content = @Content(mediaType = "application/json"))
+    })
     @PostMapping
     @PreAuthorize("hasRole('CLIENT')")
     public ResponseEntity<RestResponse<DiscussionResponseDto>> createOrGet(
@@ -43,41 +97,116 @@ public class DiscussionController {
             .body(RestResponse.success(dto, HttpStatus.CREATED));
     }
 
-    /**
-     * GET /api/v1/discussions/client
-     * Liste des discussions du client connecté
-     */
+    @Operation(
+        summary = "Mes discussions (vue client)",
+        description = """
+            Retourne la liste paginée des discussions du client connecté,
+            incluant le dernier message et le compteur de messages non lus par discussion.
+
+            **Accès : CLIENT uniquement**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Liste des discussions du client",
+            content = @Content(mediaType = "application/json",
+                examples = @ExampleObject(value = """
+                    {
+                      "content": [
+                        {
+                          "id": 7,
+                          "annonceLibelle": "Villa F5 - Almadies",
+                          "clientNom": "Aminata Diallo",
+                          "dernierMessage": "Bonjour, disponible samedi à 10h.",
+                          "dernierMessageRole": "ADMIN",
+                          "unreadCount": 1,
+                          "dernierMessageAt": "2024-01-15T14:30:00"
+                        }
+                      ],
+                      "page": 0, "size": 10, "totalElements": 3, "totalPages": 1, "last": true
+                    }"""))),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle CLIENT requis",
+            content = @Content(mediaType = "application/json"))
+    })
     @GetMapping("/client")
     @PreAuthorize("hasRole('CLIENT')")
     public ResponseEntity<PagedResponse<DiscussionListDto>> getClientDiscussions(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "Numéro de page", example = "0") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Taille de la page", example = "10") @RequestParam(defaultValue = "10") int size,
             Principal principal) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<DiscussionListDto> result = discussionService.getClientDiscussions(principal.getName(), pageable);
         return ResponseEntity.ok(PagedResponse.fromPage(result));
     }
 
-    /**
-     * GET /api/v1/discussions/admin
-     * Toutes les discussions (ADMIN ou SUPER_ADMIN)
-     */
+    @Operation(
+        summary = "Toutes les discussions (vue admin)",
+        description = """
+            Retourne la liste paginée de toutes les discussions de la plateforme,
+            avec les indicateurs de messages non lus pour chaque fil.
+
+            **Accès : ADMIN ou SUPER_ADMIN**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Liste de toutes les discussions",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json"))
+    })
     @GetMapping("/admin")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<PagedResponse<DiscussionListDto>> getAllDiscussions(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @Parameter(description = "Numéro de page", example = "0") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Taille de la page", example = "20") @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<DiscussionListDto> result = discussionService.getAllDiscussions(pageable);
         return ResponseEntity.ok(PagedResponse.fromPage(result));
     }
 
-    /**
-     * GET /api/v1/discussions/{id}/messages
-     * Récupère les messages d'une discussion (et marque les messages comme lus)
-     */
+    @Operation(
+        summary = "Lire les messages d'une discussion",
+        description = """
+            Retourne la discussion complète avec tous ses messages.
+
+            Les messages non lus sont automatiquement marqués comme lus lors de cet appel
+            (côté client pour l'admin, côté admin pour le client).
+
+            **Accès : CLIENT (ses discussions) ou ADMIN/SUPER_ADMIN (toutes)**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Discussion avec tous ses messages",
+            content = @Content(mediaType = "application/json",
+                examples = @ExampleObject(value = """
+                    {
+                      "success": true, "status": 200,
+                      "data": {
+                        "id": 7,
+                        "annonceLibelle": "Villa F5 - Almadies",
+                        "clientNom": "Aminata Diallo",
+                        "messages": [
+                          {"id": 1, "contenu": "Bonjour, disponible pour visiter ce weekend ?", "senderRole": "CLIENT", "isRead": true},
+                          {"id": 2, "contenu": "Bonjour, disponible samedi à 10h.", "senderRole": "ADMIN", "isRead": true}
+                        ],
+                        "unreadCount": 0
+                      }
+                    }"""))),
+        @ApiResponse(responseCode = "400", description = "Identifiant invalide",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — le client consulte une discussion qui n'est pas la sienne",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Discussion non trouvée",
+            content = @Content(mediaType = "application/json"))
+    })
     @GetMapping("/{id}/messages")
     public ResponseEntity<RestResponse<DiscussionResponseDto>> getMessages(
+            @Parameter(description = "Identifiant de la discussion", required = true, example = "7")
             @PathVariable Long id,
             Principal principal) {
         if (id == null || id <= 0) {
@@ -93,12 +222,44 @@ public class DiscussionController {
         return ResponseEntity.ok(RestResponse.success(dto, HttpStatus.OK));
     }
 
-    /**
-     * POST /api/v1/discussions/{id}/messages
-     * Envoie un message dans une discussion
-     */
+    @Operation(
+        summary = "Envoyer un message",
+        description = """
+            Envoie un nouveau message dans une discussion existante.
+
+            Le rôle de l'expéditeur (`senderRole`) est déterminé automatiquement
+            à partir du token JWT : `CLIENT` ou `ADMIN`.
+
+            **Accès : CLIENT (ses discussions) ou ADMIN/SUPER_ADMIN (toutes)**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Message envoyé avec succès",
+            content = @Content(mediaType = "application/json",
+                examples = @ExampleObject(value = """
+                    {
+                      "success": true, "status": 201,
+                      "data": {
+                        "id": 3,
+                        "contenu": "Parfait, nous confirmons le rendez-vous samedi 10h.",
+                        "senderRole": "ADMIN",
+                        "senderName": "Ibrahima Sow",
+                        "isRead": false,
+                        "createdAt": "2024-01-15T15:00:00"
+                      }
+                    }"""))),
+        @ApiResponse(responseCode = "400", description = "Identifiant invalide ou contenu du message vide",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — le client envoie dans une discussion qui n'est pas la sienne",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Discussion non trouvée",
+            content = @Content(mediaType = "application/json"))
+    })
     @PostMapping("/{id}/messages")
     public ResponseEntity<RestResponse<MessageResponseDto>> sendMessage(
+            @Parameter(description = "Identifiant de la discussion", required = true, example = "7")
             @PathVariable Long id,
             @RequestBody @Valid MessageCreateRequestDto request,
             Principal principal) {

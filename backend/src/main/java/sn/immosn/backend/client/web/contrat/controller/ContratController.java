@@ -1,5 +1,13 @@
 package sn.immosn.backend.client.web.contrat.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -20,11 +28,51 @@ import java.security.Principal;
 @RestController
 @RequestMapping("/api/v1/contrats")
 @RequiredArgsConstructor
+@Tag(name = "CONTRATS", description = "Gestion des contrats de location/vente : création, suivi des statuts, demandes de résiliation et de prolongation")
+@SecurityRequirement(name = "bearerAuth")
 public class ContratController {
 
     private final ContratService service;
 
-    /** POST — ADMIN : créer un contrat */
+    @Operation(
+        summary = "Créer un contrat",
+        description = """
+            Crée un nouveau contrat entre un client et une annonce.
+
+            Le contrat est créé avec le statut **EN_ATTENTE** par défaut.
+            Il peut optionnellement être lié à un lead et/ou une demande de visite.
+
+            Statuts possibles : `EN_ATTENTE` → `ACTIF` → `EXPIRE` / `RESILIE`
+
+            **Accès : ADMIN uniquement**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Contrat créé avec succès",
+            content = @Content(mediaType = "application/json",
+                examples = @ExampleObject(value = """
+                    {
+                      "success": true, "status": 201,
+                      "data": {
+                        "id": 8,
+                        "clientNom": "Aminata Diallo",
+                        "annonceLibelle": "Villa F5 - Almadies",
+                        "dateDebut": "2024-02-01",
+                        "dateFin": "2025-01-31",
+                        "montant": 450000,
+                        "statut": "EN_ATTENTE",
+                        "createdAt": "2024-01-20T14:00:00"
+                      }
+                    }"""))),
+        @ApiResponse(responseCode = "400", description = "Données invalides — champs obligatoires manquants",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Client, annonce ou lead non trouvé",
+            content = @Content(mediaType = "application/json"))
+    })
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<RestResponse<ContratResponseDto>> create(@RequestBody @Valid ContratCreateRequestDto request) {
@@ -32,33 +80,112 @@ public class ContratController {
             .body(RestResponse.success(service.create(request), HttpStatus.CREATED));
     }
 
-    /** GET /client — CLIENT : ses contrats */
+    @Operation(
+        summary = "Mes contrats (vue client)",
+        description = """
+            Retourne la liste paginée des contrats du client connecté,
+            triée par date de création décroissante.
+
+            Peut être filtrée par statut :
+            `EN_ATTENTE` | `ACTIF` | `EXPIRE` | `RESILIE` | `EN_ATTENTE_RESILIATION` | `PROLONGATION_EN_ATTENTE`
+
+            **Accès : CLIENT uniquement**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Liste des contrats du client",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle CLIENT requis",
+            content = @Content(mediaType = "application/json"))
+    })
     @GetMapping("/client")
     @PreAuthorize("hasRole('CLIENT')")
     public ResponseEntity<PagedResponse<ContratResponseDto>> getClientContrats(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) StatutContrat statut,
+            @Parameter(description = "Numéro de page", example = "0") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Taille de la page", example = "10") @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "Filtre optionnel par statut du contrat") @RequestParam(required = false) StatutContrat statut,
             Principal principal) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         return ResponseEntity.ok(PagedResponse.fromPage(
             service.getClientContrats(principal.getName(), statut, pageable)));
     }
 
-    /** GET /admin — ADMIN : tous les contrats */
+    @Operation(
+        summary = "Tous les contrats (vue admin)",
+        description = """
+            Retourne la liste paginée de tous les contrats de la plateforme,
+            triée par date de création décroissante.
+
+            Peut être filtrée par statut pour faciliter le suivi.
+
+            **Accès : ADMIN uniquement**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Liste complète des contrats",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+            content = @Content(mediaType = "application/json"))
+    })
     @GetMapping("/admin")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PagedResponse<ContratResponseDto>> getAllContrats(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) StatutContrat statut) {
+            @Parameter(description = "Numéro de page", example = "0") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Taille de la page", example = "20") @RequestParam(defaultValue = "20") int size,
+            @Parameter(description = "Filtre optionnel par statut") @RequestParam(required = false) StatutContrat statut) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         return ResponseEntity.ok(PagedResponse.fromPage(service.getAllContrats(statut, pageable)));
     }
 
-    /** GET /{id} */
+    @Operation(
+        summary = "Détail d'un contrat",
+        description = """
+            Retourne les informations complètes d'un contrat.
+
+            - Un **CLIENT** ne peut consulter que ses propres contrats
+            - Un **ADMIN** peut consulter tous les contrats
+
+            **Accès : CLIENT (ses contrats) ou ADMIN (tous)**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Détail du contrat",
+            content = @Content(mediaType = "application/json",
+                examples = @ExampleObject(value = """
+                    {
+                      "success": true, "status": 200,
+                      "data": {
+                        "id": 8,
+                        "clientId": 42,
+                        "clientNom": "Aminata Diallo",
+                        "annonceId": 15,
+                        "annonceLibelle": "Villa F5 - Almadies",
+                        "annonceAdresse": "Route des Almadies, Villa 12",
+                        "imagePrincipale": "https://storage.immosn.sn/annonces/15/img1.jpg",
+                        "dateDebut": "2024-02-01",
+                        "dateFin": "2025-01-31",
+                        "montant": 450000,
+                        "statut": "ACTIF",
+                        "documentUrl": "https://storage.immosn.sn/contrats/8.pdf",
+                        "notes": "Paiement mensuel le 1er du mois"
+                      }
+                    }"""))),
+        @ApiResponse(responseCode = "400", description = "Identifiant invalide",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — le client tente de consulter un contrat qui n'est pas le sien",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Contrat non trouvé",
+            content = @Content(mediaType = "application/json"))
+    })
     @GetMapping("/{id}")
     public ResponseEntity<RestResponse<ContratResponseDto>> getById(
+            @Parameter(description = "Identifiant du contrat", required = true, example = "8")
             @PathVariable Long id, Principal principal) {
         if (id == null || id <= 0) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -73,10 +200,33 @@ public class ContratController {
             service.getById(id, principal.getName(), isAdmin), HttpStatus.OK));
     }
 
-    /** PUT /{id} — ADMIN : modification */
+    @Operation(
+        summary = "Modifier un contrat",
+        description = """
+            Met à jour les informations d'un contrat existant.
+
+            Permet notamment de changer le statut, ajuster les dates, le montant
+            ou associer un document contractuel.
+
+            **Accès : ADMIN uniquement**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Contrat modifié avec succès",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Identifiant invalide ou données incorrectes",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Contrat non trouvé",
+            content = @Content(mediaType = "application/json"))
+    })
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<RestResponse<ContratResponseDto>> update(
+            @Parameter(description = "Identifiant du contrat à modifier", required = true, example = "8")
             @PathVariable Long id, @RequestBody @Valid ContratUpdateRequestDto request) {
         if (id == null || id <= 0) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -85,10 +235,35 @@ public class ContratController {
         return ResponseEntity.ok(RestResponse.success(service.update(id, request), HttpStatus.OK));
     }
 
-    /** PUT /{id}/resiliation — CLIENT : demande de résiliation */
+    @Operation(
+        summary = "Demander la résiliation d'un contrat",
+        description = """
+            Le client soumet une demande de résiliation de son contrat actif.
+
+            Le statut passe à **EN_ATTENTE_RESILIATION** et un motif peut être fourni.
+            L'administrateur traite ensuite la demande en modifiant le statut via `PUT /{id}`.
+
+            **Accès : CLIENT uniquement (son propre contrat)**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Demande de résiliation enregistrée — statut : EN_ATTENTE_RESILIATION",
+            content = @Content(mediaType = "application/json",
+                examples = @ExampleObject(value = """
+                    {"success":true,"status":200,"data":{"id":8,"statut":"EN_ATTENTE_RESILIATION"}}"""))),
+        @ApiResponse(responseCode = "400", description = "Identifiant invalide ou contrat non résiliable dans son état actuel",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle CLIENT requis ou contrat appartenant à un autre client",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Contrat non trouvé",
+            content = @Content(mediaType = "application/json"))
+    })
     @PutMapping("/{id}/resiliation")
     @PreAuthorize("hasRole('CLIENT')")
     public ResponseEntity<RestResponse<ContratResponseDto>> demanderResiliation(
+            @Parameter(description = "Identifiant du contrat", required = true, example = "8")
             @PathVariable Long id, @RequestBody ContratActionDto dto, Principal principal) {
         if (id == null || id <= 0) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -102,10 +277,36 @@ public class ContratController {
             service.demanderResiliation(id, dto, principal.getName()), HttpStatus.OK));
     }
 
-    /** PUT /{id}/prolongation — CLIENT : demande de prolongation */
+    @Operation(
+        summary = "Demander la prolongation d'un contrat",
+        description = """
+            Le client soumet une demande de prolongation de son contrat.
+
+            Le statut passe à **PROLONGATION_EN_ATTENTE**. Une nouvelle date de fin
+            peut être proposée dans le corps de la requête.
+            L'administrateur traite la demande via `PUT /{id}`.
+
+            **Accès : CLIENT uniquement (son propre contrat)**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Demande de prolongation enregistrée — statut : PROLONGATION_EN_ATTENTE",
+            content = @Content(mediaType = "application/json",
+                examples = @ExampleObject(value = """
+                    {"success":true,"status":200,"data":{"id":8,"statut":"PROLONGATION_EN_ATTENTE"}}"""))),
+        @ApiResponse(responseCode = "400", description = "Identifiant invalide ou contrat non prolongeable",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle CLIENT requis ou contrat appartenant à un autre client",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Contrat non trouvé",
+            content = @Content(mediaType = "application/json"))
+    })
     @PutMapping("/{id}/prolongation")
     @PreAuthorize("hasRole('CLIENT')")
     public ResponseEntity<RestResponse<ContratResponseDto>> demanderProlongation(
+            @Parameter(description = "Identifiant du contrat", required = true, example = "8")
             @PathVariable Long id, @RequestBody ContratActionDto dto, Principal principal) {
         if (id == null || id <= 0) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
