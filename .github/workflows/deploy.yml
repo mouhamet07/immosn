@@ -1,91 +1,71 @@
 name: Deploy ImmoSN
 
 on:
-push:
-branches:
-- master
+  push:
+    branches:
+      - master
 
 env:
-FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-deploy:
-runs-on: ubuntu-latest
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
+      - name: Setup SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keygen -y -f ~/.ssh/id_ed25519 > /dev/null
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
 
-steps:
-  - name: Checkout
-    uses: actions/checkout@v4
+      - name: Test SSH connection
+        run: |
+          ssh \
+            -i ~/.ssh/id_ed25519 \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "echo SSH connection successful"
 
-  - name: Setup SSH
-    env:
-      SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_KEY }}
-    run: |
-      mkdir -p ~/.ssh
-      chmod 700 ~/.ssh
-
-      echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
-      chmod 600 ~/.ssh/id_ed25519
-
-      ssh-keygen -y -f ~/.ssh/id_ed25519 > /dev/null
-
-      ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
-      chmod 644 ~/.ssh/known_hosts
-
-  - name: Test SSH connection
-    run: |
-      ssh \
-        -i ~/.ssh/id_ed25519 \
-        -o BatchMode=yes \
-        -o StrictHostKeyChecking=yes \
-        ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-        "echo SSH connection successful"
-
-  - name: Deploy to VPS
-    run: |
-      ssh \
-        -i ~/.ssh/id_ed25519 \
-        -o StrictHostKeyChecking=yes \
-        ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
-
-        set -e
-
-        cd /root/immosn
-
-        echo "=== Pull code ==="
-        git pull origin master
-
-        echo "=== Build containers ==="
-        docker compose up -d --build
-
-        echo "=== Wait backend startup ==="
-        sleep 40
-
-        echo "=== Healthcheck backend ==="
-
-        HEALTHY=false
-
-        for i in $(seq 1 20); do
-          STATUS=$(docker inspect --format='{{.State.Health.Status}}' immosn-backend 2>/dev/null || echo "starting")
-
-          echo "Attempt $i/20 - Status: $STATUS"
-
-          if [ "$STATUS" = "healthy" ]; then
-            HEALTHY=true
-            break
-          fi
-
-          sleep 10
-        done
-
-        if [ "$HEALTHY" != "true" ]; then
-          echo "=== DEPLOY FAILED ==="
-          docker logs immosn-backend --tail 100 || true
-          exit 1
-        fi
-
-        echo "=== DEPLOY SUCCESS ==="
-
-        docker image prune -f
-
-      EOF
+      - name: Deploy to VPS
+        run: |
+          ssh \
+            -i ~/.ssh/id_ed25519 \
+            -o StrictHostKeyChecking=yes \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+            set -e
+            cd /root/immosn
+            echo "=== Pull code ==="
+            git pull origin master
+            echo "=== Build containers ==="
+            docker compose up -d --build
+            echo "=== Wait backend startup ==="
+            sleep 40
+            echo "=== Healthcheck backend ==="
+            HEALTHY=false
+            for i in $(seq 1 20); do
+              STATUS=$(docker inspect --format='{{.State.Health.Status}}' immosn-backend 2>/dev/null || echo "starting")
+              echo "Attempt $i/20 - Status: $STATUS"
+              if [ "$STATUS" = "healthy" ]; then
+                HEALTHY=true
+                break
+              fi
+              sleep 10
+            done
+            if [ "$HEALTHY" != "true" ]; then
+              echo "=== DEPLOY FAILED ==="
+              docker logs immosn-backend --tail 100 || true
+              exit 1
+            fi
+            echo "=== DEPLOY SUCCESS ==="
+            docker image prune -f
+          EOF
