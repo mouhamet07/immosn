@@ -28,7 +28,8 @@ jobs:
           ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
             set -e
 
-            cd /var/www/immosn
+            PROJECT_DIR=/root/immosn
+            cd "$PROJECT_DIR"
 
             # Sauvegarder l'image actuelle pour rollback
             CURRENT_BACKEND=$(docker inspect --format='{{.Image}}' immosn-backend 2>/dev/null || echo "none")
@@ -38,7 +39,7 @@ jobs:
             git pull origin master
 
             echo "=== Build et démarrage ==="
-            docker compose up -d --build --force-recreate
+            docker compose -f "$PROJECT_DIR/docker-compose.yml" up -d --build --force-recreate
 
             echo "=== Vérification santé post-déploiement ==="
             # Attendre que le backend soit healthy (max 3 min)
