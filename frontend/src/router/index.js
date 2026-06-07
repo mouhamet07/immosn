@@ -59,6 +59,15 @@ const router = createRouter({
 router.beforeEach((to) => {
   const authStore = useAuthStore()
 
+  // Les annonces publiques ne doivent pas rester visibles pour un compte admin/super-admin
+  if (
+    authStore.isAuthenticated &&
+    (authStore.role === 'ADMIN' || authStore.role === 'SUPER_ADMIN') &&
+    (to.path === '/annonces' || to.path.startsWith('/annonces/'))
+  ) {
+    return { path: '/admin/dashboard' }
+  }
+
   if (!to.meta.requiresAuth) return true
 
   if (!authStore.isAuthenticated) {

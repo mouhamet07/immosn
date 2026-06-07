@@ -7,7 +7,7 @@ import { useFavorisStore } from '@/stores/favorisStore'
 import { useAuthStore }   from '@/stores/authStore'
 
 const props = defineProps({
-  id:           { type: Number, required: true },
+  id:           { type: [Number, String], required: true },
   title:        { type: String, required: true },
   prix:         { type: Number, required: true },
   images:       { type: Array,  default: () => [] },
@@ -23,8 +23,9 @@ const router       = useRouter()
 const favorisStore = useFavorisStore()
 const authStore    = useAuthStore()
 
-const isFavori   = computed(() => favorisStore.isFavori(props.id))
-const showFavBtn = computed(() => authStore.isAuthenticated)
+const normalizedId = computed(() => Number(props.id))
+const isFavori      = computed(() => favorisStore.isFavori(normalizedId.value))
+const showFavBtn    = computed(() => authStore.isAuthenticated)
 
 function formatPrix(prix) {
   return new Intl.NumberFormat('fr-SN').format(prix) + ' FCFA'
@@ -33,11 +34,11 @@ function formatPrix(prix) {
 async function toggleFavoris(e) {
   e.stopPropagation()
   if (!showFavBtn.value) return
-  await favorisStore.toggle(props.id)
+  await favorisStore.toggle(normalizedId.value)
 }
 
 function goToDetail() {
-  router.push({ name: 'detail-annonce', params: { id: props.id } })
+  router.push({ name: 'detail-annonce', params: { id: String(normalizedId.value) } })
 }
 </script>
 
