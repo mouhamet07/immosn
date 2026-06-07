@@ -20,7 +20,6 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import org.hibernate.annotations.BatchSize;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -29,8 +28,8 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "annonces")
 @Data
-@NoArgsConstructor 
-@AllArgsConstructor 
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 public class Annonce {
     @Id
@@ -77,8 +76,6 @@ public class Annonce {
         joinColumns = @JoinColumn(name = "annonce_id")
     )
     @Column(name = "image_url")
-    // Charge les images de 20 annonces en 1 requête IN au lieu de N requêtes individuelles
-    @BatchSize(size = 20)
     private List<String> images = new ArrayList<>();
 
     @Builder.Default

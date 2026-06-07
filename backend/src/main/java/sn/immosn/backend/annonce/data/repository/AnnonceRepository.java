@@ -4,8 +4,6 @@ import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -17,21 +15,8 @@ import sn.immosn.backend.annonce.data.entity.Annonce;
 @Repository
 public interface AnnonceRepository extends JpaRepository<Annonce, Long>, JpaSpecificationExecutor<Annonce> {
 
-    // --- Liste publique : élimine le N+1 sur typeBien ---
-    // images chargées en batch via @BatchSize(size=20) sur Annonce.images
-    @EntityGraph(attributePaths = {"typeBien"})
+    // Liste paginée des annonces actives (soft delete : archived = false)
     Page<Annonce> findByIsArchivedFalse(Pageable pageable);
-
-    // --- Vue admin (toutes annonces) : même optimisation ---
-    @Override
-    @EntityGraph(attributePaths = {"typeBien"})
-    Page<Annonce> findAll(Pageable pageable);
-
-    // --- Recherche avancée (Specification) : élimine le N+1 sur typeBien ---
-    // @EntityGraph appliqué ici — jamais dans la Specification (créerait un double join)
-    @Override
-    @EntityGraph(attributePaths = {"typeBien"})
-    Page<Annonce> findAll(Specification<Annonce> spec, Pageable pageable);
 
     // Recherche simple par libelle ou adresse (insensible à la casse)
     Page<Annonce> findByIsArchivedFalseAndLibelleContainingIgnoreCase(
