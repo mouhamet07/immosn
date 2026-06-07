@@ -50,10 +50,10 @@ public class AnnonceSpecification {
                     Subquery<Long> sub = query.subquery(Long.class);
                     Root<AnnonceCommodite> acRoot = sub.from(AnnonceCommodite.class);
                     sub.select(acRoot.get("annonce").get("id"))
-                       .where(
-                           cb.equal(acRoot.get("annonce").get("id"), root.get("id")),
-                           cb.equal(acRoot.get("commodite").get("id"), commoditeId)
-                       );
+                        .where(
+                            cb.equal(acRoot.get("annonce").get("id"), root.get("id")),
+                            cb.equal(acRoot.get("commodite").get("id"), commoditeId)
+                        );
                     predicates.add(cb.exists(sub));
                 }
             }

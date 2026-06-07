@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { Wrench } from 'lucide-vue-next'
 import signalementService from '@/services/signalementService'
 import contratService from '@/services/contratService'
+import FilterSelect from '@/components/FilterSelect.vue'
 
 const signalements = ref([])
 const loading      = ref(false)
@@ -20,6 +21,7 @@ const formError  = ref('')
 
 const STATUTS = ['', 'OUVERT', 'EN_COURS', 'RESOLU', 'FERME']
 const STATUT_LABELS = { OUVERT: 'Ouvert', EN_COURS: 'En cours', RESOLU: 'Résolu', FERME: 'Fermé' }
+const filterOptions = STATUTS.map(s => ({ value: s, label: s ? STATUT_LABELS[s] : 'Tous les statuts' }))
 const STATUT_COLORS = { OUVERT: 'badge--warning', EN_COURS: 'badge--info', RESOLU: 'badge--success', FERME: 'badge--neutral' }
 
 async function fetchSignalements(page = 0) {
@@ -75,13 +77,12 @@ onMounted(() => fetchSignalements(0))
         <button class="ms-header__btn" @click="openForm">+ Nouveau signalement</button>
       </div>
 
-      <div class="ms-filters">
-        <button v-for="s in STATUTS" :key="s" class="ms-filter-btn"
-          :class="{ '--active': filtreStatut === s }"
-          @click="filtreStatut = s; fetchSignalements(0)">
-          {{ s ? STATUT_LABELS[s] : 'Tous' }}
-        </button>
-      </div>
+      <FilterSelect
+        style="margin-bottom: 1.5rem"
+        :model-value="filtreStatut"
+        :options="filterOptions"
+        @update:model-value="(v) => { filtreStatut = v; fetchSignalements(0) }"
+      />
 
       <div v-if="loading" class="ms-loading"><div class="spinner"></div></div>
       <div v-else-if="error" class="ms-error">{{ error }}</div>
@@ -158,9 +159,6 @@ onMounted(() => fetchSignalements(0))
 .ms-header__btn { padding: .6rem 1.2rem; background: var(--color-primary); color: #fff; border-radius: var(--radius-sm); font-weight: 600; font-size: .88rem; border: none; cursor: pointer; transition: opacity .2s; }
 .ms-header__btn:hover { opacity: .85; }
 
-.ms-filters { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.5rem; }
-.ms-filter-btn { padding: .35rem .9rem; border: 1.5px solid var(--color-border); border-radius: 20px; font-size: .8rem; background: var(--color-card); color: var(--color-text); cursor: pointer; transition: all .15s; }
-.ms-filter-btn:hover, .ms-filter-btn.--active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
 
 .ms-loading { display: flex; justify-content: center; padding: 4rem; }
 .ms-error { text-align: center; padding: 2rem; color: var(--color-accent); }

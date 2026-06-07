@@ -3,6 +3,8 @@ package sn.immosn.backend.annonce.data.entity;
 import java.io.Serializable;
 import java.util.Objects;
 
+import lombok.Data;
+@Data
 public class AnnonceCommoditeId implements Serializable {
     private Long annonce;
     private Long commodite;
@@ -12,23 +14,6 @@ public class AnnonceCommoditeId implements Serializable {
 
     public AnnonceCommoditeId(Long annonce, Long commodite) {
         this.annonce = annonce;
-        this.commodite = commodite;
-    }
-
-    // Getters and setters
-    public Long getAnnonce() {
-        return annonce;
-    }
-
-    public void setAnnonce(Long annonce) {
-        this.annonce = annonce;
-    }
-
-    public Long getCommodite() {
-        return commodite;
-    }
-
-    public void setCommodite(Long commodite) {
         this.commodite = commodite;
     }
 
