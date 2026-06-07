@@ -1,38 +1,46 @@
 <script setup>
 import { ref, reactive } from 'vue'
-import { useAuthStore } from '@/stores/authStore'
+import { useAuthStore }  from '@/stores/authStore'
+import { useToastStore } from '@/stores/toastStore'
+import { AUTH_MESSAGES, getErrorMessage } from '@/utils/messages'
 import AppFooter from '@/components/AppFooter.vue'
 
-const authStore = useAuthStore()
-const form = reactive({ email: '', motDePasse: '' })
+const authStore  = useAuthStore()
+const toastStore = useToastStore()
+
+const form   = reactive({ email: '', motDePasse: '' })
 const errors = reactive({ email: '', motDePasse: '', global: '' })
-const loading = ref(false)
+const loading     = ref(false)
 const showPassword = ref(false)
 
 function validate() {
   let valid = true
   errors.email = ''; errors.motDePasse = ''; errors.global = ''
   if (!form.email.includes('@')) { errors.email = 'Adresse e-mail invalide.'; valid = false }
-  if (!form.motDePasse) { errors.motDePasse = 'Le mot de passe est requis.'; valid = false }
+  if (!form.motDePasse)          { errors.motDePasse = 'Le mot de passe est requis.'; valid = false }
   return valid
 }
 
 async function handleSubmit() {
   if (!validate()) return
   loading.value = true
+  errors.global = ''
   try {
     await authStore.login(form.email, form.motDePasse)
-    // FIX 2 : rediriger vers la page demandée avant la connexion
-    const redirect = localStorage.getItem('redirectAfterLogin')
-    if (redirect) {
-      localStorage.removeItem('redirectAfterLogin')
-      router.push(redirect)
+    // Redirect handled by authStore (role-based) + redirectAfterLogin in localStorage
+    const role = authStore.role
+    if (role === 'SUPER_ADMIN') {
+      toastStore.success(AUTH_MESSAGES.loginSuccessSuperAdmin)
+    } else if (role === 'ADMIN') {
+      toastStore.success(AUTH_MESSAGES.loginSuccessAdmin)
+    } else {
+      toastStore.success(AUTH_MESSAGES.loginSuccessClient)
     }
-    // authStore.login gère déjà la redirection par rôle si pas de redirect
   } catch (err) {
-    errors.global = err.response?.status === 401
-      ? 'Email ou mot de passe incorrect.'
-      : (err.response?.data?.message || 'Une erreur est survenue. Veuillez réessayer.')
+    // 401 au login = mauvais identifiants (pas session expirée)
+    errors.global = err?.response?.status === 401
+      ? AUTH_MESSAGES.invalidCredentials
+      : getErrorMessage(err)
   } finally {
     loading.value = false
   }
@@ -290,7 +298,7 @@ async function handleSubmit() {
 .cx-submit {
   width: 100%;
   padding: 1rem;
-  background: #316357;
+  background: var(--color-primary);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -304,7 +312,7 @@ async function handleSubmit() {
   transition: background 0.2s, transform 0.1s;
   box-shadow: 0 1px 4px rgba(0,0,0,0.1);
 }
-.cx-submit:hover:not(:disabled) { background: #1b4f44; }
+.cx-submit:hover:not(:disabled) { background: var(--color-primary-hover); }
 .cx-submit:active:not(:disabled) { transform: scale(0.98); }
 .cx-submit:disabled { opacity: 0.6; cursor: not-allowed; }
 

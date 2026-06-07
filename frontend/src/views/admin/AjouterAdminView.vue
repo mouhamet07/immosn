@@ -281,7 +281,7 @@ async function handleSubmit() {
 
 .field__hint {
   font-size: 0.78rem;
-  color: #6B7280;
+  color: var(--color-text-secondary);
   font-style: italic;
 }
 

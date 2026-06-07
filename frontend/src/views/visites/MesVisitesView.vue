@@ -199,7 +199,7 @@ onMounted(() => fetchVisites(0))
   padding: 4rem 2rem; text-align: center;
 }
 .mv-empty__title { font-size: 1rem; font-weight: 700; color: var(--color-text); }
-.mv-empty__desc { font-size: 0.85rem; color: var(--color-text-secondary, #6B7280); line-height: 1.5; max-width: 360px; }
+.mv-empty__desc { font-size: 0.85rem; color: var(--color-text-secondary); line-height: 1.5; max-width: 360px; }
 .mv-empty__btn {
   display: flex; align-items: center; gap: 6px;
   padding: .6rem 1.2rem; background: var(--color-primary); color: #fff;
