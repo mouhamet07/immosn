@@ -33,7 +33,7 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "-O", "/dev/null", "http://localhost:8080/api/v1/annonces"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/api/v1/annonces || exit 1"]
       interval: 20s
       timeout: 15s
       retries: 5

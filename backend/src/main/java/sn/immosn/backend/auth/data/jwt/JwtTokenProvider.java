@@ -10,6 +10,8 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
+import jakarta.annotation.PostConstruct;
+
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -29,14 +31,21 @@ public class JwtTokenProvider {
 
     private final BlacklistedTokenRepository blacklistedTokenRepository;
 
+    // Clé HMAC-SHA mise en cache au démarrage — évite de recréer l'objet à chaque requête
+    private SecretKey signingKey;
+
     public JwtTokenProvider(BlacklistedTokenRepository blacklistedTokenRepository) {
         this.blacklistedTokenRepository = blacklistedTokenRepository;
+    }
+
+    @PostConstruct
+    private void initSigningKey() {
+        this.signingKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
 
     public String generateToken(UserDetails user) {
         Date issuedAt = new Date();
         Date expiration = new Date(issuedAt.getTime() + jwtExpiration);
-        SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("roles", user.getAuthorities().stream()
@@ -48,18 +57,12 @@ public class JwtTokenProvider {
                 .setSubject(user.getUsername())
                 .setIssuedAt(issuedAt)
                 .setExpiration(expiration)
-                .signWith(key)
+                .signWith(signingKey)
                 .compact();
     }
 
     public String getUserNameFromToken(String token) {
-        SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-        return claims.getSubject();
+        return parseClaims(token).getSubject();
     }
 
     /**
@@ -67,13 +70,8 @@ public class JwtTokenProvider {
      * Remplace l'ancienne version retournant Date (@Temporal déprécié depuis JPA 3.2).
      */
     public LocalDateTime getExpirationDateFromToken(String token) {
-        SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-        return claims.getExpiration()
+        return parseClaims(token)
+                .getExpiration()
                 .toInstant()
                 .atZone(ZoneId.systemDefault())
                 .toLocalDateTime();
@@ -84,14 +82,21 @@ public class JwtTokenProvider {
             if (blacklistedTokenRepository.existsByToken(token)) {
                 return false;
             }
-            SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
             Jwts.parserBuilder()
-                    .setSigningKey(key)
+                    .setSigningKey(signingKey)
                     .build()
                     .parseClaimsJws(token);
             return true;
         } catch (Exception e) {
             return false;
         }
+    }
+
+    private Claims parseClaims(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(signingKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
     }
 }

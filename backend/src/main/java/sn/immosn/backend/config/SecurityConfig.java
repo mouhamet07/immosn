@@ -107,6 +107,9 @@ public class SecurityConfig {
             }))
             .authorizeHttpRequests(authz -> authz
 
+                // ── Actuator health : accessible sans auth (Docker healthcheck) ─
+                .requestMatchers("/actuator/health").permitAll()
+
                 // ── Auth : public ───────────────────────────────────────
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
@@ -160,8 +163,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/signalements/**").authenticated()
                 .requestMatchers("/api/v1/favoris/**").authenticated()
 
-                // ── H2 console : développement uniquement ───────────────
-                .requestMatchers("/h2-console/**").permitAll()
+                // ── H2 console : autorisé uniquement si h2ConsoleEnabled (profil dev) ─
+                .requestMatchers("/h2-console/**")
+                    .access((auth, ctx) -> new org.springframework.security.authorization.AuthorizationDecision(h2ConsoleEnabled))
 
                 // ── Deny-by-default : tout le reste exige authentification
                 .anyRequest().authenticated()
