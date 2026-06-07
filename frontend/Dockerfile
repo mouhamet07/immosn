@@ -1,9 +1,18 @@
-FROM node:20 AS build
+﻿# Build stage
+FROM node:20-alpine AS build
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 COPY . .
+ARG VITE_API_URL=/api/v1
+ARG VITE_CLOUDINARY_CLOUD_NAME=
+ARG VITE_CLOUDINARY_UPLOAD_PRESET=
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_CLOUDINARY_CLOUD_NAME=$VITE_CLOUDINARY_CLOUD_NAME
+ENV VITE_CLOUDINARY_UPLOAD_PRESET=$VITE_CLOUDINARY_UPLOAD_PRESET
 RUN npm run build
+
+# Serve stage
 FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80

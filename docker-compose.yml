@@ -1,45 +1,41 @@
 services:
-
   # Backend Spring Boot (Neon PostgreSQL)
   backend:
     build: ./backend
-    container_name: immosn-backend-prod
-    restart: always
+    container_name: immosn-backend
+    restart: unless-stopped
+    env_file:
+      - .env
     environment:
       SPRING_PROFILES_ACTIVE: neon
+      SERVER_PORT: 8080
+      LOG_PATH: /app/logs
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
-      SERVER_PORT: 8080
       CORS_ORIGINS: ${CORS_ORIGINS}
       DB_HOST: ${DB_HOST}
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
-      DDL_AUTO: ${DDL_AUTO:-update}
+      DDL_AUTO: ${DDL_AUTO:-validate}
       SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL}
       SUPER_ADMIN_PASSWORD: ${SUPER_ADMIN_PASSWORD}
       SUPER_ADMIN_NOM: ${SUPER_ADMIN_NOM}
       SUPER_ADMIN_TELEPHONE: ${SUPER_ADMIN_TELEPHONE}
       CONTRAT_EXPIRATION_CRON: ${CONTRAT_EXPIRATION_CRON:-0 5 0 * * *}
-      # Dossier de logs dans le conteneur — monté en volume ci-dessous
-      LOG_PATH: /app/logs
     volumes:
       # Persistance des logs 
-      # ./logs sur le VPS ↔ /app/logs dans le conteneur
-      # Les logs survivent aux redémarrages, mises à jour et suppressions de conteneur
       - ./logs:/app/logs
-    ports:
-      - "8080:8080"
     networks:
-      - app-network-prod
+      - app-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/v1/annonces"]
+      # /actuator/health répond en <1s sans requête DB — évite timeout HikariCP > timeout Docker
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/actuator/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 60s
-
+      start_period: 90s
   # Nginx (frontend + reverse proxy SSL)
   nginx:
     build:
@@ -49,17 +45,19 @@ services:
         VITE_API_URL: ${VITE_API_URL:-/api/v1}
         VITE_CLOUDINARY_CLOUD_NAME: ${VITE_CLOUDINARY_CLOUD_NAME:-}
         VITE_CLOUDINARY_UPLOAD_PRESET: ${VITE_CLOUDINARY_UPLOAD_PRESET:-}
-    container_name: immosn-nginx-prod
-    restart: always
+    container_name: immosn-nginx
+    restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
     depends_on:
       backend:
         condition: service_healthy
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     networks:
-      - app-network-prod
+      - app-network
 
 networks:
-  app-network-prod:
+  app-network:
     driver: bridge
