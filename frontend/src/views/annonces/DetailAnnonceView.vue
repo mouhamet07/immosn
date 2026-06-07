@@ -348,8 +348,8 @@ function getImage(index) {
 
             <!-- FIX 2 : boutons avec guard auth -->
             <div class="detail-sidebar__actions">
-              <ButtonPrimary full-width @click="handleContactAgent">Contacter l'agent</ButtonPrimary>
-              <ButtonPrimary variant="outline" full-width @click="handleReserverVisite">Réserver une visite privée</ButtonPrimary>
+              <ButtonPrimary full-width @click="openContact">Contacter l'agent</ButtonPrimary>
+              <ButtonPrimary variant="outline" full-width @click="openVisite">Réserver une visite privée</ButtonPrimary>
             </div>
 
             <div class="detail-sidebar__links">
