@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import visiteService from '@/services/visiteService'
+import FilterSelect from '@/components/FilterSelect.vue'
 
 const visites     = ref([])
 const loading     = ref(false)
@@ -19,6 +20,7 @@ const dateComment   = ref('')
 const STATUTS       = ['', 'EN_ATTENTE', 'ACCEPTEE', 'REFUSEE', 'ANNULEE', 'TERMINEE']
 const STATUT_LABELS = { EN_ATTENTE: 'En attente', ACCEPTEE: 'Acceptée', REFUSEE: 'Refusée', ANNULEE: 'Annulée', TERMINEE: 'Terminée' }
 const STATUT_COLORS = { EN_ATTENTE: 'badge--warning', ACCEPTEE: 'badge--success', REFUSEE: 'badge--danger', ANNULEE: 'badge--neutral', TERMINEE: 'badge--info' }
+const filterOptions = STATUTS.map(s => ({ value: s, label: s ? STATUT_LABELS[s] : 'Toutes les visites' }))
 
 async function fetchVisites(page = 0) {
   loading.value = true
@@ -71,13 +73,11 @@ onMounted(() => fetchVisites(0))
         <h1 class="va-toolbar__title">Demandes de visites</h1>
         <p class="va-toolbar__count">{{ totalItems }} demande{{ totalItems !== 1 ? 's' : '' }}</p>
       </div>
-      <div class="va-filters">
-        <button v-for="s in STATUTS" :key="s" class="filter-tab"
-          :class="{ active: filtreStatut === s }"
-          @click="filtreStatut = s; fetchVisites(0)">
-          {{ s ? STATUT_LABELS[s] : 'Toutes' }}
-        </button>
-      </div>
+      <FilterSelect
+        :model-value="filtreStatut"
+        :options="filterOptions"
+        @update:model-value="(v) => { filtreStatut = v; fetchVisites(0) }"
+      />
     </div>
 
     <div v-if="loading" class="va-loading"><div class="spinner"></div></div>
@@ -158,11 +158,6 @@ onMounted(() => fetchVisites(0))
 .va-toolbar { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
 .va-toolbar__title { font-size: 1.4rem; font-weight: 800; color: var(--color-text); }
 .va-toolbar__count { font-size: .82rem; color: var(--color-text); opacity: .5; margin-top: .15rem; }
-.va-filters { display: flex; flex-wrap: wrap; gap: .4rem; }
-.filter-tab { padding: 6px 16px; border-radius: 20px; border: 1px solid var(--color-border); background: var(--color-card); color: var(--color-text-secondary); font-size: 13px; cursor: pointer; transition: all 150ms ease; }
-.filter-tab:hover { border-color: var(--color-primary); color: var(--color-primary); }
-.filter-tab.active { background: var(--color-primary); border-color: var(--color-primary); color: white; }
-
 .va-loading { display: flex; justify-content: center; padding: 4rem; }
 .va-empty { text-align: center; padding: 3rem; color: var(--color-text); opacity: .45; }
 
