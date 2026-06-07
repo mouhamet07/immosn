@@ -15,9 +15,7 @@ import java.time.LocalDateTime;
 public class BlacklistedTokenCleanupJob {
 
     private static final Logger log = LoggerFactory.getLogger(BlacklistedTokenCleanupJob.class);
-
     private final BlacklistedTokenRepository blacklistedTokenRepository;
-
     @Scheduled(cron = "0 0 2 * * *")
     @Transactional
     public void purgeExpiredTokens() {
