@@ -1,5 +1,6 @@
 package sn.immosn.backend.shared.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -10,8 +11,8 @@ public record PagedResponse <T>(
     int totalPages,
     int currentPage,
     int pageSize,
-    boolean isFirst,
-    boolean isLast
+    @JsonProperty("isFirst") boolean isFirst,
+    @JsonProperty("isLast") boolean isLast
 ) {
     public static <T> PagedResponse<T> fromPage(Page<T> page){
         return new PagedResponse<>(
