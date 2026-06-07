@@ -20,18 +20,6 @@ public class AnnonceSpecification {
             // Exclure les annonces archivées
             predicates.add(cb.isFalse(root.get("isArchived")));
 
-            // JOIN FETCH typeBien uniquement pour la requête principale (pas la requête count).
-            // Élimine le N+1 : 1 JOIN au lieu de N SELECT typeBien pour N annonces.
-            // La requête count (Long.class) ne doit pas avoir de fetch — cela provoquerait une erreur JPA.
-            boolean isCountQuery = Long.class.equals(query.getResultType());
-            if (!isCountQuery) {
-                root.fetch("typeBien", JoinType.LEFT);
-                query.distinct(true);
-            } else {
-                // Pour la requête count, un simple join suffit pour les prédicats typeBienId
-                root.join("typeBien", JoinType.LEFT);
-            }
-
             if (req.typeBienId() != null) {
                 predicates.add(cb.equal(root.get("typeBien").get("id"), req.typeBienId()));
             }
