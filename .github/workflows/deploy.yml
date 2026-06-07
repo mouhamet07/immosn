@@ -7,40 +7,31 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
-
       # Ajouter l'empreinte du VPS au known_hosts — supprime StrictHostKeyChecking=no (MITM risk)
       - name: Add VPS to known_hosts
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
-
       - name: Deploy to VPS
         run: |
           ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
             set -e
-
             PROJECT_DIR=/root/immosn
             cd "$PROJECT_DIR"
-
             # Sauvegarder l'image actuelle pour rollback
             CURRENT_BACKEND=$(docker inspect --format='{{.Image}}' immosn-backend 2>/dev/null || echo "none")
             CURRENT_NGINX=$(docker inspect --format='{{.Image}}' immosn-nginx 2>/dev/null || echo "none")
-
             echo "=== Pull du code ==="
             git pull origin master
-
             echo "=== Build et démarrage ==="
             docker compose -f "$PROJECT_DIR/docker-compose.yml" up -d --build --force-recreate
-
             echo "=== Vérification santé post-déploiement ==="
             # Attendre que le backend soit healthy (max 3 min)
             RETRIES=18
@@ -49,7 +40,6 @@ jobs:
               sleep 10
               RETRIES=$((RETRIES-1))
             done
-
             if [ $RETRIES -eq 0 ]; then
               echo "=== ECHEC : backend non healthy — ROLLBACK ==="
               # Revenir aux images précédentes si disponibles
@@ -59,10 +49,8 @@ jobs:
               fi
               exit 1
             fi
-
             echo "=== Déploiement réussi — nettoyage images non utilisées ==="
             # Purge uniquement les images sans tag (dangling) — pas les conteneurs actifs
             docker image prune -f
-
             echo "=== Done ==="
           EOF
