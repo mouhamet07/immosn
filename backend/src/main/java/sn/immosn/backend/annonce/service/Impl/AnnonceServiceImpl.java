@@ -75,7 +75,7 @@ public class AnnonceServiceImpl implements AnnonceService {
     @Override
     @Transactional(readOnly = true)
     public AnnonceResponseDto getAnnonceById(Long id) {
-        Annonce annonce = annonceRepository.findByIdAndIsArchivedFalse(id)
+        Annonce annonce = annonceRepository.findAnnonceByIdWithImages(id)
             .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée : id=" + id));
         return annonceMapper.toResponse(annonce);
     }

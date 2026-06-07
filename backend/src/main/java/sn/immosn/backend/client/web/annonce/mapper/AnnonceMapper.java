@@ -1,5 +1,6 @@
 package sn.immosn.backend.client.web.annonce.mapper;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -39,7 +40,7 @@ public class AnnonceMapper {
             a.getAnnonceCommodites().stream()
                 .map(ac -> commoditeMapper.toResponse(ac.getCommodite()))
                 .collect(Collectors.toList()),
-            a.getImages(),
+            a.getImages() != null ? new ArrayList<>(a.getImages()) : new ArrayList<>(),
             a.isArchived(),
             a.getCreatedAt(),
             a.getUpdatedAt()

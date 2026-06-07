@@ -42,6 +42,18 @@ public interface AnnonceRepository extends JpaRepository<Annonce, Long>, JpaSpec
     // Vérifie l'existence d'une annonce non archivée
     boolean existsByIdAndIsArchivedFalse(Long id);
 
-    // getById active
+    // getById active (used for archivage check, no fetch join needed)
     Optional<Annonce> findByIdAndIsArchivedFalse(Long id);
+
+    // Detail view: fetches typeBien, annonceCommodites and their commodite in one query.
+    // Images (ElementCollection) cannot be joined here without MultipleBagFetchException;
+    // they are initialized within the open @Transactional session in the service layer.
+    @Query("""
+        SELECT DISTINCT a FROM Annonce a
+        LEFT JOIN FETCH a.typeBien
+        LEFT JOIN FETCH a.annonceCommodites ac
+        LEFT JOIN FETCH ac.commodite
+        WHERE a.id = :id AND a.isArchived = false
+        """)
+    Optional<Annonce> findAnnonceByIdWithImages(@Param("id") Long id);
 }
