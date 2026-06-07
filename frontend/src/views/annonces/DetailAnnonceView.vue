@@ -66,10 +66,6 @@ function handleReserverVisite() {
   visiteSuccess.value = false
 }
 
-function openVisite() {
-  handleReserverVisite()
-}
-
 // ── Modal contact ──────────────────────────────────────────
 const showContactModal = ref(false)
 const contactMessage = ref('')
@@ -95,10 +91,6 @@ function handleContactAgent() {
   showContactModal.value = true
   contactSuccess.value   = false
   contactError.value     = ''
-}
-
-async function openContact() {
-  handleContactAgent()
 }
 
 async function sendFirstMessage() {
@@ -782,6 +774,34 @@ function getImage(index) {
 .modal-chat__hint { text-align: center; font-size: 0.78rem; color: var(--color-text-muted); padding: 0.5rem 1.5rem 1rem; }
 .modal-chat__hint a { color: var(--color-primary); font-weight: 600; }
 
+/* Sidebar contact / actions / links — manquaient */
+.detail-sidebar__contact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.detail-sidebar__contact-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+.detail-sidebar__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+.detail-sidebar__links {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .detail-bento { grid-template-columns: repeat(2, 1fr); }
@@ -793,8 +813,15 @@ function getImage(index) {
   .detail-sidebar { position: static; }
 }
 @media (max-width: 600px) {
+  .detail-main { padding: 1rem 1rem 3rem; }
   .detail-header { flex-direction: column; }
   .detail-header__prix { text-align: left; }
+  .detail-header__title { font-size: 1.65rem; }
   .detail-bento { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .detail-gallery { height: 220px; }
+  .detail-header__title { font-size: 1.4rem; }
+  .detail-commodites { grid-template-columns: 1fr; }
 }
 </style>

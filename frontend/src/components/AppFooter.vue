@@ -27,6 +27,12 @@ const currentYear = new Date().getFullYear()
   margin-top: auto;
 }
 
+@media (max-width: 480px) {
+  .app-footer { padding: 16px; }
+  .footer-content { flex-direction: column; align-items: flex-start; }
+  .footer-links { gap: 12px; }
+}
+
 .footer-content {
   display: flex;
   justify-content: space-between;
