@@ -6,15 +6,13 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    ports:
-      - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: neon
       SERVER_PORT: 8080
       LOG_PATH: /app/logs
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
-      CORS_ORIGINS: ${CORS_ORIGINS}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://immosn.cloud,https://www.immosn.cloud}
       DB_HOST: ${DB_HOST}
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
@@ -32,11 +30,12 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/v1/annonces"]
+      # /actuator/health répond en <1s sans requête DB — évite timeout HikariCP > timeout Docker
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/actuator/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 60s
+      start_period: 90s
   # Nginx (frontend + reverse proxy SSL)
   nginx:
     build:

@@ -33,11 +33,11 @@ services:
     networks:
       - app-network-dev
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/v1/annonces"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/actuator/health || exit 1"]
       interval: 20s
       timeout: 10s
       retries: 5
-      start_period: 45s
+      start_period: 60s
 
   # Nginx (frontend + reverse proxy)
   nginx:

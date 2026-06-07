@@ -107,6 +107,9 @@ public class SecurityConfig {
             }))
             .authorizeHttpRequests(authz -> authz
 
+                // ── Actuator health : sans auth (Docker healthcheck) ────
+                .requestMatchers("/actuator/health").permitAll()
+
                 // ── Auth : public ───────────────────────────────────────
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
