@@ -241,12 +241,12 @@ onMounted(async () => {
   margin-bottom: 1.25rem;
 }
 
-/* Filtres compacts sur une ligne */
+/* Filtres compacts */
 .liste-filters {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   margin-bottom: 1rem;
   background: var(--color-card);
   border: 1px solid var(--color-border);
@@ -440,16 +440,20 @@ onMounted(async () => {
 
 /* Responsive */
 @media (max-width: 1024px) {
-  .filters-grid { grid-template-columns: repeat(2, 1fr); }
   .liste-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
 @media (max-width: 768px) {
-  .liste-filters { flex-direction: column; align-items: stretch; }
-  .filters-btn { width: 100%; justify-content: center; }
+  .liste-main { padding: 1.5rem 1rem 3rem; }
+  .liste-filters { flex-direction: column; align-items: stretch; gap: 6px; }
+  .filter-input-wrap { flex: none; }
+  .filter-input--noicon { flex: none; min-width: 0; }
+  .filters-btn { width: 100%; justify-content: center; padding: 0.65rem; }
+  .filters-reset { width: 100%; height: 36px; }
 }
-@media (max-width: 600px) {
-  .filters-grid { grid-template-columns: 1fr; }
+
+@media (max-width: 480px) {
   .liste-grid { grid-template-columns: 1fr; }
-  .liste-hero__title { font-size: 2rem; }
+  .liste-hero__sub { font-size: 0.88rem; }
 }
 </style>
