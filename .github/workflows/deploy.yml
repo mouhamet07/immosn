@@ -7,50 +7,38 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
-
       - name: Add VPS to known_hosts
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
-
       - name: Deploy to VPS
         run: |
           ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
             set -e
-
             cd /root/immosn
-
             echo "=== Pull code ==="
             git pull origin master
-
             echo "=== Build containers ==="
             docker compose up -d --build
-
             echo "=== Wait backend startup ==="
             sleep 40
-
             echo "=== Healthcheck backend ==="
             for i in $(seq 1 20); do
               STATUS=$(docker inspect --format='{{.State.Health.Status}}' immosn-backend 2>/dev/null || echo "starting")
               echo "Status: $STATUS"
-
               if [ "$STATUS" = "healthy" ]; then
                 echo "Backend healthy"
                 exit 0
               fi
-
               sleep 10
             done
-
             echo "=== FAILED DEPLOY ==="
             docker logs immosn-backend --tail 50
             exit 1
