@@ -1,4 +1,4 @@
-package sn.immosn.backend.location;
+package sn.immosn.backend.client.web.location.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -17,6 +17,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
+import sn.immosn.backend.client.web.location.dto.GeocodeResponseDto;
+import sn.immosn.backend.location.service.GeoCodingService;
+import sn.immosn.backend.location.service.LocationService;
 import sn.immosn.backend.shared.response.RestResponse;
 
 @RestController

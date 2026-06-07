@@ -1,4 +1,4 @@
-package sn.immosn.backend.location;
+package sn.immosn.backend.location.service;
 
 import java.util.ArrayList;
 import java.util.Comparator;
