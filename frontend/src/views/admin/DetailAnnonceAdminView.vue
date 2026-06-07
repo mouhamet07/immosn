@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Edit, Archive, RotateCcw, MapPin, Bed, Maximize, CheckCircle, Navigation, ExternalLink } from 'lucide-vue-next'
+import { Edit, Archive, RotateCcw, MapPin, Bed, Maximize, CheckCircle, ExternalLink } from 'lucide-vue-next'
 import annonceService from '@/services/annonceService'
 import placeholderImg from '@/assets/Penthouse.png'
 
@@ -75,8 +75,8 @@ onMounted(fetchAnnonce)
         <div>
           <button class="daa-back" @click="router.push('/admin/annonces')">← Retour aux annonces</button>
           <h1 class="daa-header__title">{{ annonce.libelle }}</h1>
-          <span class="badge" :class="annonce.isArchived ? 'badge--neutral' : 'badge--success'">
-            {{ annonce.isArchived ? 'Archivée' : 'Active' }}
+          <span class="badge" :class="annonce.archived ? 'badge--neutral' : 'badge--success'">
+            {{ annonce.archived ? 'Archivée' : 'Active' }}
           </span>
         </div>
         <!-- Actions admin -->
@@ -84,7 +84,7 @@ onMounted(fetchAnnonce)
           <button class="daa-btn daa-btn--edit" @click="router.push(`/admin/annonces/${annonce.id}/modifier`)">
             <Edit :size="15" /> Modifier
           </button>
-          <button v-if="!annonce.isArchived" class="daa-btn daa-btn--archive" @click="showConfirm = true">
+          <button v-if="!annonce.archived" class="daa-btn daa-btn--archive" @click="showConfirm = true">
             <Archive :size="15" /> Archiver
           </button>
           <button v-else class="daa-btn daa-btn--restore" @click="handleRestore">
@@ -173,8 +173,8 @@ onMounted(fetchAnnonce)
             <div class="daa-info-row"><span>ID</span><span>#{{ annonce.id }}</span></div>
             <div class="daa-info-row"><span>Type</span><span>{{ annonce.typeBien?.libelle || '–' }}</span></div>
             <div class="daa-info-row"><span>Statut</span>
-              <span class="badge" :class="annonce.isArchived ? 'badge--neutral' : 'badge--success'">
-                {{ annonce.isArchived ? 'Archivée' : 'Active' }}
+              <span class="badge" :class="annonce.archived ? 'badge--neutral' : 'badge--success'">
+                {{ annonce.archived ? 'Archivée' : 'Active' }}
               </span>
             </div>
             <div class="daa-info-row"><span>Créée le</span><span>{{ new Date(annonce.createdAt).toLocaleDateString('fr-FR') }}</span></div>

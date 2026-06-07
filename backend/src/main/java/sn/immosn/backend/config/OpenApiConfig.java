@@ -42,7 +42,7 @@ public class OpenApiConfig {
 
                     1. Appelez `POST /api/v1/auth/login` avec vos identifiants
                     2. Récupérez le champ `data.accessToken` dans la réponse
-                    3. Cliquez sur le bouton **Authorize** 🔒 en haut de cette page
+                    3. Cliquez sur le bouton **Authorize**  en haut de cette page
                     4. Saisissez : `Bearer <votre_token>`
                     5. Tous les appels suivants incluront automatiquement le token
 
@@ -64,23 +64,23 @@ public class OpenApiConfig {
                     Toutes les réponses suivent l'enveloppe `RestResponse<T>` :
                     ```json
                     {
-                      "success": true,
-                      "status": 200,
-                      "message": "Opération réalisée avec succès",
-                      "data": { },
-                      "timestamp": "2024-01-15T10:30:00"
+                        "success": true,
+                        "status": 200,
+                        "message": "Opération réalisée avec succès",
+                        "data": { },
+                        "timestamp": "2024-01-15T10:30:00"
                     }
                     ```
 
                     Les listes paginées utilisent `PagedResponse<T>` :
                     ```json
                     {
-                      "content": [ ],
-                      "page": 0,
-                      "size": 12,
-                      "totalElements": 48,
-                      "totalPages": 4,
-                      "last": false
+                        "content": [ ],
+                        "page": 0,
+                        "size": 12,
+                        "totalElements": 48,
+                        "totalPages": 4,
+                        "last": false
                     }
                     ```
                     """)
@@ -106,7 +106,6 @@ public class OpenApiConfig {
                             "Saisissez uniquement le token, le préfixe 'Bearer ' est ajouté automatiquement.")));
     }
 
-    // ── Groupes Swagger UI ────────────────────────────────────────────────────
 
     @Bean
     public GroupedOpenApi authGroup() {
