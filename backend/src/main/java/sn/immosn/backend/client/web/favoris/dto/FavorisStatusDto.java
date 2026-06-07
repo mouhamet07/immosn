@@ -1,6 +1,8 @@
 package sn.immosn.backend.client.web.favoris.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public record FavorisStatusDto(
     Long annonceId,
-    boolean isFavoris
+    @JsonProperty("isFavoris") boolean isFavoris
 ) {}

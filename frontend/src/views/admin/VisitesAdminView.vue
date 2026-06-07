@@ -159,7 +159,7 @@ onMounted(() => fetchVisites(0))
 .va-toolbar__title { font-size: 1.4rem; font-weight: 800; color: var(--color-text); }
 .va-toolbar__count { font-size: .82rem; color: var(--color-text); opacity: .5; margin-top: .15rem; }
 .va-filters { display: flex; flex-wrap: wrap; gap: .4rem; }
-.filter-tab { padding: 6px 16px; border-radius: 20px; border: 1px solid var(--color-border); background: var(--color-card); color: var(--color-text-secondary, #6B7280); font-size: 13px; cursor: pointer; transition: all 150ms ease; }
+.filter-tab { padding: 6px 16px; border-radius: 20px; border: 1px solid var(--color-border); background: var(--color-card); color: var(--color-text-secondary); font-size: 13px; cursor: pointer; transition: all 150ms ease; }
 .filter-tab:hover { border-color: var(--color-primary); color: var(--color-primary); }
 .filter-tab.active { background: var(--color-primary); border-color: var(--color-primary); color: white; }
 

@@ -27,7 +27,7 @@ import sn.immosn.backend.client.web.annonce.dto.SearchAnnonceRequestDto;
 import sn.immosn.backend.client.web.annonce.mapper.AnnonceMapper;
 import sn.immosn.backend.contrat.data.entity.StatutContrat;
 import sn.immosn.backend.contrat.data.repository.ContratRepository;
-import sn.immosn.backend.location.GeoCodingService;
+import sn.immosn.backend.location.service.GeoCodingService;
 import sn.immosn.backend.shared.exception.EntityNotFoundException;
 
 import java.util.List;
@@ -75,7 +75,7 @@ public class AnnonceServiceImpl implements AnnonceService {
     @Override
     @Transactional(readOnly = true)
     public AnnonceResponseDto getAnnonceById(Long id) {
-        Annonce annonce = annonceRepository.findByIdAndIsArchivedFalse(id)
+        Annonce annonce = annonceRepository.findAnnonceByIdWithImages(id)
             .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée : id=" + id));
         return annonceMapper.toResponse(annonce);
     }

@@ -394,7 +394,7 @@ async function saveSecurite() {
 
 .avatar-info { text-align: center; }
 .avatar-name { font-size: 1rem; font-weight: 700; color: var(--color-text); }
-.avatar-hint { font-size: 0.75rem; color: var(--color-text-secondary, #6B7280); margin-top: 2px; }
+.avatar-hint { font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 2px; }
 
 .profil-user__email,
 .profil-user__phone {

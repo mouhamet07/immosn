@@ -299,7 +299,7 @@ onMounted(() => fetchDiscussions(0))
   text-align: center;
 }
 .empty-title { font-size: 0.95rem; font-weight: 700; color: var(--color-text); }
-.empty-desc  { font-size: 0.8rem; color: var(--color-text-secondary, #6B7280); line-height: 1.5; }
+.empty-desc  { font-size: 0.8rem; color: var(--color-text-secondary); line-height: 1.5; }
 .btn-browse {
   display: flex; align-items: center; gap: 6px;
   padding: 0.55rem 1.1rem;

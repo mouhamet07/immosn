@@ -37,7 +37,7 @@ defineProps({
 
 .stepper__bar-wrap {
   height: 4px;
-  background: #E8E0D4;
+  background: var(--color-border);
   border-radius: 2px;
   margin-bottom: 1rem;
   position: relative;
@@ -67,8 +67,8 @@ defineProps({
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #E8E0D4;
-  color: #6B7280;
+  background: var(--color-border);
+  color: var(--color-text-secondary);
   font-size: 0.78rem;
   font-weight: 700;
   display: flex;
@@ -89,7 +89,7 @@ defineProps({
 
 .stepper__label {
   font-size: 0.75rem;
-  color: #6B7280;
+  color: var(--color-text-secondary);
   text-align: center;
 }
 

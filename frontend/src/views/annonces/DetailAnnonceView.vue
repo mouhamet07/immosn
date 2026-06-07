@@ -169,15 +169,21 @@ onMounted(async () => {
   try {
     const response = await annonceService.getAnnonceById(route.params.id)
     annonce.value = response.data.data
-    // Vérifier si l'annonce est en favori pour l'utilisateur connecté
-    if (authStore.isAuthenticated) {
-      const res = await favorisService.checkFavoris(route.params.id)
-      isFavori.value = res.data?.data ?? false
-    }
-  } catch {
-    error.value = 'Annonce introuvable ou une erreur est survenue.'
+  } catch (e) {
+    error.value = e.response?.data?.message || 'Annonce introuvable ou une erreur est survenue.'
+    return
   } finally {
     loading.value = false
+  }
+
+  if (authStore.isAuthenticated) {
+    try {
+      const res = await favorisService.checkFavoris(route.params.id)
+      isFavori.value = res.data?.data ?? false
+    } catch {
+      // Ne pas bloquer l'affichage de l'annonce si la vérification des favoris échoue.
+      isFavori.value = false
+    }
   }
 })
 

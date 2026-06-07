@@ -71,8 +71,12 @@ export const useAuthStore = defineStore('auth', () => {
     role.value = sanitizeRole(roles.length ? roles[0] : null)
     localStorage.setItem('role', role.value)
     user.value = data
-    // Redirection selon le rôle (RoleType enum: ADMIN, CLIENT, SUPER_ADMIN)
-    if (role.value === 'ADMIN' || role.value === 'SUPER_ADMIN') {
+    // Redirection : page demandée avant la connexion en priorité, sinon selon le rôle
+    const redirect = localStorage.getItem('redirectAfterLogin')
+    if (redirect) {
+      localStorage.removeItem('redirectAfterLogin')
+      router.push(redirect)
+    } else if (role.value === 'ADMIN' || role.value === 'SUPER_ADMIN') {
       router.push('/admin/dashboard')
     } else {
       router.push('/annonces')

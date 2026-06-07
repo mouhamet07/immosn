@@ -1,4 +1,4 @@
-package sn.immosn.backend.location;
+package sn.immosn.backend.location.service;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;

@@ -1,20 +1,19 @@
 <script setup>
-// Année courante pour le copyright
-const currentYear = new Date().getFullYear()
+const year = new Date().getFullYear()
 </script>
 
 <template>
   <footer class="app-footer">
-    <div class="footer-content">
+    <div class="footer-inner">
       <div class="footer-brand">
         <img src="@/assets/logo nav 1 - orange 1.png" alt="ImmoSN" class="footer-logo" />
-        <p class="footer-tagline">© {{ currentYear }} ImmoSN. Immobilier Sénégalais Haut de Gamme.</p>
+        <span class="footer-tagline">© {{ year }} ImmoSN. Immobilier Sénégalais Haut de Gamme.</span>
       </div>
-      <div class="footer-links">
-        <a href="#">Politique de confidentialité</a>
-        <a href="#">Conditions d'utilisation</a>
-        <a href="#">Assistance</a>
-      </div>
+      <nav class="footer-links">
+        <RouterLink to="/confidentialite">Politique de confidentialité</RouterLink>
+        <RouterLink to="/conditions">Conditions d'utilisation</RouterLink>
+        <RouterLink to="/assistance">Assistance</RouterLink>
+      </nav>
     </div>
   </footer>
 </template>
@@ -23,35 +22,56 @@ const currentYear = new Date().getFullYear()
 .app-footer {
   background: var(--color-card);
   border-top: 1px solid var(--color-border);
-  padding: 20px 32px;
+  padding: 18px 32px;
+  width: 100%;
   margin-top: auto;
+  opacity: 1;
 }
 
-@media (max-width: 480px) {
-  .app-footer { padding: 16px; }
-  .footer-content { flex-direction: column; align-items: flex-start; }
-  .footer-links { gap: 12px; }
-}
-
-.footer-content {
+.footer-inner {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
   max-width: 1200px;
   margin: 0 auto;
 }
 
-.footer-logo { height: 28px; object-fit: contain; }
-.footer-tagline { font-size: 12px; color: var(--color-text-secondary, #6B7280); margin-top: 4px; }
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
-.footer-links { display: flex; gap: 20px; flex-wrap: wrap; }
+.footer-logo { height: 26px; object-fit: contain; }
+
+.footer-tagline {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
 .footer-links a {
   font-size: 12px;
-  color: var(--color-text-secondary, #6B7280);
+  color: var(--color-text-secondary);
   text-decoration: none;
+  white-space: nowrap;
   transition: color 150ms ease;
 }
+
 .footer-links a:hover { color: var(--color-primary); }
+
+@media (max-width: 480px) {
+  .app-footer { padding: 16px; }
+  .footer-inner { flex-direction: column; align-items: flex-start; }
+  .footer-links { gap: 12px; }
+}
 </style>

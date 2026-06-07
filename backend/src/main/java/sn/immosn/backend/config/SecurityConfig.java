@@ -47,9 +47,6 @@ public class SecurityConfig {
     @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:80}")
     private List<String> allowedOrigins;
 
-    @Value("${spring.h2.console.enabled:false}")
-    private boolean h2ConsoleEnabled;
-
     // ── Beans ──────────────────────────────────────────────────────────────
 
     @Bean
@@ -98,13 +95,8 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .headers(headers -> headers.frameOptions(frame -> {
-                if (h2ConsoleEnabled) {
-                    frame.sameOrigin();
-                } else {
-                    frame.deny();
-                }
-            }))
+            // X-Frame-Options géré par Nginx (SAMEORIGIN) — Spring Security ne doit pas en ajouter un second
+            .headers(headers -> headers.frameOptions(frame -> frame.disable()))
             .authorizeHttpRequests(authz -> authz
 
                 // ── Actuator health : sans auth (Docker healthcheck) ────
@@ -162,6 +154,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/contrats/**").authenticated()
                 .requestMatchers("/api/v1/signalements/**").authenticated()
                 .requestMatchers("/api/v1/favoris/**").authenticated()
+
+                // ── Swagger UI + OpenAPI docs : accès public ───────────
+                .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
 
                 // ── H2 console : développement uniquement ───────────────
                 .requestMatchers("/h2-console/**").permitAll()

@@ -271,7 +271,7 @@ async function saveSecurite() {
 
 .field__input {
   padding: 0.7rem 0.9rem;
-  border: 1.5px solid #E8E0D4;
+  border: 1.5px solid var(--color-border);
   border-radius: var(--radius-sm);
   font-size: 0.9rem;
   color: var(--color-text);
@@ -360,10 +360,10 @@ async function saveSecurite() {
 .avatar-wrapper:hover .avatar-overlay { opacity: 1; }
 .avatar-info { text-align: center; }
 .avatar-name { font-size: 1rem; font-weight: 700; color: var(--color-text); }
-.avatar-hint { font-size: 0.72rem; color: #6B7280; margin-top: 2px; }
+.avatar-hint { font-size: 0.72rem; color: var(--color-text-secondary); margin-top: 2px; }
 
 .profil-user__name { font-size: 1rem; font-weight: 700; color: var(--color-text); }
-.profil-user__email, .profil-user__phone { font-size: 0.82rem; color: #6B7280; margin-top: 0.2rem; }
+.profil-user__email, .profil-user__phone { font-size: 0.82rem; color: var(--color-text-secondary); margin-top: 0.2rem; }
 
 .profil-user__role {
   display: inline-block;

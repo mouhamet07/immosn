@@ -434,7 +434,7 @@ onMounted(() => fetchDiscussions(0))
 }
 .adm-chat__client-ref {
   display: flex; align-items: center; gap: 5px;
-  font-size: 0.78rem; color: var(--color-text-secondary, #6B7280); margin-top: 2px;
+  font-size: 0.78rem; color: var(--color-text-secondary); margin-top: 2px;
 }
 .adm-chat__annonce-link {
   font-size: 0.8rem; color: var(--color-primary); font-weight: 600;

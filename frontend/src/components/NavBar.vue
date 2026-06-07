@@ -1,13 +1,15 @@
 <script setup>
 import { ref, watch } from 'vue'
-import { useAuthStore } from '@/stores/authStore'
-import { useRouter, useRoute } from 'vue-router'
+import { useAuthStore }  from '@/stores/authStore'
+import { useToastStore } from '@/stores/toastStore'
+import { useRoute } from 'vue-router'
+import { AUTH_MESSAGES } from '@/utils/messages'
 import SvgIcon from '@/components/SvgIcon.vue'
 
-const authStore = useAuthStore()
-const router    = useRouter()
-const route     = useRoute()
-const menuOpen  = ref(false)
+const authStore  = useAuthStore()
+const toastStore = useToastStore()
+const route      = useRoute()
+const menuOpen   = ref(false)
 
 watch(() => route.fullPath, () => { menuOpen.value = false })
 
@@ -16,7 +18,8 @@ function closeMenu() { menuOpen.value = false }
 async function handleLogout() {
   closeMenu()
   await authStore.logout()
-  router.push({ name: 'connexion' })
+  // authStore.logout() gère déjà router.push('/connexion')
+  toastStore.success(AUTH_MESSAGES.logoutSuccess)
 }
 </script>
 
