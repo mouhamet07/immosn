@@ -55,6 +55,7 @@ function closeVisiteModal() {
 }
 
 // FIX 2 : wrapper avec sauvegarde de la destination pour redirect après connexion
+// eslint-disable-next-line no-unused-vars
 function handleReserverVisite() {
   if (!authStore.isAuthenticated) {
     localStorage.setItem('redirectAfterLogin', route.fullPath)
@@ -81,6 +82,7 @@ const newMessage = ref('')
 const sendingMessage = ref(false)
 
 // FIX 2 : guard auth avec sauvegarde destination
+// eslint-disable-next-line no-unused-vars
 function handleContactAgent() {
   if (!authStore.isAuthenticated) {
     localStorage.setItem('redirectAfterLogin', route.fullPath)
