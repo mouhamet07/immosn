@@ -1,9 +1,18 @@
 <script setup>
 import { useAuthStore } from '@/stores/authStore'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { useToastStore } from '@/stores/toastStore'
+import { AUTH_MESSAGES } from '@/utils/messages'
 
 const authStore = useAuthStore()
 const route = useRoute()
+const router = useRouter()
+const toast = useToastStore()
+
+const handleLogout = async () => {
+  await authStore.logout()
+  toast.success(AUTH_MESSAGES.logoutSuccess)
+}
 
 // FIX 7 : initiales du nom de l'utilisateur connecté
 function getInitials(name) {
@@ -104,7 +113,7 @@ function isActive(path) {
           </span>
           <span>Centre d'aide</span>
         </a>
-        <button class="sidebar__bottom-link sidebar__logout" @click="authStore.logout()">
+        <button class="sidebar__bottom-link sidebar__logout" @click="handleLogout">
           <span class="sidebar__link-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
           </span>

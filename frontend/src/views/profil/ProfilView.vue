@@ -164,8 +164,38 @@ async function saveSecurite() {
           <section class="profil-card">
             <h2 class="profil-card__title">Sécurité du compte</h2>
             <form class="profil-card__form" @submit.prevent="saveSecurite">
-              <InputField v-model="formSecurite.motDePasseActuel" label="Mot de passe actuel" type="password" />
-              <InputField v-model="formSecurite.nouveauMotDePasse" label="Nouveau mot de passe" type="password" />
+              <div class="field">
+                <label class="field__label">MOT DE PASSE ACTUEL</label>
+                <div class="pwd-field">
+                  <input
+                    :type="showCurrentPwd ? 'text' : 'password'"
+                    v-model="formSecurite.motDePasseActuel"
+                    class="field__input"
+                    placeholder="••••••••"
+                    autocomplete="current-password"
+                  />
+                  <button type="button" class="pwd-toggle" @click="showCurrentPwd = !showCurrentPwd">
+                    <EyeOff v-if="showCurrentPwd" :size="16" />
+                    <Eye v-else :size="16" />
+                  </button>
+                </div>
+              </div>
+              <div class="field">
+                <label class="field__label">NOUVEAU MOT DE PASSE</label>
+                <div class="pwd-field">
+                  <input
+                    :type="showNewPwd ? 'text' : 'password'"
+                    v-model="formSecurite.nouveauMotDePasse"
+                    class="field__input"
+                    placeholder="••••••••"
+                    autocomplete="new-password"
+                  />
+                  <button type="button" class="pwd-toggle" @click="showNewPwd = !showNewPwd">
+                    <EyeOff v-if="showNewPwd" :size="16" />
+                    <Eye v-else :size="16" />
+                  </button>
+                </div>
+              </div>
 
               <div v-if="successSecurite" class="profil-alert profil-alert--success">{{ successSecurite }}</div>
               <div v-if="errorSecurite" class="profil-alert profil-alert--error">{{ errorSecurite }}</div>
