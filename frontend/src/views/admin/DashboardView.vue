@@ -221,7 +221,7 @@ const shortcuts = [
         <!-- Raccourcis -->
         <div class="dash__shortcuts-col">
           <div class="section-head">
-            <h2 class="section-head__title">Accès rapides</h2>
+            <h2 class="section-head__title">Actions rapides</h2>
           </div>
           <div class="shortcuts-grid">
             <RouterLink v-for="s in shortcuts" :key="s.to" :to="s.to" class="shortcut-card">
