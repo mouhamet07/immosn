@@ -101,6 +101,9 @@ onMounted(async () => {
   <div class="liste-page">
     <main class="liste-main">
 
+      <!-- Hero h1 -->
+      <h1 class="liste-hero__title">Explorer les Propriétés</h1>
+
       <!-- Sous-titre page annonces -->
       <p class="liste-hero__sub">
         Découvrez notre sélection exclusive de biens immobiliers de luxe au Sénégal,
@@ -230,6 +233,16 @@ onMounted(async () => {
   max-width: 1280px;
   margin: 0 auto;
   padding: 2.5rem 1.5rem 4rem;
+}
+
+/* Hero */
+.liste-hero__title {
+  font-family: var(--font-serif);
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #4a7b6f;
+  line-height: 1.15;
+  margin-bottom: 0.6rem;
 }
 
 /* Sous-titre */
@@ -445,6 +458,7 @@ onMounted(async () => {
 
 @media (max-width: 768px) {
   .liste-main { padding: 1.5rem 1rem 3rem; }
+  .liste-hero__title { font-size: 1.8rem; }
   .liste-filters { flex-direction: column; align-items: stretch; gap: 6px; }
   .filter-input-wrap { flex: none; }
   .filter-input--noicon { flex: none; min-width: 0; }
@@ -454,6 +468,7 @@ onMounted(async () => {
 
 @media (max-width: 480px) {
   .liste-grid { grid-template-columns: 1fr; }
+  .liste-hero__title { font-size: 1.5rem; }
   .liste-hero__sub { font-size: 0.88rem; }
 }
 </style>
