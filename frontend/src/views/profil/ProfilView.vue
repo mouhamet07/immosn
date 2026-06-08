@@ -11,7 +11,8 @@ function formatTelephone(val) {
   if (d.length <= 7) return '+221 ' + d.slice(0,2) + ' ' + d.slice(2,5) + ' ' + d.slice(5)
   return '+221 ' + d.slice(0,2) + ' ' + d.slice(2,5) + ' ' + d.slice(5,7) + ' ' + d.slice(7,9)
 }
-import { Camera } from 'lucide-vue-next'
+import { Camera, Eye, EyeOff } from 'lucide-vue-next'
+import PhoneInput from '@/components/PhoneInput.vue'
 import InputField from '@/components/InputField.vue'
 import ButtonPrimary from '@/components/ButtonPrimary.vue'
 import { useAuthStore } from '@/stores/authStore'
@@ -68,6 +69,10 @@ const formSecurite = reactive({
   motDePasseActuel: '',
   nouveauMotDePasse: '',
 })
+
+// Toggle visibilité mot de passe
+const showCurrentPwd = ref(false)
+const showNewPwd     = ref(false)
 
 const loadingInfo = ref(false)
 const loadingSecurite = ref(false)
@@ -318,8 +323,39 @@ async function saveSecurite() {
   border-color: var(--color-primary);
 }
 
-/* Alertes */
-.profil-alert {
+.profil-field { display: flex; flex-direction: column; gap: 0.4rem; }
+.profil-field__label { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text); }
+
+/* Toggle mot de passe */
+.pwd-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.profil-pwd-input {
+  width: 100%;
+  padding: 0.75rem 2.75rem 0.75rem 0.9rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  color: var(--color-text);
+  background: #fff;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+.profil-pwd-input:focus { border-color: var(--color-primary); outline: none; }
+.pwd-toggle {
+  position: absolute;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  transition: color 150ms ease;
+}
+.pwd-toggle:hover { color: var(--color-primary); }
   padding: 0.75rem 1rem;
   border-radius: var(--radius-sm);
   font-size: 0.88rem;

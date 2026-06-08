@@ -1,11 +1,15 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ChevronDown, Eye, EyeOff } from 'lucide-vue-next'
+import { Eye, EyeOff } from 'lucide-vue-next'
 import authService from '@/services/authService'
+import { MESSAGES, getErrorMessage } from '@/utils/messages'
+import { useToastStore } from '@/stores/toastStore'
+import PhoneInput from '@/components/PhoneInput.vue'
 import AppFooter from '@/components/AppFooter.vue'
 
-const router = useRouter()
+const router     = useRouter()
+const toastStore = useToastStore()
 
 // Champs exacts du AuthRegisterRequestDto: nomComplet, email, telephone, motDePasse
 const form = reactive({
@@ -47,9 +51,10 @@ async function handleSubmit() {
   loading.value = true
   try {
     await authService.register(form.nomComplet, form.email, form.telephone, form.motDePasse)
+    toastStore.success(MESSAGES.registerSuccess)
     router.push({ name: 'connexion' })
   } catch (err) {
-    errorMessage.value = err.response?.data?.message || 'Une erreur est survenue. Réessayez.'
+    errorMessage.value = getErrorMessage(err)
   } finally {
     loading.value = false
   }
@@ -105,21 +110,7 @@ async function handleSubmit() {
 
             <div class="ins-field">
               <label class="ins-label" for="telephone">Téléphone</label>
-              <div class="ins-phone-wrap">
-                <div class="ins-phone-prefix">
-                  <span class="ins-prefix-text">+221</span>
-                  <ChevronDown :size="14" />
-                </div>
-                <input
-                  id="telephone"
-                  v-model="form.telephone"
-                  type="tel"
-                  class="ins-phone-input"
-                  placeholder="77 123 45 67"
-                  @input="formatPhoneNumber"
-                  required
-                />
-              </div>
+              <PhoneInput v-model="form.telephone" />
             </div>
 
             <div class="ins-field">
