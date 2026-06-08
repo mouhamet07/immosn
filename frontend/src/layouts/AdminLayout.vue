@@ -39,26 +39,7 @@ function isActive(path) {
         <img src="@/assets/logo nav 1 - orange 1.png" alt="ImmoSN" class="sidebar__logo-img" />
       </RouterLink>
 
-      <!-- FIX 7 : info utilisateur connecté -->
-      <div class="sidebar-user">
-        <div class="sidebar-avatar">
-          <img
-            v-if="authStore.user?.photo"
-            :src="authStore.user.photo"
-            :alt="authStore.user.nomComplet"
-            class="sidebar-avatar-img"
-          />
-          <div v-else class="sidebar-avatar-initials">
-            {{ getInitials(authStore.user?.nomComplet) }}
-          </div>
-        </div>
-        <div class="sidebar-user-info">
-          <p class="sidebar-user-name">{{ authStore.user?.nomComplet }}</p>
-          <span class="sidebar-user-role">
-            {{ authStore.user?.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Administrateur' }}
-          </span>
-        </div>
-      </div>
+      <!-- L'affichage de l'utilisateur connecté a été déplacé vers le header -->
       <nav class="sidebar__nav">
         <RouterLink
           v-for="link in navLinks"
@@ -98,13 +79,7 @@ function isActive(path) {
 
       <!-- Bas de sidebar -->
       <div class="sidebar__bottom">
-        <a href="#" class="sidebar__bottom-link">
-          <span class="sidebar__link-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          </span>
-          <span>Centre d'aide</span>
-        </a>
-        <button class="sidebar__bottom-link sidebar__logout" @click="authStore.logout()">
+        <button class="sidebar__bottom-link sidebar__logout" @click="authStore.logout()" title="Déconnexion">
           <span class="sidebar__link-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
           </span>
@@ -115,6 +90,39 @@ function isActive(path) {
 
     <!-- Contenu principal -->
     <main class="admin-main">
+      <header class="admin-header">
+        <div class="admin-header-inner">
+          <!-- Titre de la page courante -->
+          <div class="admin-header-page">
+            <span class="admin-header-page-label">
+              {{ navLinks.find(l => isActive(l.to))?.label ?? 'Dashboard' }}
+            </span>
+          </div>
+
+          <!-- Profil utilisateur -->
+          <div class="admin-header-user">
+            <div class="admin-header-user-info">
+              <p class="sidebar-user-name">{{ authStore.user?.nomComplet }}</p>
+              <span class="sidebar-user-role">
+                {{ authStore.user?.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Administrateur' }}
+              </span>
+            </div>
+
+            <div class="sidebar-avatar">
+              <img
+                v-if="authStore.user?.photo"
+                :src="authStore.user.photo"
+                :alt="authStore.user.nomComplet"
+                class="sidebar-avatar-img"
+              />
+              <div v-else class="sidebar-avatar-initials">
+                {{ getInitials(authStore.user?.nomComplet) }}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </header>
       <RouterView />
     </main>
   </div>
@@ -147,7 +155,7 @@ function isActive(path) {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem 1.25rem;
+  padding: 1.75rem 1.25rem 1.25rem;
   text-decoration: none;
   border-bottom: 1px solid var(--color-border-solid);
   margin-bottom: 0.5rem;
@@ -220,19 +228,16 @@ function isActive(path) {
   color: var(--color-text);
   text-decoration: none;
   transition: all 150ms ease;
-  border-left: 3px solid transparent;
 }
 
-.sidebar__link:hover {
+.sidebar__link:hover:not(.sidebar__link--active) {
   color: var(--color-accent);
   background: #FEF3EE;
-  border-left-color: var(--color-accent);
 }
 
 .sidebar__link--active {
-  color: var(--color-accent);
-  background: #FEF3EE;
-  border-left-color: var(--color-accent);
+  color: var(--color-primary);
+  background: var(--color-accent);
 }
 
 .sidebar__link-icon {
@@ -251,9 +256,12 @@ function isActive(path) {
   transition: stroke 150ms ease;
 }
 
-.sidebar__link--active .sidebar__link-icon svg,
-.sidebar__link:hover .sidebar__link-icon svg {
+.sidebar__link:hover:not(.sidebar__link--active) .sidebar__link-icon svg {
   stroke: var(--color-accent);
+}
+
+.sidebar__link--active .sidebar__link-icon svg {
+  stroke: var(--color-primary);
 }
 
 /* Bas */
@@ -328,5 +336,77 @@ function isActive(path) {
     margin-left: 64px;
     padding: 1.5rem 1rem;
   }
+}
+
+/* ── Header amélioré ── */
+.admin-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: var(--color-card);
+  margin: -2rem -2rem 1.5rem -2rem;
+  padding: 0 2rem;
+  border-bottom: 1px solid var(--color-border-solid);
+  box-shadow: 0 2px 12px rgba(16, 24, 40, 0.06);
+}
+
+.admin-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+}
+
+/* Titre page courante */
+.admin-header-page-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+}
+
+/* Profil utilisateur — sans bordure ni ombre */
+.admin-header-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+
+.admin-header-user-info {
+  text-align: right;
+  min-width: 0;
+}
+
+.admin-header-user .sidebar-user-name {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+.admin-header-user .sidebar-user-role {
+  font-size: 10px;
+  color: var(--color-primary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: block;
+}
+
+.admin-header-user .sidebar-avatar {
+  width: 36px;
+  height: 36px;
+  border-width: 2px;
+  border-color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+  .admin-header { display: none; }
 }
 </style>
