@@ -52,29 +52,45 @@ const router = createRouter({
         { path: 'profil',              name: 'admin-profil',         component: () => import('@/views/admin/ProfilAdminView.vue') },
       ],
     },
+
+    // Catch-all — rediriger vers annonces
+    { path: '/:pathMatch(.*)*', redirect: '/annonces' },
   ],
 })
 
-// Guard de navigation
-router.beforeEach((to) => {
+// Guard de navigation strict
+router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
+  const role = authStore.user?.role
+  const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN'
 
-  if (!to.meta.requiresAuth) return true
-
-  if (!authStore.isAuthenticated) {
-    return { name: 'connexion' }
+  // Admin/SuperAdmin redirigé vers dashboard s'il accède aux pages auth
+  if (authStore.isAuthenticated && (to.path === '/connexion' || to.path === '/inscription')) {
+    return next(isAdmin ? '/admin/dashboard' : '/annonces')
   }
 
-  // Bloquer les admins sur les routes réservées aux clients
-  if (to.meta.role === 'CLIENT' && (authStore.role === 'ADMIN' || authStore.role === 'SUPER_ADMIN')) {
-    return { path: '/admin/dashboard' }
+  // Route nécessite authentification
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    localStorage.setItem('redirectAfterLogin', to.fullPath)
+    return next('/connexion')
   }
 
-  if (to.meta.role === 'ADMIN' && authStore.role !== 'ADMIN' && authStore.role !== 'SUPER_ADMIN') {
-    return { name: 'annonces' }
+  // Route réservée au client — bloquer les admins
+  if (to.meta.role === 'CLIENT' && isAdmin) {
+    return next('/admin/dashboard')
   }
 
-  return true
+  // Route réservée admin — bloquer les clients
+  if (to.meta.role === 'ADMIN' && !isAdmin) {
+    return next('/annonces')
+  }
+
+  // Bloquer accès direct /admin/* pour les non-admins
+  if (to.path.startsWith('/admin') && !isAdmin && authStore.isAuthenticated) {
+    return next('/annonces')
+  }
+
+  next()
 })
 
 export default router
