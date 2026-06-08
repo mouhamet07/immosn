@@ -34,4 +34,12 @@ export default {
   annuler(id) {
     return api.delete(`/visites/${id}`)
   },
+
+  // PUT /api/v1/visites/{id}/cloture — ADMIN
+  // type: 'SANS_SUITE' | 'AVEC_CONTRAT'
+  // typeContrat: 'VENTE' | 'LOCATION' (requis si AVEC_CONTRAT)
+  // dureeLocationMois: number (requis si LOCATION)
+  cloturerVisite(id, { type, typeContrat = null, dureeLocationMois = null }) {
+    return api.put(`/visites/${id}/cloture`, { type, typeContrat, dureeLocationMois })
+  },
 }

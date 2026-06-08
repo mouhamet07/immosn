@@ -13,11 +13,18 @@ import sn.immosn.backend.client.web.contrat.dto.*;
 import sn.immosn.backend.client.web.contrat.mapper.ContratMapper;
 import sn.immosn.backend.contrat.data.entity.Contrat;
 import sn.immosn.backend.contrat.data.entity.StatutContrat;
+import sn.immosn.backend.contrat.data.entity.TypeContrat;
 import sn.immosn.backend.contrat.data.repository.ContratRepository;
 import sn.immosn.backend.contrat.service.ContratService;
+import sn.immosn.backend.lead.data.entity.Lead;
 import sn.immosn.backend.lead.data.entity.StatutLead;
 import sn.immosn.backend.lead.data.repository.LeadRepository;
 import sn.immosn.backend.shared.exception.EntityNotFoundException;
+import sn.immosn.backend.visite.data.entity.DemandeVisite;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -63,6 +70,59 @@ public class ContratServiceImpl implements ContratService {
         return mapper.toDto(saved);
     }
 
+    /**
+     * Création automatique depuis une visite clôturée.
+     * VENTE    : montant = annonce.prix (prix de cession).
+     * LOCATION : montant = annonce.prix × dureeLocationMois (loyer mensuel × durée).
+     *            dateFin = dateDebut + dureeLocationMois mois.
+     */
+    @Override
+    @Transactional
+    public ContratResponseDto createFromVisite(DemandeVisite visite, TypeContrat typeContrat, Integer dureeLocationMois) {
+        if (typeContrat == null) {
+            throw new IllegalArgumentException("Le type de contrat est obligatoire");
+        }
+        if (typeContrat == TypeContrat.LOCATION && (dureeLocationMois == null || dureeLocationMois <= 0)) {
+            throw new IllegalArgumentException("La durée en mois est obligatoire pour un contrat de LOCATION");
+        }
+
+        List<Lead> leads = leadRepository.findByVisiteId(visite.getId());
+        Lead lead = leads.isEmpty() ? null : leads.get(0);
+        if (lead == null) {
+            log.warn("Aucun lead trouvé pour visite #{} — contrat créé sans lead. Le statut CONVERTI ne sera pas positionné.", visite.getId());
+        }
+
+        LocalDate dateDebut = LocalDate.now();
+        BigDecimal prixAnnonce = visite.getAnnonce().getPrix();
+
+        BigDecimal montant = (typeContrat == TypeContrat.LOCATION)
+            ? montantLocation(prixAnnonce, dureeLocationMois)
+            : prixAnnonce;
+
+        LocalDate dateFin = (typeContrat == TypeContrat.LOCATION)
+            ? dateFinLocation(dateDebut, dureeLocationMois)
+            : null;
+
+        Contrat.ContratBuilder builder = Contrat.builder()
+            .client(visite.getClient())
+            .annonce(visite.getAnnonce())
+            .dateDebut(dateDebut)
+            .dateFin(dateFin)
+            .montant(montant)
+            .typeContrat(typeContrat)
+            .dureeLocationMois(typeContrat == TypeContrat.LOCATION ? dureeLocationMois : null);
+
+        if (lead != null) {
+            builder.lead(lead);
+            lead.setStatut(StatutLead.CONVERTI);
+            leadRepository.save(lead);
+        }
+
+        Contrat saved = contratRepository.save(builder.build());
+        log.info("Contrat auto-créé depuis visite #{} : contratId={}, type={}", visite.getId(), saved.getId(), typeContrat);
+        return mapper.toDto(saved);
+    }
+
     @Override
     @Transactional(readOnly = true)
     public Page<ContratResponseDto> getClientContrats(String clientEmail, StatutContrat statut, Pageable pageable) {
@@ -100,30 +160,85 @@ public class ContratServiceImpl implements ContratService {
         log.info("Modification contrat : id={}", id);
         Contrat contrat = contratRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Contrat non trouvé : id=" + id));
-        if (request.dateDebut()   != null) contrat.setDateDebut(request.dateDebut());
-        if (request.dateFin()     != null) contrat.setDateFin(request.dateFin());
-        if (request.montant()     != null) contrat.setMontant(request.montant());
+
+        boolean isLocation = contrat.getTypeContrat() == TypeContrat.LOCATION;
+
+        // ── Guardrails LOCATION ────────────────────────────────────────────────
+        // montant et dateFin sont des valeurs dérivées : bloqués en écriture directe.
+        // Utiliser dureeLocationMois pour recalculer les deux automatiquement.
+        if (isLocation && request.montant() != null) {
+            throw new IllegalArgumentException(
+                "Le montant d'un contrat LOCATION est calculé automatiquement (loyer × durée). " +
+                "Modifiez dureeLocationMois pour mettre à jour le montant.");
+        }
+        if (isLocation && request.dateFin() != null) {
+            throw new IllegalArgumentException(
+                "La date de fin d'un contrat LOCATION est calculée automatiquement (dateDebut + durée). " +
+                "Modifiez dureeLocationMois pour mettre à jour la date de fin.");
+        }
+        if (isLocation && request.dureeLocationMois() != null && request.dureeLocationMois() <= 0) {
+            throw new IllegalArgumentException("La durée doit être supérieure à 0 mois.");
+        }
+
+        // ── Guardrail VENTE ────────────────────────────────────────────────────
+        if (!isLocation && request.dureeLocationMois() != null) {
+            throw new IllegalArgumentException(
+                "Le champ dureeLocationMois ne s'applique qu'aux contrats LOCATION.");
+        }
+
+        // ── Champs toujours modifiables ────────────────────────────────────────
         if (request.statut()      != null) contrat.setStatut(request.statut());
         if (request.documentUrl() != null) contrat.setDocumentUrl(request.documentUrl());
         if (request.notes()       != null) contrat.setNotes(request.notes());
+
+        // ── Mise à jour VENTE (libre) ──────────────────────────────────────────
+        if (!isLocation) {
+            if (request.dateDebut() != null) contrat.setDateDebut(request.dateDebut());
+            if (request.dateFin()   != null) contrat.setDateFin(request.dateFin());
+            if (request.montant()   != null) contrat.setMontant(request.montant());
+            return mapper.toDto(contratRepository.save(contrat));
+        }
+
+        // ── Mise à jour LOCATION (recalcul centralisé des champs dérivés) ───────
+        // Fix NPE : Integer (non primitif) pour supporter dureeLocationMois null en base
+        Integer effectiveDuree = request.dureeLocationMois() != null
+            ? request.dureeLocationMois() : contrat.getDureeLocationMois();
+
+        if (effectiveDuree == null) {
+            // Contrat LOCATION sans dureeLocationMois en base : données corrompues
+            throw new IllegalStateException(
+                "Le contrat LOCATION #" + id + " n'a pas de dureeLocationMois en base. " +
+                "Fournissez dureeLocationMois dans la requête pour recalculer.");
+        }
+
+        LocalDate effectiveDateDebut = request.dateDebut() != null
+            ? request.dateDebut() : contrat.getDateDebut();
+
+        if (request.dateDebut() != null) {
+            contrat.setDateDebut(effectiveDateDebut);
+        }
+        if (request.dureeLocationMois() != null) {
+            contrat.setDureeLocationMois(effectiveDuree);
+            BigDecimal newMontant = montantLocation(contrat.getAnnonce().getPrix(), effectiveDuree);
+            contrat.setMontant(newMontant);
+            log.info("Durée contrat #{} → {} mois, montant recalculé = {} FCFA", id, effectiveDuree, newMontant);
+        }
+        if (request.dateDebut() != null || request.dureeLocationMois() != null) {
+            contrat.setDateFin(dateFinLocation(effectiveDateDebut, effectiveDuree));
+        }
+
         return mapper.toDto(contratRepository.save(contrat));
     }
 
-    /**
-     * Demande de résiliation par le CLIENT.
-     * Passe en EN_ATTENTE_RESILIATION — l'admin valide ensuite via update().
-     */
     @Override
     @Transactional
     public ContratResponseDto demanderResiliation(Long id, ContratActionDto dto, String clientEmail) {
         Contrat contrat = loadClientContrat(id, clientEmail);
-
         if (contrat.getStatut() != StatutContrat.ACTIF) {
             throw new IllegalStateException(
                 "Seul un contrat ACTIF peut faire l'objet d'une demande de résiliation. Statut actuel : " + contrat.getStatut()
             );
         }
-
         contrat.setStatut(StatutContrat.EN_ATTENTE_RESILIATION);
         if (dto.motif() != null) {
             contrat.setNotes("Demande résiliation client : " + dto.motif());
@@ -132,28 +247,20 @@ public class ContratServiceImpl implements ContratService {
         return mapper.toDto(contratRepository.save(contrat));
     }
 
-    /**
-     * Demande de prolongation par le CLIENT.
-     * Passe en PROLONGATION_EN_ATTENTE et mémorise la date souhaitée dans les notes.
-     * L'admin valide ensuite via update().
-     */
     @Override
     @Transactional
     public ContratResponseDto demanderProlongation(Long id, ContratActionDto dto, String clientEmail) {
         Contrat contrat = loadClientContrat(id, clientEmail);
-
         if (contrat.getStatut() != StatutContrat.ACTIF) {
             throw new IllegalStateException(
                 "Seul un contrat ACTIF peut faire l'objet d'une demande de prolongation. Statut actuel : " + contrat.getStatut()
             );
         }
-
         contrat.setStatut(StatutContrat.PROLONGATION_EN_ATTENTE);
         String note = dto.nouvelleDate() != null
             ? "Prolongation demandée jusqu'au " + dto.nouvelleDate() + (dto.motif() != null ? " — " + dto.motif() : "")
             : "Prolongation demandée" + (dto.motif() != null ? " — " + dto.motif() : "");
         contrat.setNotes(note);
-
         log.info("Demande de prolongation enregistrée : contratId={}, client={}", id, clientEmail);
         return mapper.toDto(contratRepository.save(contrat));
     }
@@ -163,5 +270,16 @@ public class ContratServiceImpl implements ContratService {
             .orElseThrow(() -> new EntityNotFoundException("Utilisateur non trouvé"));
         return contratRepository.findByIdAndClientId(id, client.getId())
             .orElseThrow(() -> new EntityNotFoundException("Contrat non trouvé pour ce client : id=" + id));
+    }
+
+    // ─── Calculs LOCATION centralisés ─────────────────────────────────────────
+    // Source unique de vérité : toute modification des règles métier se fait ici.
+
+    private BigDecimal montantLocation(BigDecimal loyerMensuel, int dureeEnMois) {
+        return loyerMensuel.multiply(BigDecimal.valueOf(dureeEnMois));
+    }
+
+    private LocalDate dateFinLocation(LocalDate dateDebut, int dureeEnMois) {
+        return dateDebut.plusMonths(dureeEnMois);
     }
 }

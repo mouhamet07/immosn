@@ -26,7 +26,7 @@ import sn.immosn.backend.shared.response.RestResponse;
 @RestController
 @RequestMapping("/api/v1/leads")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
 @Tag(name = "LEADS", description = "Gestion du pipeline commercial : qualification des prospects intéressés par une annonce, issus des visites")
 @SecurityRequirement(name = "bearerAuth")
 public class LeadController {

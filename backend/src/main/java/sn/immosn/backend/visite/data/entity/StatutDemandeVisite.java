@@ -5,5 +5,11 @@ public enum StatutDemandeVisite {
     ACCEPTEE,
     REFUSEE,
     ANNULEE,
-    TERMINEE
+    /** @deprecated Utiliser CLOTUREE_SANS_SUITE ou CLOTUREE_AVEC_CONTRAT. Conservé pour la compatibilité des données historiques. */
+    @Deprecated
+    TERMINEE,
+    /** Visite effectuée — client non intéressé, aucun contrat créé. */
+    CLOTUREE_SANS_SUITE,
+    /** Visite effectuée — contrat créé automatiquement par l'administrateur. */
+    CLOTUREE_AVEC_CONTRAT
 }

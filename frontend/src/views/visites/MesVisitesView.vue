@@ -15,22 +15,26 @@ const totalPages  = ref(1)
 const filtreStatut = ref('')
 const cancelling  = ref(null)
 
-const STATUTS = ['', 'EN_ATTENTE', 'ACCEPTEE', 'REFUSEE', 'ANNULEE', 'TERMINEE']
+const STATUTS = ['', 'EN_ATTENTE', 'ACCEPTEE', 'REFUSEE', 'ANNULEE', 'CLOTUREE_SANS_SUITE', 'CLOTUREE_AVEC_CONTRAT']
 
 const STATUT_LABELS = {
-  EN_ATTENTE: 'En attente',
-  ACCEPTEE:   'Acceptée',
-  REFUSEE:    'Refusée',
-  ANNULEE:    'Annulée',
-  TERMINEE:   'Terminée',
+  EN_ATTENTE:            'En attente',
+  ACCEPTEE:              'Acceptée',
+  REFUSEE:               'Refusée',
+  ANNULEE:               'Annulée',
+  CLOTUREE_SANS_SUITE:   'Clôturée sans suite',
+  CLOTUREE_AVEC_CONTRAT: 'Clôturée avec contrat',
+  TERMINEE:              'Terminée',
 }
 const filterOptions = STATUTS.map(s => ({ value: s, label: s ? STATUT_LABELS[s] : 'Tous les statuts' }))
 const STATUT_COLORS = {
-  EN_ATTENTE: 'badge--warning',
-  ACCEPTEE:   'badge--success',
-  REFUSEE:    'badge--danger',
-  ANNULEE:    'badge--neutral',
-  TERMINEE:   'badge--info',
+  EN_ATTENTE:            'badge--warning',
+  ACCEPTEE:              'badge--success',
+  REFUSEE:               'badge--danger',
+  ANNULEE:               'badge--neutral',
+  CLOTUREE_SANS_SUITE:   'badge--neutral',
+  CLOTUREE_AVEC_CONTRAT: 'badge--info',
+  TERMINEE:              'badge--info',
 }
 
 async function fetchVisites(page = 0) {
