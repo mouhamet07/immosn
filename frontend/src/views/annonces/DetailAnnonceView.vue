@@ -294,12 +294,12 @@ function getImage(index) {
           <!-- Équipements -->
           <section class="detail-section">
             <h2 class="detail-section__title">Équipements et caractéristiques</h2>
-            <ul v-if="annonce.commodites?.length" class="detail-commodites">
-              <li v-for="(item, i) in annonce.commodites" :key="i" class="detail-commodite">
-                <SvgIcon name="check-circle" :size="14" class="detail-commodite__icon" />
+            <div v-if="annonce.commodites?.length" class="detail-commodites">
+              <span v-for="(item, i) in annonce.commodites" :key="i" class="detail-commodite">
+                <SvgIcon name="check-circle" :size="12" class="detail-commodite__icon" />
                 {{ item.libelle }}
-              </li>
-            </ul>
+              </span>
+            </div>
             <p v-else class="detail-section__text">Aucun équipement renseigné.</p>
           </section>
 
@@ -636,14 +636,23 @@ function getImage(index) {
 
 /* Commodités */
 .detail-commodites {
-  list-style: none;
-  display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 .detail-commodite {
-  display: flex; align-items: center; gap: 0.4rem;
-  font-size: 0.9rem; color: var(--color-text);
-  padding: 0.35rem 0;
-  border-bottom: 1px solid var(--color-border);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  white-space: nowrap;
 }
 .detail-commodite__icon { color: var(--color-primary); flex-shrink: 0; }
 
@@ -828,6 +837,5 @@ function getImage(index) {
 @media (max-width: 480px) {
   .detail-gallery { height: 220px; }
   .detail-header__title { font-size: 1.4rem; }
-  .detail-commodites { grid-template-columns: 1fr; }
 }
 </style>

@@ -48,8 +48,8 @@ public class LocationController {
             content = @Content(mediaType = "application/json",
                 examples = @ExampleObject(value = """
                     {
-                      "success": true, "status": 200,
-                      "data": ["Dakar", "Pikine", "Guédiawaye", "Rufisque", "Thiès", "Mbour", "Tivaouane", "Saint-Louis"]
+                        "success": true, "status": 200,
+                        "data": ["Dakar", "Pikine", "Guédiawaye", "Rufisque", "Thiès", "Mbour", "Tivaouane", "Saint-Louis"]
                     }""")))
     })
     @GetMapping("/departements")

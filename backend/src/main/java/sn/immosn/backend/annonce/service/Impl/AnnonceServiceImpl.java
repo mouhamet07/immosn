@@ -102,9 +102,9 @@ public class AnnonceServiceImpl implements AnnonceService {
         if (requestDto.images()      != null) annonce.setImages(requestDto.images());
 
         boolean locationChanged = requestDto.adresseExacte() != null
-                               || requestDto.departement() != null
-                               || requestDto.quartier()    != null
-                               || requestDto.region()      != null;
+            || requestDto.departement() != null
+            || requestDto.quartier()    != null
+            || requestDto.region()      != null;
 
         if (requestDto.departement() != null) {
             if (requestDto.departement().isBlank()) {

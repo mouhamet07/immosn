@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { Home, MapPin, Calendar, Search, AlertCircle, RefreshCw } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import visiteService from '@/services/visiteService'
+import FilterSelect from '@/components/FilterSelect.vue'
 
 const router = useRouter()
 
@@ -14,21 +15,26 @@ const totalPages  = ref(1)
 const filtreStatut = ref('')
 const cancelling  = ref(null)
 
-const STATUTS = ['', 'EN_ATTENTE', 'ACCEPTEE', 'REFUSEE', 'ANNULEE', 'TERMINEE']
+const STATUTS = ['', 'EN_ATTENTE', 'ACCEPTEE', 'REFUSEE', 'ANNULEE', 'CLOTUREE_SANS_SUITE', 'CLOTUREE_AVEC_CONTRAT']
 
 const STATUT_LABELS = {
-  EN_ATTENTE: 'En attente',
-  ACCEPTEE:   'Acceptée',
-  REFUSEE:    'Refusée',
-  ANNULEE:    'Annulée',
-  TERMINEE:   'Terminée',
+  EN_ATTENTE:            'En attente',
+  ACCEPTEE:              'Acceptée',
+  REFUSEE:               'Refusée',
+  ANNULEE:               'Annulée',
+  CLOTUREE_SANS_SUITE:   'Clôturée sans suite',
+  CLOTUREE_AVEC_CONTRAT: 'Clôturée avec contrat',
+  TERMINEE:              'Terminée',
 }
+const filterOptions = STATUTS.map(s => ({ value: s, label: s ? STATUT_LABELS[s] : 'Tous les statuts' }))
 const STATUT_COLORS = {
-  EN_ATTENTE: 'badge--warning',
-  ACCEPTEE:   'badge--success',
-  REFUSEE:    'badge--danger',
-  ANNULEE:    'badge--neutral',
-  TERMINEE:   'badge--info',
+  EN_ATTENTE:            'badge--warning',
+  ACCEPTEE:              'badge--success',
+  REFUSEE:               'badge--danger',
+  ANNULEE:               'badge--neutral',
+  CLOTUREE_SANS_SUITE:   'badge--neutral',
+  CLOTUREE_AVEC_CONTRAT: 'badge--info',
+  TERMINEE:              'badge--info',
 }
 
 async function fetchVisites(page = 0) {
@@ -83,17 +89,12 @@ onMounted(() => fetchVisites(0))
       </div>
 
       <!-- Filtres statut -->
-      <div class="mv-filters">
-        <button
-          v-for="s in STATUTS"
-          :key="s"
-          class="mv-filter-btn"
-          :class="{ '--active': filtreStatut === s }"
-          @click="filtreStatut = s; fetchVisites(0)"
-        >
-          {{ s ? STATUT_LABELS[s] : 'Tous' }}
-        </button>
-      </div>
+      <FilterSelect
+        style="margin-bottom: 1.5rem"
+        :model-value="filtreStatut"
+        :options="filterOptions"
+        @update:model-value="(v) => { filtreStatut = v; fetchVisites(0) }"
+      />
 
       <!-- Chargement -->
       <div v-if="loading" class="mv-loading"><div class="spinner"></div></div>
@@ -181,17 +182,6 @@ onMounted(() => fetchVisites(0))
 }
 .mv-header__btn:hover { opacity: .85; }
 
-.mv-filters {
-  display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.5rem;
-}
-.mv-filter-btn {
-  padding: .35rem .9rem; border: 1.5px solid var(--color-border); border-radius: 20px;
-  font-size: .8rem; background: var(--color-card); color: var(--color-text);
-  cursor: pointer; transition: all .15s;
-}
-.mv-filter-btn:hover, .mv-filter-btn.--active {
-  background: var(--color-primary); border-color: var(--color-primary); color: #fff;
-}
 
 .mv-loading { display: flex; justify-content: center; padding: 4rem; }
 .mv-empty {
@@ -199,7 +189,7 @@ onMounted(() => fetchVisites(0))
   padding: 4rem 2rem; text-align: center;
 }
 .mv-empty__title { font-size: 1rem; font-weight: 700; color: var(--color-text); }
-.mv-empty__desc { font-size: 0.85rem; color: var(--color-text-secondary, #6B7280); line-height: 1.5; max-width: 360px; }
+.mv-empty__desc { font-size: 0.85rem; color: var(--color-text-secondary); line-height: 1.5; max-width: 360px; }
 .mv-empty__btn {
   display: flex; align-items: center; gap: 6px;
   padding: .6rem 1.2rem; background: var(--color-primary); color: #fff;

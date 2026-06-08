@@ -32,8 +32,6 @@ import java.util.List;
  *   CLIENT      → lecture annonces, favoris, discussions, visites, contrats propres
  *   ADMIN       → gestion annonces, visites, leads, contrats, signalements, messages
  *   SUPER_ADMIN → tout ADMIN + gestion des comptes ADMIN
- *
- * IMPORTANT : aucun @CrossOrigin sur les controllers — CORS configuré ici uniquement.
  */
 @Configuration
 @EnableWebSecurity
@@ -47,8 +45,7 @@ public class SecurityConfig {
     @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:80}")
     private List<String> allowedOrigins;
 
-    // ── Beans ──────────────────────────────────────────────────────────────
-
+    //  Beans 
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -71,8 +68,7 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
-    // ── CORS centralisé ────────────────────────────────────────────────────
-
+    //  CORS centralisé 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
@@ -87,27 +83,23 @@ public class SecurityConfig {
         return source;
     }
 
-    // ── Filter chain — deny-by-default ─────────────────────────────────────
-
+    //  Filter chain — deny-by-default 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            // X-Frame-Options géré par Nginx (SAMEORIGIN) — Spring Security ne doit pas en ajouter un second
             .headers(headers -> headers.frameOptions(frame -> frame.disable()))
             .authorizeHttpRequests(authz -> authz
 
-                // ── Actuator health : sans auth (Docker healthcheck) ────
+                //  Actuator health : sans auth (Docker healthcheck) 
                 .requestMatchers("/actuator/health").permitAll()
 
-                // ── Auth : public ───────────────────────────────────────
+                //  Public
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").permitAll()
-
-                // ── Lecture annonces + référentiels : public ────────────
                 .requestMatchers(HttpMethod.GET,  "/api/v1/annonces").permitAll()
                 .requestMatchers(HttpMethod.GET,  "/api/v1/annonces/{id}").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/annonces/search").permitAll()
@@ -115,17 +107,13 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET,  "/api/v1/commodites/paged").permitAll()
                 .requestMatchers(HttpMethod.GET,  "/api/v1/types-bien").permitAll()
                 .requestMatchers(HttpMethod.GET,  "/api/v1/types-bien/paged").permitAll()
-
-                // ── Localisation : public ───────────────────────────────
                 .requestMatchers(HttpMethod.GET,  "/api/v1/locations/**").permitAll()
 
-                // ── Mutations annonces : ADMIN ou SUPER_ADMIN ───────────
+                //  ADMIN ou SUPER_ADMIN
                 .requestMatchers(HttpMethod.POST,   "/api/v1/annonces").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers(HttpMethod.PUT,    "/api/v1/annonces/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/annonces/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers(HttpMethod.PATCH,  "/api/v1/annonces/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
-
-                // ── Référentiels (mutations) : ADMIN ou SUPER_ADMIN ─────
                 .requestMatchers(HttpMethod.POST,   "/api/v1/commodites/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers(HttpMethod.PUT,    "/api/v1/commodites/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/commodites/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
@@ -134,20 +122,16 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT,    "/api/v1/types-bien/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/types-bien/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers(HttpMethod.PATCH,  "/api/v1/types-bien/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers("/api/v1/leads/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
 
-                // ── Gestion ADMIN : SUPER_ADMIN UNIQUEMENT ──────────────
+                //  Gestion ADMIN : SUPER_ADMIN UNIQUEMENT 
                 // ADMIN ne peut PAS créer d'autres admins ni les archiver
                 .requestMatchers(HttpMethod.POST,  "/api/v1/auth/admin").hasRole("SUPER_ADMIN")
                 .requestMatchers(HttpMethod.GET,   "/api/v1/auth/admins").hasRole("SUPER_ADMIN")
                 .requestMatchers(HttpMethod.PATCH, "/api/v1/auth/admins/**").hasRole("SUPER_ADMIN")
 
-                // ── Dashboard : ADMIN ou SUPER_ADMIN ────────────────────
-                .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
-
-                // ── Leads : ADMIN ou SUPER_ADMIN ────────────────────────
-                .requestMatchers("/api/v1/leads/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
-
-                // ── Endpoints authentifiés (granularité via @PreAuthorize)
+                //  Endpoints authentifiés (granularité via @PreAuthorize)
                 .requestMatchers("/api/v1/auth/profile").authenticated()
                 .requestMatchers("/api/v1/discussions/**").authenticated()
                 .requestMatchers("/api/v1/visites/**").authenticated()
@@ -155,13 +139,13 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/signalements/**").authenticated()
                 .requestMatchers("/api/v1/favoris/**").authenticated()
 
-                // ── Swagger UI + OpenAPI docs : accès public ───────────
+                //  Swagger UI + OpenAPI docs 
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
 
-                // ── H2 console : développement uniquement ───────────────
+                //  H2 console : développement uniquement 
                 .requestMatchers("/h2-console/**").permitAll()
 
-                // ── Deny-by-default : tout le reste exige authentification
+                //  Deny-by-default : tout le reste exige authentification
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())

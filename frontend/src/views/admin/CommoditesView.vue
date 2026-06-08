@@ -2,10 +2,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import commoditeService from '@/services/commoditeService'
+import FilterTabs from '@/components/FilterTabs.vue'
 
 const allItems     = ref([])
 const loading      = ref(false)
-const activeFilter = ref('actifs')
+const activeFilter = ref('toutes')
 const ITEMS_PER_PAGE = 10
 const currentPage  = ref(1)
 
@@ -38,8 +39,8 @@ async function fetchItems() {
 }
 
 const filteredItems = computed(() => {
-  if (activeFilter.value === 'actifs')   return allItems.value.filter(i => !i.isArchived)
-  if (activeFilter.value === 'archives') return allItems.value.filter(i => i.isArchived)
+  if (activeFilter.value === 'actives')   return allItems.value.filter(i => !i.isArchived)
+  if (activeFilter.value === 'archivees') return allItems.value.filter(i => i.isArchived)
   return allItems.value
 })
 
@@ -132,11 +133,15 @@ onMounted(() => fetchItems())
         <p class="cm-toolbar__count">{{ filteredItems.length }} commodité{{ filteredItems.length !== 1 ? 's' : '' }}</p>
       </div>
       <div class="cm-toolbar__right">
-        <div class="cm-filter">
-          <button class="cm-filter__btn" :class="{ 'cm-filter__btn--active': activeFilter === 'tous' }"     @click="setFilter('tous')">Tous</button>
-          <button class="cm-filter__btn" :class="{ 'cm-filter__btn--active': activeFilter === 'actifs' }"   @click="setFilter('actifs')">Actifs</button>
-          <button class="cm-filter__btn" :class="{ 'cm-filter__btn--active': activeFilter === 'archives' }" @click="setFilter('archives')">Archivés</button>
-        </div>
+        <FilterTabs
+          :model-value="activeFilter"
+          :tabs="[
+            { value: 'toutes', label: 'Toutes' },
+            { value: 'actives', label: 'Actives' },
+            { value: 'archivees', label: 'Archivées' },
+          ]"
+          @update:model-value="setFilter"
+        />
         <button class="btn-primary" @click="openCreate">+ Nouvelle commodité</button>
       </div>
     </div>
@@ -222,10 +227,6 @@ onMounted(() => fetchItems())
 .cm-toolbar__title { font-size: 1.5rem; font-weight: 800; color: var(--color-text); }
 .cm-toolbar__count { font-size: 0.85rem; color: #6b7280; margin-top: 0.2rem; }
 .cm-toolbar__right { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
-.cm-filter { display: flex; border: 1px solid var(--color-border); border-radius: var(--radius-sm); overflow: hidden; }
-.cm-filter__btn { padding: 0.45rem 0.9rem; font-size: 0.82rem; font-weight: 600; background: var(--color-card); color: var(--color-text-muted); border: none; cursor: pointer; transition: background 0.15s, color 0.15s; }
-.cm-filter__btn:hover { background: var(--color-hover-row); color: var(--color-text); }
-.cm-filter__btn--active { background: var(--color-primary); color: #fff; }
 
 .cm-card { background: var(--color-card); border-radius: var(--radius); box-shadow: var(--shadow-card); overflow: hidden; }
 
@@ -263,8 +264,8 @@ onMounted(() => fetchItems())
 .req { color: var(--color-accent); }
 .field__input { padding: 0.7rem 0.9rem; border: 1.5px solid #e8e0d4; border-radius: var(--radius-sm); font-size: 0.9rem; color: var(--color-text); background: #fff; transition: border-color .2s; width: 100%; }
 .field__input:focus { border-color: var(--color-primary); outline: none; }
-.btn-primary { padding: 0.55rem 1.1rem; background: var(--color-accent); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: background .15s; }
-.btn-primary:hover:not(:disabled) { background: var(--color-accent-hover); }
+.btn-primary { padding: 0.55rem 1.1rem; background: var(--color-primary); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: background .15s; }
+.btn-primary:hover:not(:disabled) { background: var(--color-primary-hover); }
 .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
 .btn-edit    { padding: 0.35rem 0.75rem; background: transparent; border: 1px solid var(--color-primary); color: var(--color-primary); border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
 .btn-edit:hover { background: rgba(74,124,111,.1); }

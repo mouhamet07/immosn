@@ -1,9 +1,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Edit, Archive, RotateCcw, MapPin, Bed, Maximize, CheckCircle, ExternalLink } from 'lucide-vue-next'
+import { Edit, Archive, RotateCcw, MapPin, Bed, Maximize, CheckCircle } from 'lucide-vue-next'
 import annonceService from '@/services/annonceService'
 import placeholderImg from '@/assets/Penthouse.png'
+import LocationMap from '@/components/LocationMap.vue'
 
 const route  = useRoute()
 const router = useRouter()
@@ -139,30 +140,20 @@ onMounted(fetchAnnonce)
             <p v-else class="daa-section__text">Aucun équipement renseigné.</p>
           </section>
 
-          <!-- FIX 6 : Emplacement -->
+          <!-- Emplacement -->
           <section class="daa-section">
             <h2 class="daa-section__title">Emplacement</h2>
-            <div class="daa-location-info">
-              <div class="daa-location-item">
-                <MapPin :size="14" color="var(--color-text-secondary)" />
-                <span>{{ annonce.adresse || [annonce.quartier, annonce.departement].filter(Boolean).join(', ') }}</span>
-              </div>
-            </div>
-            <div class="daa-map-placeholder">
-              <div class="daa-map-content">
-                <MapPin :size="32" color="var(--color-primary)" />
-                <p>{{ annonce.adresse || annonce.quartier }}</p>
-                <a
-                  v-if="annonce.latitude && annonce.longitude"
-                  :href="'https://maps.google.com/?q=' + annonce.latitude + ',' + annonce.longitude"
-                  target="_blank"
-                  class="daa-map-link"
-                >
-                  <ExternalLink :size="14" />
-                  Voir sur Google Maps
-                </a>
-              </div>
-            </div>
+            <p v-if="annonce.quartier || annonce.departement" class="daa-adresse" style="margin-bottom:.75rem;">
+              <MapPin :size="13" />
+              {{ [annonce.quartier, annonce.departement].filter(Boolean).join(', ') }}
+            </p>
+            <LocationMap
+              :latitude="annonce.latitude"
+              :longitude="annonce.longitude"
+              :draggable="false"
+              height="280px"
+              :zoom="15"
+            />
           </section>
         </div>
 
@@ -249,42 +240,6 @@ onMounted(fetchAnnonce)
 .daa-commodites { list-style: none; display: grid; grid-template-columns: repeat(2, 1fr); gap: .4rem; }
 .daa-commodite { display: flex; align-items: center; gap: .35rem; font-size: .88rem; color: var(--color-text); }
 .daa-commodite svg { color: var(--color-primary); flex-shrink: 0; }
-
-/* FIX 6 : emplacement */
-.daa-location-info { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
-.daa-location-item { display: flex; align-items: center; gap: 6px; font-size: .88rem; color: var(--color-text); }
-.daa-map-placeholder {
-  background: #E8F2EF; border: 1px solid var(--color-border);
-  border-radius: 12px; height: 200px;
-  display: flex; align-items: center; justify-content: center;
-}
-.daa-map-content { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
-.daa-map-content p { font-size: .88rem; color: var(--color-text); }
-.daa-map-link {
-  display: flex; align-items: center; gap: 4px;
-  color: var(--color-primary); font-size: 13px;
-  text-decoration: none; font-weight: 500;
-}
-.daa-map-link:hover { text-decoration: underline; }
-
-/* FIX 6 : emplacement */
-.daa-location-info { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
-.daa-location-item { display: flex; align-items: center; gap: 6px; font-size: .88rem; color: var(--color-text); }
-.daa-map-placeholder {
-  background: #E8F2EF;
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  height: 200px;
-  display: flex; align-items: center; justify-content: center;
-}
-.daa-map-content { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
-.daa-map-content p { font-size: .88rem; color: var(--color-text); }
-.daa-map-link {
-  display: flex; align-items: center; gap: 4px;
-  color: var(--color-primary); font-size: 13px;
-  text-decoration: none; font-weight: 500;
-}
-.daa-map-link:hover { text-decoration: underline; }
 
 /* Sidebar */
 .daa-info-card { background: var(--color-card); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow-card); }

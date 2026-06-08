@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import signalementService from '@/services/signalementService'
+import FilterSelect from '@/components/FilterSelect.vue'
 
 const signalements = ref([])
 const loading      = ref(false)
@@ -20,6 +21,7 @@ const STATUTS       = ['', 'OUVERT', 'EN_COURS', 'RESOLU', 'FERME']
 const STATUT_LABELS = { OUVERT: 'Ouvert', EN_COURS: 'En cours', RESOLU: 'Résolu', FERME: 'Fermé' }
 const STATUT_COLORS = { OUVERT: 'badge--warning', EN_COURS: 'badge--info', RESOLU: 'badge--success', FERME: 'badge--neutral' }
 const NEXT_STATUTS  = ['OUVERT', 'EN_COURS', 'RESOLU', 'FERME']
+const filterOptions = STATUTS.map(s => ({ value: s, label: s ? STATUT_LABELS[s] : 'Tous les signalements' }))
 
 async function fetchSignalements(page = 0) {
   loading.value = true
@@ -66,13 +68,11 @@ onMounted(() => fetchSignalements(0))
         <h1 class="sa-toolbar__title">Signalements SAV</h1>
         <p class="sa-toolbar__count">{{ totalItems }} signalement{{ totalItems !== 1 ? 's' : '' }}</p>
       </div>
-      <div class="sa-filters">
-        <button v-for="s in STATUTS" :key="s" class="filter-tab"
-          :class="{ active: filtreStatut === s }"
-          @click="filtreStatut = s; fetchSignalements(0)">
-          {{ s ? STATUT_LABELS[s] : 'Tous' }}
-        </button>
-      </div>
+      <FilterSelect
+        :model-value="filtreStatut"
+        :options="filterOptions"
+        @update:model-value="(v) => { filtreStatut = v; fetchSignalements(0) }"
+      />
     </div>
 
     <div v-if="loading" class="sa-loading"><div class="spinner"></div></div>
@@ -143,10 +143,6 @@ onMounted(() => fetchSignalements(0))
 .sa-toolbar { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
 .sa-toolbar__title { font-size: 1.4rem; font-weight: 800; color: var(--color-text); }
 .sa-toolbar__count { font-size: .82rem; color: var(--color-text); opacity: .5; }
-.sa-filters { display: flex; flex-wrap: wrap; gap: .4rem; }
-.filter-tab { padding: 6px 16px; border-radius: 20px; border: 1px solid var(--color-border); background: var(--color-card); color: var(--color-text-secondary, #6B7280); font-size: 13px; cursor: pointer; transition: all 150ms ease; }
-.filter-tab:hover { border-color: var(--color-primary); color: var(--color-primary); }
-.filter-tab.active { background: var(--color-primary); border-color: var(--color-primary); color: white; }
 .sa-loading { display: flex; justify-content: center; padding: 4rem; }
 .sa-empty { text-align: center; padding: 3rem; color: var(--color-text); opacity: .45; }
 .sa-list { display: flex; flex-direction: column; gap: .75rem; }

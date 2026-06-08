@@ -367,7 +367,7 @@ async function restoreAccess(id) {
   height: 32px;
   border-radius: var(--radius-sm);
   background: transparent;
-  border: 1px solid #E8E0D4;
+  border: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: center;

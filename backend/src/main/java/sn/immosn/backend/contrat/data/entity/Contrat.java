@@ -48,6 +48,15 @@ public class Contrat {
     @Column(nullable = false)
     private StatutContrat statut = StatutContrat.EN_ATTENTE;
 
+    /** VENTE ou LOCATION — renseigné à la création, null pour les contrats historiques. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type_contrat", length = 20)
+    private TypeContrat typeContrat;
+
+    /** Durée en mois — non null uniquement si typeContrat = LOCATION. */
+    @Column(name = "duree_location_mois")
+    private Integer dureeLocationMois;
+
     @Column(name = "document_url")
     private String documentUrl;
 

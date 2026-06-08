@@ -318,7 +318,40 @@ async function saveSecurite() {
   border-color: var(--color-primary);
 }
 
-/* Alertes */
+.profil-field { display: flex; flex-direction: column; gap: 0.4rem; }
+.profil-field__label { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text); }
+
+/* Toggle mot de passe */
+.pwd-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.profil-pwd-input {
+  width: 100%;
+  padding: 0.75rem 2.75rem 0.75rem 0.9rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  color: var(--color-text);
+  background: #fff;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+.profil-pwd-input:focus { border-color: var(--color-primary); outline: none; }
+.pwd-toggle {
+  position: absolute;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  transition: color 150ms ease;
+}
+.pwd-toggle:hover { color: var(--color-primary); }
+
 .profil-alert {
   padding: 0.75rem 1rem;
   border-radius: var(--radius-sm);
@@ -394,7 +427,7 @@ async function saveSecurite() {
 
 .avatar-info { text-align: center; }
 .avatar-name { font-size: 1rem; font-weight: 700; color: var(--color-text); }
-.avatar-hint { font-size: 0.75rem; color: var(--color-text-secondary, #6B7280); margin-top: 2px; }
+.avatar-hint { font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 2px; }
 
 .profil-user__email,
 .profil-user__phone {

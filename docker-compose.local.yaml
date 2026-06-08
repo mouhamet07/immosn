@@ -24,7 +24,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
       DDL_AUTO: ${DDL_AUTO:-update}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost}
+      CORS_ORIGINS: http://localhost
       SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL:-superadmin@immosn.sn}
       SUPER_ADMIN_PASSWORD: ${SUPER_ADMIN_PASSWORD}
       SUPER_ADMIN_NOM: ${SUPER_ADMIN_NOM:-Super Administrateur}

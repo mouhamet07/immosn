@@ -1,4 +1,0 @@
- "# Les services principaux sont définis dans les manifests de déploiement :\n"
- "# - backend-deployment.yaml (Service 'backend')\n"
- "# - nginx-deployment.yaml (Service 'nginx')\n"
- "# - frontend-deployment.yaml (Service 'frontend' - optionnel)\n"
