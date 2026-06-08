@@ -25,7 +25,7 @@ const error = ref('')
 const isFavori = ref(false)
 const imageActive = ref(0)
 
-// ── Modal visite ──────────────────────────────────────────
+//  Modal visite 
 import visiteService from '@/services/visiteService'
 const showVisiteModal  = ref(false)
 const visiteDate       = ref('')
@@ -66,7 +66,7 @@ function handleReserverVisite() {
   visiteSuccess.value = false
 }
 
-// ── Modal contact ──────────────────────────────────────────
+//  Modal contact 
 const showContactModal = ref(false)
 const contactMessage = ref('')
 const contactSending = ref(false)
@@ -373,7 +373,7 @@ function getImage(index) {
       </div>
     </main>
 
-    <!-- ── Modal Demande de Visite ─────────────────────────── -->
+    <!--  Modal Demande de Visite ─ -->
     <Teleport to="body">
       <div v-if="showVisiteModal" class="modal-overlay" @click.self="closeVisiteModal">
         <div class="modal-chat">
@@ -422,7 +422,7 @@ function getImage(index) {
       </div>
     </Teleport>
 
-    <!-- ── Modal Contact Agence ─────────────────────────────── -->
+    <!--  Modal Contact Agence ─ -->
     <Teleport to="body">
       <div v-if="showContactModal" class="modal-overlay" @click.self="closeModal">
         <div class="modal-chat">
