@@ -236,7 +236,7 @@ function isActive(path) {
 }
 
 .sidebar__link--active {
-  color: var(--color-primary);
+  color: white;
   background: var(--color-accent);
 }
 
@@ -261,7 +261,7 @@ function isActive(path) {
 }
 
 .sidebar__link--active .sidebar__link-icon svg {
-  stroke: var(--color-primary);
+  stroke: white;
 }
 
 /* Bas */
