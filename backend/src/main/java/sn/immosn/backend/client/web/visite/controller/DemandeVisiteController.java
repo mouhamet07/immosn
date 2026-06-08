@@ -17,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import sn.immosn.backend.client.web.contrat.dto.ContratResponseDto;
 import sn.immosn.backend.client.web.visite.dto.*;
 import sn.immosn.backend.shared.response.PagedResponse;
 import sn.immosn.backend.shared.response.RestResponse;
@@ -264,6 +265,48 @@ public class DemandeVisiteController {
         service.annuler(id, principal.getName());
         return ResponseEntity.status(HttpStatus.NO_CONTENT)
             .body(RestResponse.success(null, HttpStatus.NO_CONTENT));
+    }
+
+    @Operation(
+        summary = "Clôturer une visite acceptée",
+        description = """
+            Permet à un administrateur de clôturer une visite dont le statut est **ACCEPTEE**.
+
+            **Deux options :**
+            - `SANS_SUITE` : le client n'est pas intéressé. Visite → `CLOTUREE_SANS_SUITE`, lead → `ABANDONNE`. Retourne `null`.
+            - `AVEC_CONTRAT` : le client souhaite poursuivre. Visite → `CLOTUREE_AVEC_CONTRAT`, contrat créé automatiquement (client, annonce, lead, montant=prix annonce), lead → `CONVERTI`. Retourne le contrat créé.
+
+            Pour `AVEC_CONTRAT`, `typeContrat` (VENTE ou LOCATION) est obligatoire.
+            Pour LOCATION, `dureeLocationMois` est obligatoire.
+
+            **Accès : ADMIN ou SUPER_ADMIN**
+            """,
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Visite clôturée avec succès",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Identifiant invalide, visite non ACCEPTEE ou paramètres manquants",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Demande de visite non trouvée",
+            content = @Content(mediaType = "application/json"))
+    })
+    @PutMapping("/{id}/cloture")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<RestResponse<ContratResponseDto>> cloturerVisite(
+            @Parameter(description = "Identifiant de la demande de visite", required = true, example = "12")
+            @PathVariable Long id,
+            @RequestBody @Valid CloturerVisiteDto dto) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de demande de visite invalide", null));
+        }
+        ContratResponseDto contrat = service.cloturerVisite(id, dto);
+        return ResponseEntity.ok(RestResponse.success(contrat, HttpStatus.OK));
     }
 
     private boolean isAdmin(Principal principal) {

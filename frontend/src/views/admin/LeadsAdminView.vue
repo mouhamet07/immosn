@@ -2,7 +2,6 @@
 import { ref, onMounted } from 'vue'
 import { FileText } from 'lucide-vue-next'
 import leadService from '@/services/leadService'
-import contratService from '@/services/contratService'
 import FilterSelect from '@/components/FilterSelect.vue'
 
 const leads       = ref([])
@@ -11,13 +10,6 @@ const currentPage = ref(0)
 const totalPages  = ref(1)
 const totalItems  = ref(0)
 const filtreStatut = ref('')
-const updating    = ref(null)
-
-// Modal conversion → contrat
-const showConvertModal = ref(false)
-const convertLead      = ref(null)
-const convertForm      = ref({ dateDebut: '', dateFin: '', montant: '', documentUrl: '', notes: '' })
-const converting       = ref(false)
 
 const STATUTS       = ['', 'EN_COURS', 'CONVERTI', 'ABANDONNE']
 const STATUT_LABELS = { EN_COURS: 'En cours', CONVERTI: 'Converti', ABANDONNE: 'Abandonné' }
@@ -32,46 +24,8 @@ async function fetchLeads(page = 0) {
     currentPage.value = res.data.currentPage
     totalPages.value  = res.data.totalPages
     totalItems.value  = res.data.totalElements
-  } catch { leads.value = [] }
+  } catch (err) { console.error('[LeadsAdminView] fetchLeads error:', err?.response?.status, err?.message); leads.value = [] }
   finally { loading.value = false }
-}
-
-async function changeStatut(id, statut) {
-  updating.value = id
-  try {
-    await leadService.updateStatut(id, statut)
-    await fetchLeads(currentPage.value)
-  } catch { alert('Erreur.') }
-  finally { updating.value = null }
-}
-
-function openConvert(lead) {
-  convertLead.value = lead
-  convertForm.value = { dateDebut: '', dateFin: '', montant: '', documentUrl: '', notes: '' }
-  showConvertModal.value = true
-}
-
-async function submitConvert() {
-  if (!convertForm.value.dateDebut || !convertForm.value.montant) {
-    alert('Date de début et montant requis.')
-    return
-  }
-  converting.value = true
-  try {
-    await contratService.create({
-      clientId:    convertLead.value.clientId,
-      annonceId:   convertLead.value.annonceId,
-      leadId:      convertLead.value.id,
-      dateDebut:   convertForm.value.dateDebut,
-      dateFin:     convertForm.value.dateFin || null,
-      montant:     Number(convertForm.value.montant),
-      documentUrl: convertForm.value.documentUrl || null,
-      notes:       convertForm.value.notes || null,
-    })
-    showConvertModal.value = false
-    await fetchLeads(currentPage.value)
-  } catch { alert('Erreur lors de la création du contrat.') }
-  finally { converting.value = false }
 }
 
 function formatDate(dt) {
@@ -117,13 +71,6 @@ onMounted(() => fetchLeads(0))
           </div>
         </div>
         <p v-if="lead.noteAdmin" class="la-card__note"><FileText :size="13" /> {{ lead.noteAdmin }}</p>
-        <div class="la-card__actions">
-          <button v-if="lead.statut === 'EN_COURS'" class="la-btn la-btn--convert"
-            @click="openConvert(lead)">Créer un contrat</button>
-          <button v-if="lead.statut === 'EN_COURS'" class="la-btn la-btn--abandon"
-            :disabled="updating === lead.id"
-            @click="changeStatut(lead.id, 'ABANDONNE')">Abandonner</button>
-        </div>
       </div>
     </div>
 
@@ -133,45 +80,6 @@ onMounted(() => fetchLeads(0))
       <button :disabled="currentPage === totalPages - 1" @click="fetchLeads(currentPage + 1)">Suivant →</button>
     </div>
 
-    <!-- Modal conversion contrat -->
-    <Teleport to="body">
-      <div v-if="showConvertModal" class="modal-overlay" @click.self="showConvertModal = false">
-        <div class="modal-box">
-          <h2 class="modal-box__title">Créer un contrat</h2>
-          <p class="modal-box__desc">Client : <strong>{{ convertLead?.clientNom }}</strong> — {{ convertLead?.annonceLibelle }}</p>
-
-          <div class="modal-box__row">
-            <div class="modal-box__field">
-              <label>Date de début *</label>
-              <input v-model="convertForm.dateDebut" type="date" class="modal-box__input" />
-            </div>
-            <div class="modal-box__field">
-              <label>Date de fin</label>
-              <input v-model="convertForm.dateFin" type="date" class="modal-box__input" />
-            </div>
-          </div>
-          <div class="modal-box__field">
-            <label>Montant (FCFA) *</label>
-            <input v-model="convertForm.montant" type="number" min="0" class="modal-box__input" placeholder="Ex: 150000" />
-          </div>
-          <div class="modal-box__field">
-            <label>URL document</label>
-            <input v-model="convertForm.documentUrl" type="text" class="modal-box__input" placeholder="https://…" />
-          </div>
-          <div class="modal-box__field">
-            <label>Notes</label>
-            <textarea v-model="convertForm.notes" class="modal-box__textarea" rows="3" />
-          </div>
-
-          <div class="modal-box__footer">
-            <button class="modal-box__cancel" @click="showConvertModal = false">Annuler</button>
-            <button class="modal-box__submit" :disabled="converting" @click="submitConvert">
-              {{ converting ? 'Création…' : 'Créer le contrat' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </Teleport>
   </div>
 </template>
 
@@ -198,11 +106,6 @@ onMounted(() => fetchLeads(0))
 .la-card__note { font-size: .78rem; color: var(--color-text); opacity: .65; font-style: italic; padding: .5rem .75rem; background: var(--color-background); border-radius: 6px; display: flex; align-items: center; gap: .35rem; }
 .la-card__actions { display: flex; gap: .5rem; flex-wrap: wrap; }
 
-.la-btn { padding: .35rem .8rem; border-radius: 6px; font-size: .78rem; font-weight: 600; border: none; cursor: pointer; transition: opacity .15s; }
-.la-btn:disabled { opacity: .4; cursor: not-allowed; }
-.la-btn--convert { background: var(--color-primary); color: #fff; }
-.la-btn--abandon { background: #f3f4f6; color: #6b7280; }
-
 .la-pager { display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1.5rem; font-size: .88rem; }
 .la-pager button { padding: .4rem .9rem; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-card); cursor: pointer; }
 .la-pager button:disabled { opacity: .4; cursor: not-allowed; }
@@ -213,20 +116,6 @@ onMounted(() => fetchLeads(0))
 .badge--neutral { background: #f3f4f6; color: #6b7280; }
 
 /* Modal */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1rem; }
-.modal-box { background: var(--color-card); border-radius: var(--radius); padding: 1.75rem; width: 100%; max-width: 480px; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
-.modal-box__title { font-size: 1.1rem; font-weight: 700; color: var(--color-text); margin-bottom: .5rem; }
-.modal-box__desc { font-size: .88rem; color: var(--color-text); opacity: .65; margin-bottom: 1.25rem; }
-.modal-box__row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
-.modal-box__field { display: flex; flex-direction: column; gap: .4rem; margin-bottom: 1rem; }
-.modal-box__field label { font-size: .78rem; font-weight: 600; color: var(--color-text); opacity: .7; }
-.modal-box__input, .modal-box__textarea { padding: .65rem .9rem; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); font-size: .88rem; background: var(--color-background); color: var(--color-text); width: 100%; box-sizing: border-box; }
-.modal-box__textarea { resize: vertical; }
-.modal-box__footer { display: flex; justify-content: flex-end; gap: .75rem; margin-top: 1.25rem; }
-.modal-box__cancel { padding: .5rem 1rem; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); background: none; cursor: pointer; font-size: .88rem; color: var(--color-text); }
-.modal-box__submit { padding: .5rem 1.25rem; background: var(--color-primary); color: #fff; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; font-size: .88rem; }
-.modal-box__submit:disabled { opacity: .5; cursor: not-allowed; }
-
 .spinner { width: 36px; height: 36px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 </style>

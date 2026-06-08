@@ -74,7 +74,7 @@ public class ContratController {
             content = @Content(mediaType = "application/json"))
     })
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<RestResponse<ContratResponseDto>> create(@RequestBody @Valid ContratCreateRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(RestResponse.success(service.create(request), HttpStatus.CREATED));
@@ -132,7 +132,7 @@ public class ContratController {
             content = @Content(mediaType = "application/json"))
     })
     @GetMapping("/admin")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<PagedResponse<ContratResponseDto>> getAllContrats(
             @Parameter(description = "Numéro de page", example = "0") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Taille de la page", example = "20") @RequestParam(defaultValue = "20") int size,
@@ -224,7 +224,7 @@ public class ContratController {
             content = @Content(mediaType = "application/json"))
     })
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<RestResponse<ContratResponseDto>> update(
             @Parameter(description = "Identifiant du contrat à modifier", required = true, example = "8")
             @PathVariable Long id, @RequestBody @Valid ContratUpdateRequestDto request) {
@@ -322,6 +322,8 @@ public class ContratController {
 
     private boolean isAdmin(Principal principal) {
         var auth = (org.springframework.security.core.Authentication) principal;
-        return auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        return auth.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")
+                        || a.getAuthority().equals("ROLE_SUPER_ADMIN"));
     }
 }
