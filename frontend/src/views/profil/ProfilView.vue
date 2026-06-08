@@ -11,8 +11,7 @@ function formatTelephone(val) {
   if (d.length <= 7) return '+221 ' + d.slice(0,2) + ' ' + d.slice(2,5) + ' ' + d.slice(5)
   return '+221 ' + d.slice(0,2) + ' ' + d.slice(2,5) + ' ' + d.slice(5,7) + ' ' + d.slice(7,9)
 }
-import { Camera, Eye, EyeOff } from 'lucide-vue-next'
-import PhoneInput from '@/components/PhoneInput.vue'
+import { Camera } from 'lucide-vue-next'
 import InputField from '@/components/InputField.vue'
 import ButtonPrimary from '@/components/ButtonPrimary.vue'
 import { useAuthStore } from '@/stores/authStore'
@@ -69,10 +68,6 @@ const formSecurite = reactive({
   motDePasseActuel: '',
   nouveauMotDePasse: '',
 })
-
-// Toggle visibilité mot de passe
-const showCurrentPwd = ref(false)
-const showNewPwd     = ref(false)
 
 const loadingInfo = ref(false)
 const loadingSecurite = ref(false)
@@ -356,6 +351,8 @@ async function saveSecurite() {
   transition: color 150ms ease;
 }
 .pwd-toggle:hover { color: var(--color-primary); }
+
+.profil-alert {
   padding: 0.75rem 1rem;
   border-radius: var(--radius-sm);
   font-size: 0.88rem;
