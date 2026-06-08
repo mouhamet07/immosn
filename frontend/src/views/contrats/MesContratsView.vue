@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { FileText, Home, MapPin, Download } from 'lucide-vue-next'
 import contratService from '@/services/contratService'
+import FilterSelect from '@/components/FilterSelect.vue'
 
 const router      = useRouter()
 const contrats    = ref([])
@@ -22,6 +23,7 @@ const submitting   = ref(false)
 
 const STATUTS = ['', 'EN_ATTENTE', 'ACTIF', 'EXPIRE', 'RESILIE']
 const STATUT_LABELS = { EN_ATTENTE: 'En attente', ACTIF: 'Actif', EXPIRE: 'Expiré', RESILIE: 'Résilié' }
+const filterOptions = STATUTS.map(s => ({ value: s, label: s ? STATUT_LABELS[s] : 'Tous les statuts' }))
 const STATUT_COLORS = { EN_ATTENTE: 'badge--warning', ACTIF: 'badge--success', EXPIRE: 'badge--neutral', RESILIE: 'badge--danger' }
 
 async function fetchContrats(page = 0) {
@@ -81,13 +83,12 @@ onMounted(() => fetchContrats(0))
       </div>
 
       <!-- Filtres -->
-      <div class="mc-filters">
-        <button v-for="s in STATUTS" :key="s" class="mc-filter-btn"
-          :class="{ '--active': filtreStatut === s }"
-          @click="filtreStatut = s; fetchContrats(0)">
-          {{ s ? STATUT_LABELS[s] : 'Tous' }}
-        </button>
-      </div>
+      <FilterSelect
+        style="margin-bottom: 1.5rem"
+        :model-value="filtreStatut"
+        :options="filterOptions"
+        @update:model-value="(v) => { filtreStatut = v; fetchContrats(0) }"
+      />
 
       <div v-if="loading" class="mc-loading"><div class="spinner"></div></div>
       <div v-else-if="error" class="mc-error">{{ error }}</div>
@@ -194,12 +195,6 @@ onMounted(() => fetchContrats(0))
 .mc-header__title { font-size: 1.6rem; font-weight: 800; color: var(--color-text); }
 .mc-header__sub { font-size: .88rem; color: var(--color-text); opacity: .55; margin-top: .25rem; }
 
-.mc-filters { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.5rem; }
-.mc-filter-btn {
-  padding: .35rem .9rem; border: 1.5px solid var(--color-border); border-radius: 20px;
-  font-size: .8rem; background: var(--color-card); color: var(--color-text); cursor: pointer; transition: all .15s;
-}
-.mc-filter-btn:hover, .mc-filter-btn.--active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
 
 .mc-loading { display: flex; justify-content: center; padding: 4rem; }
 .mc-error { text-align: center; padding: 2rem; color: var(--color-accent); }

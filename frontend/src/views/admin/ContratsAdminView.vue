@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import contratService from '@/services/contratService'
+import FilterSelect from '@/components/FilterSelect.vue'
 
 const contrats    = ref([])
 const loading     = ref(false)
@@ -17,6 +18,7 @@ const saving     = ref(false)
 
 const STATUTS       = ['', 'EN_ATTENTE', 'ACTIF', 'EXPIRE', 'RESILIE']
 const STATUT_LABELS = { EN_ATTENTE: 'En attente', ACTIF: 'Actif', EXPIRE: 'Expiré', RESILIE: 'Résilié' }
+const filterOptions = STATUTS.map(s => ({ value: s, label: s ? STATUT_LABELS[s] : 'Tous les statuts' }))
 const STATUT_COLORS = { EN_ATTENTE: 'badge--warning', ACTIF: 'badge--success', EXPIRE: 'badge--neutral', RESILIE: 'badge--danger' }
 
 async function fetchContrats(page = 0) {
@@ -74,13 +76,11 @@ onMounted(() => fetchContrats(0))
         <h1 class="ca-toolbar__title">Contrats</h1>
         <p class="ca-toolbar__count">{{ totalItems }} contrat{{ totalItems !== 1 ? 's' : '' }}</p>
       </div>
-      <div class="ca-filters">
-        <button v-for="s in STATUTS" :key="s" class="filter-tab"
-          :class="{ active: filtreStatut === s }"
-          @click="filtreStatut = s; fetchContrats(0)">
-          {{ s ? STATUT_LABELS[s] : 'Tous' }}
-        </button>
-      </div>
+      <FilterSelect
+        :model-value="filtreStatut"
+        :options="filterOptions"
+        @update:model-value="(v) => { filtreStatut = v; fetchContrats(0) }"
+      />
     </div>
 
     <div v-if="loading" class="ca-loading"><div class="spinner"></div></div>
@@ -155,10 +155,6 @@ onMounted(() => fetchContrats(0))
 .ca-toolbar { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
 .ca-toolbar__title { font-size: 1.4rem; font-weight: 800; color: var(--color-text); }
 .ca-toolbar__count { font-size: .82rem; color: var(--color-text); opacity: .5; }
-.ca-filters { display: flex; flex-wrap: wrap; gap: .4rem; }
-.filter-tab { padding: 6px 16px; border-radius: 20px; border: 1px solid var(--color-border); background: var(--color-card); color: var(--color-text-secondary); font-size: 13px; cursor: pointer; transition: all 150ms ease; }
-.filter-tab:hover { border-color: var(--color-primary); color: var(--color-primary); }
-.filter-tab.active { background: var(--color-primary); border-color: var(--color-primary); color: white; }
 .ca-loading { display: flex; justify-content: center; padding: 4rem; }
 .ca-empty { text-align: center; padding: 3rem; color: var(--color-text); opacity: .45; }
 .ca-table-wrap { overflow-x: auto; }

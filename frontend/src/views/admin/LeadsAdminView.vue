@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { FileText } from 'lucide-vue-next'
 import leadService from '@/services/leadService'
 import contratService from '@/services/contratService'
+import FilterSelect from '@/components/FilterSelect.vue'
 
 const leads       = ref([])
 const loading     = ref(false)
@@ -21,6 +22,7 @@ const converting       = ref(false)
 const STATUTS       = ['', 'EN_COURS', 'CONVERTI', 'ABANDONNE']
 const STATUT_LABELS = { EN_COURS: 'En cours', CONVERTI: 'Converti', ABANDONNE: 'Abandonné' }
 const STATUT_COLORS = { EN_COURS: 'badge--info', CONVERTI: 'badge--success', ABANDONNE: 'badge--neutral' }
+const filterOptions = STATUTS.map(s => ({ value: s, label: s ? STATUT_LABELS[s] : 'Tous les leads' }))
 
 async function fetchLeads(page = 0) {
   loading.value = true
@@ -86,13 +88,11 @@ onMounted(() => fetchLeads(0))
         <h1 class="la-toolbar__title">Leads</h1>
         <p class="la-toolbar__count">{{ totalItems }} lead{{ totalItems !== 1 ? 's' : '' }}</p>
       </div>
-      <div class="la-filters">
-        <button v-for="s in STATUTS" :key="s" class="filter-tab"
-          :class="{ active: filtreStatut === s }"
-          @click="filtreStatut = s; fetchLeads(0)">
-          {{ s ? STATUT_LABELS[s] : 'Tous' }}
-        </button>
-      </div>
+      <FilterSelect
+        :model-value="filtreStatut"
+        :options="filterOptions"
+        @update:model-value="(v) => { filtreStatut = v; fetchLeads(0) }"
+      />
     </div>
 
     <div v-if="loading" class="la-loading"><div class="spinner"></div></div>
@@ -180,11 +180,6 @@ onMounted(() => fetchLeads(0))
 .la-toolbar { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
 .la-toolbar__title { font-size: 1.4rem; font-weight: 800; color: var(--color-text); }
 .la-toolbar__count { font-size: .82rem; color: var(--color-text); opacity: .5; }
-.la-filters { display: flex; flex-wrap: wrap; gap: .4rem; }
-.filter-tab { padding: 6px 16px; border-radius: 20px; border: 1px solid var(--color-border); background: var(--color-card); color: var(--color-text-secondary); font-size: 13px; cursor: pointer; transition: all 150ms ease; }
-.filter-tab:hover { border-color: var(--color-primary); color: var(--color-primary); }
-.filter-tab.active { background: var(--color-primary); border-color: var(--color-primary); color: white; }
-
 .la-loading { display: flex; justify-content: center; padding: 4rem; }
 .la-empty { text-align: center; padding: 3rem; color: var(--color-text); opacity: .45; }
 

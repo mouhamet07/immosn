@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { Home, MapPin, Calendar, Search, AlertCircle, RefreshCw } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import visiteService from '@/services/visiteService'
+import FilterSelect from '@/components/FilterSelect.vue'
 
 const router = useRouter()
 
@@ -23,6 +24,7 @@ const STATUT_LABELS = {
   ANNULEE:    'Annulée',
   TERMINEE:   'Terminée',
 }
+const filterOptions = STATUTS.map(s => ({ value: s, label: s ? STATUT_LABELS[s] : 'Tous les statuts' }))
 const STATUT_COLORS = {
   EN_ATTENTE: 'badge--warning',
   ACCEPTEE:   'badge--success',
@@ -83,17 +85,12 @@ onMounted(() => fetchVisites(0))
       </div>
 
       <!-- Filtres statut -->
-      <div class="mv-filters">
-        <button
-          v-for="s in STATUTS"
-          :key="s"
-          class="mv-filter-btn"
-          :class="{ '--active': filtreStatut === s }"
-          @click="filtreStatut = s; fetchVisites(0)"
-        >
-          {{ s ? STATUT_LABELS[s] : 'Tous' }}
-        </button>
-      </div>
+      <FilterSelect
+        style="margin-bottom: 1.5rem"
+        :model-value="filtreStatut"
+        :options="filterOptions"
+        @update:model-value="(v) => { filtreStatut = v; fetchVisites(0) }"
+      />
 
       <!-- Chargement -->
       <div v-if="loading" class="mv-loading"><div class="spinner"></div></div>
@@ -181,17 +178,6 @@ onMounted(() => fetchVisites(0))
 }
 .mv-header__btn:hover { opacity: .85; }
 
-.mv-filters {
-  display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.5rem;
-}
-.mv-filter-btn {
-  padding: .35rem .9rem; border: 1.5px solid var(--color-border); border-radius: 20px;
-  font-size: .8rem; background: var(--color-card); color: var(--color-text);
-  cursor: pointer; transition: all .15s;
-}
-.mv-filter-btn:hover, .mv-filter-btn.--active {
-  background: var(--color-primary); border-color: var(--color-primary); color: #fff;
-}
 
 .mv-loading { display: flex; justify-content: center; padding: 4rem; }
 .mv-empty {
