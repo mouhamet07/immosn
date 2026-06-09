@@ -62,13 +62,13 @@ const toastStore = useToastStore()
   pointer-events: all;
   font-size: .9rem;
   font-weight: 500;
-  border-left: 4px solid transparent;
+  border-left: none;
 }
 
-.toast--success { background: #f0fdf4; color: #166534; border-left-color: #22c55e; }
-.toast--error   { background: #fef2f2; color: #991b1b; border-left-color: #ef4444; }
-.toast--warning { background: #fffbeb; color: #92400e; border-left-color: #f59e0b; }
-.toast--info    { background: #eff6ff; color: #1e40af; border-left-color: #3b82f6; }
+.toast--success { background: #f0fdf4; color: #166534; }
+.toast--error   { background: #fef2f2; color: #991b1b; }
+.toast--warning { background: #fffbeb; color: #92400e; }
+.toast--info    { background: #eff6ff; color: #1e40af; }
 
 .toast__icon   { font-size: 1rem; flex-shrink: 0; }
 .toast__message { flex: 1; line-height: 1.4; }
