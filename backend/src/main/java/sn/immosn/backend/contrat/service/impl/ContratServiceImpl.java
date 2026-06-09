@@ -76,6 +76,13 @@ public class ContratServiceImpl implements ContratService {
         var annonce = annonceRepository.findByIdAndIsArchivedFalse(request.annonceId())
             .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée : id=" + request.annonceId()));
 
+        if (request.dateDebut() == null) {
+            throw new IllegalArgumentException("La date de début est obligatoire.");
+        }
+        if (request.dateFin() != null && !request.dateFin().isAfter(request.dateDebut())) {
+            throw new IllegalArgumentException("La date de fin doit être strictement postérieure à la date de début.");
+        }
+
         Contrat.ContratBuilder builder = Contrat.builder()
             .client(client)
             .annonce(annonce)
@@ -237,6 +244,9 @@ public class ContratServiceImpl implements ContratService {
         if (!isLocation) {
             if (request.dateDebut() != null) contrat.setDateDebut(request.dateDebut());
             if (request.dateFin()   != null) contrat.setDateFin(request.dateFin());
+            if (contrat.getDateFin() != null && !contrat.getDateFin().isAfter(contrat.getDateDebut())) {
+                throw new IllegalArgumentException("La date de fin doit être strictement postérieure à la date de début.");
+            }
             if (request.montant()   != null) contrat.setMontant(request.montant());
             return mapper.toDto(contratRepository.save(contrat));
         }

@@ -20,6 +20,7 @@ const editDocumentUrl = ref('')
 const pdfFile         = ref(null)
 const pdfUploading    = ref(false)
 const saving          = ref(false)
+const activating      = ref(false)
 
 // Modal résiliation (accepter / refuser)
 const showResiliationModal = ref(false)
@@ -69,20 +70,29 @@ async function fetchContrat() {
 // ── Activation / rejet EN_ATTENTE ──────────────────────────────────────────
 
 async function activer() {
-  await changeStatut('ACTIF')
+  if (activating.value) return
+  activating.value = true
+  try {
+    await contratService.update(contrat.value.id, { statut: 'ACTIF' })
+    await fetchContrat()
+  } catch (e) {
+    alert(e.response?.data?.message || 'Erreur lors de la validation.')
+  } finally {
+    activating.value = false
+  }
 }
 
 async function rejeter() {
+  if (activating.value) return
   if (!confirm('Confirmer le rejet de ce contrat ?')) return
-  await changeStatut('RESILIE')
-}
-
-async function changeStatut(statut) {
+  activating.value = true
   try {
-    await contratService.update(contrat.value.id, { statut })
+    await contratService.update(contrat.value.id, { statut: 'RESILIE' })
     await fetchContrat()
   } catch (e) {
-    alert(e.response?.data?.message || 'Erreur lors du changement de statut.')
+    alert(e.response?.data?.message || 'Erreur lors du rejet.')
+  } finally {
+    activating.value = false
   }
 }
 
@@ -306,8 +316,8 @@ onMounted(() => fetchContrat())
 
           <!-- EN_ATTENTE → Valider ou Rejeter -->
           <div v-if="contrat.statut === 'EN_ATTENTE'" class="cda-actions">
-            <button class="cda-btn cda-btn--success" @click="activer">✓ Valider le contrat</button>
-            <button class="cda-btn cda-btn--danger" @click="rejeter">✗ Rejeter le contrat</button>
+            <button class="cda-btn cda-btn--success" :disabled="activating" @click="activer">{{ activating ? '…' : '✓ Valider le contrat' }}</button>
+            <button class="cda-btn cda-btn--danger"  :disabled="activating" @click="rejeter">{{ activating ? '…' : '✗ Rejeter le contrat' }}</button>
           </div>
 
           <!-- EN_ATTENTE_RESILIATION → Accepter ou Refuser -->

@@ -51,6 +51,16 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
         Annonce annonce = annonceRepository.findByIdAndIsArchivedFalse(request.annonceId())
             .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée"));
 
+        boolean visiteActiveExiste = visiteRepository.existsByClientIdAndAnnonceIdAndStatutIn(
+            client.getId(), annonce.getId(),
+            List.of(StatutDemandeVisite.EN_ATTENTE, StatutDemandeVisite.ACCEPTEE)
+        );
+        if (visiteActiveExiste) {
+            throw new IllegalStateException(
+                "Vous avez déjà une demande de visite active (EN_ATTENTE ou ACCEPTEE) pour ce bien. "
+                + "Veuillez annuler ou attendre la clôture de votre demande existante avant d'en créer une nouvelle.");
+        }
+
         DemandeVisite visite = DemandeVisite.builder()
             .client(client)
             .annonce(annonce)

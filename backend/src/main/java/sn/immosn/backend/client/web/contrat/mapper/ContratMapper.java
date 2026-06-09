@@ -8,8 +8,9 @@ import sn.immosn.backend.contrat.data.entity.Contrat;
 public class ContratMapper {
 
     public ContratResponseDto toDto(Contrat c) {
-        String image = (c.getAnnonce().getImages() != null && !c.getAnnonce().getImages().isEmpty())
-            ? c.getAnnonce().getImages().get(0) : null;
+        var annonce = c.getAnnonce();
+        String image = (annonce != null && annonce.getImages() != null && !annonce.getImages().isEmpty())
+            ? annonce.getImages().get(0) : null;
 
         Long visiteId = (c.getLead() != null && c.getLead().getVisite() != null)
             ? c.getLead().getVisite().getId() : null;
@@ -18,9 +19,9 @@ public class ContratMapper {
             c.getId(),
             c.getClient().getId(),
             c.getClient().getNomComplet(),
-            c.getAnnonce().getId(),
-            c.getAnnonce().getLibelle(),
-            c.getAnnonce().getAdresse(),
+            annonce != null ? annonce.getId()      : null,
+            annonce != null ? annonce.getLibelle() : null,
+            annonce != null ? annonce.getAdresse() : null,
             image,
             c.getLead() != null ? c.getLead().getId() : null,
             visiteId,
