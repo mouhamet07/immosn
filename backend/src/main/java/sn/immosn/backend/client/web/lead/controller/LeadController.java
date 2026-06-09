@@ -198,6 +198,32 @@ public class LeadController {
     }
 
     @Operation(
+        summary = "Historique d'un lead",
+        description = "Retourne l'historique complet des transitions et actions sur un lead. **Accès : ADMIN uniquement**"
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Historique du lead",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Lead non trouvé",
+            content = @Content(mediaType = "application/json"))
+    })
+    @GetMapping("/{id}/historique")
+    public ResponseEntity<PagedResponse<LeadHistoryDto>> getHistorique(
+            @Parameter(description = "Identifiant du lead", required = true) @PathVariable Long id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(PagedResponse.fromPage(historyService.getHistory(id, pageable)));
+    }
+
+    @Operation(
         summary = "Mettre à jour la note admin d'un lead",
         description = """
             Met à jour uniquement la note administrative d'un lead sans modifier son statut.
@@ -213,22 +239,13 @@ public class LeadController {
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "400", description = "Note trop longue (max 2 000 caractères)",
             content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+            content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "404", description = "Lead non trouvé",
             content = @Content(mediaType = "application/json"))
     })
-    @Operation(summary = "Historique d'un lead", description = "Retourne l'historique complet des transitions et actions sur un lead. **Accès : ADMIN uniquement**")
-    @GetMapping("/{id}/historique")
-    public ResponseEntity<PagedResponse<LeadHistoryDto>> getHistorique(
-            @Parameter(description = "Identifiant du lead", required = true) @PathVariable Long id,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        if (id == null || id <= 0) {
-            return ResponseEntity.badRequest().build();
-        }
-        Pageable pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(PagedResponse.fromPage(historyService.getHistory(id, pageable)));
-    }
-
     @PutMapping("/{id}/note")
     public ResponseEntity<RestResponse<LeadResponseDto>> updateNote(
             @Parameter(description = "Identifiant du lead", required = true, example = "3")

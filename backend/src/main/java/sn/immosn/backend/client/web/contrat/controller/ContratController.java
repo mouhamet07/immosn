@@ -453,6 +453,18 @@ public class ContratController {
     }
 
     @Operation(summary = "Historique d'un contrat", description = "Retourne l'historique complet des transitions et actions sur un contrat. **Accès : ADMIN uniquement**")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Historique du contrat",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Identifiant invalide",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Contrat non trouvé",
+            content = @Content(mediaType = "application/json"))
+    })
     @GetMapping("/{id}/historique")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<PagedResponse<ContratHistoryDto>> getHistorique(

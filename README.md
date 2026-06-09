@@ -180,11 +180,11 @@ cp .env.example .env
 # Éditer .env (voir section Variables d'environnement)
 
 # Déployer avec le compose de production
-docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+docker compose --f docker-compose.local.yaml up -d --build
 
 # Vérifier l'état des services
-docker compose -f docker-compose.prod.yml ps
-docker compose -f docker-compose.prod.yml logs -f backend
+docker compose ps
+docker compose logs -f backend
 ```
 
 ---
@@ -346,13 +346,13 @@ immosn/
 │   └── Dockerfile
 │
 ├── nginx/
-│   ├── nginx.conf                    # Reverse proxy + SPA fallback + headers sécurité
-│   └── Dockerfile
+│   ├── nginx.conf                    # Reverse proxy (développement local)
+│   ├── nginx.vps.conf                # Reverse proxy production (SSL/TLS, rate limiting, HSTS)
+│   └── Dockerfile                    # ARG NGINX_CONF — bascule auto vers nginx.vps.conf en prod
 │
-├── kubernetes/                       # Manifests K8s (déploiement cloud)
-├── docker-compose.yaml               # Production (Neon PostgreSQL)
+├── docker-compose.yml                # Production — VPS (Neon PostgreSQL, NGINX_CONF=nginx.vps.conf)
 ├── docker-compose.dev.yml            # Développement (H2 in-memory)
-├── docker-compose.prod.yml           # VPS Linux (Neon + restart: always)
+├── docker-compose.local.yaml         # Développement Docker (PostgreSQL locale)
 ├── .env.example                      # Template variables d'environnement
 └── README.md
 ```
@@ -636,7 +636,9 @@ La réponse paginée est :
 | `POST` | `/` | Créer un lead |
 | `GET` | `/` | Lister (filtrable par `?statut=EN_COURS`) |
 | `GET` | `/{id}` | Détail |
-| `PUT` | `/{id}/status` | Modifier statut + note admin |
+| `PUT` | `/{id}/status` | Modifier le statut (+ note admin optionnelle) |
+| `PUT` | `/{id}/note` | Mettre à jour la note admin uniquement |
+| `GET` | `/{id}/historique` | Historique des transitions (Audit Trail) |
 
 **Corps POST / :**
 ```json
@@ -665,9 +667,13 @@ La réponse paginée est :
 | `POST` | `/` | CLIENT | Créer une demande de visite |
 | `GET` | `/client` | CLIENT | Mes visites (filtrable par statut) |
 | `GET` | `/admin` | ADMIN | Toutes les visites |
-| `PUT` | `/{id}/status` | ADMIN | Modifier le statut |
+| `GET` | `/{id}` | Authentifié | Détail d'une visite (client : les siennes / admin : toutes) |
+| `PUT` | `/{id}/status` | Authentifié | Modifier le statut (ADMIN : accepter/refuser — CLIENT : annuler) |
 | `PUT` | `/{id}/date` | ADMIN | Replanifier la date |
+| `PUT` | `/{id}/modifier` | CLIENT | Modifier sa demande (date/commentaire, si EN_ATTENTE) |
+| `PUT` | `/{id}/cloture` | ADMIN | Clôturer une visite ACCEPTEE (SANS_SUITE ou AVEC_CONTRAT) |
 | `DELETE` | `/{id}` | CLIENT | Annuler sa demande |
+| `GET` | `/{id}/historique` | ADMIN | Historique des transitions (Audit Trail) |
 
 **Corps POST / :**
 ```json
@@ -707,10 +713,15 @@ La réponse paginée est :
 | `POST` | `/` | ADMIN | Créer un contrat |
 | `GET` | `/client` | CLIENT | Mes contrats (filtrable par statut) |
 | `GET` | `/admin` | ADMIN | Tous les contrats |
-| `GET` | `/{id}` | Authentifié | Détail |
-| `PUT` | `/{id}` | ADMIN | Modifier |
-| `PUT` | `/{id}/resiliation` | CLIENT | Demander résiliation |
-| `PUT` | `/{id}/prolongation` | CLIENT | Demander prolongation |
+| `GET` | `/{id}` | Authentifié | Détail (client : les siens / admin : tous) |
+| `PUT` | `/{id}` | ADMIN | Modifier (statut, dates, montant, document) |
+| `PUT` | `/{id}/resiliation` | CLIENT | Soumettre une demande de résiliation |
+| `PUT` | `/{id}/resiliation/accepter` | ADMIN | Accepter la demande → statut RESILIE |
+| `PUT` | `/{id}/resiliation/refuser` | ADMIN | Refuser la demande → statut ACTIF |
+| `PUT` | `/{id}/prolongation` | CLIENT | Soumettre une demande de prolongation |
+| `PUT` | `/{id}/prolongation/accepter` | ADMIN | Accepter la prolongation → nouvelle dateFin |
+| `PUT` | `/{id}/prolongation/refuser` | ADMIN | Refuser la prolongation → statut ACTIF |
+| `GET` | `/{id}/historique` | ADMIN | Historique des transitions (Audit Trail) |
 
 **Corps POST / (ADMIN) :**
 ```json
@@ -764,18 +775,65 @@ La réponse paginée est :
     "totalAnnonces": 45,
     "annoncesActives": 38,
     "totalClients": 120,
+    "totalAdmins": 3,
+    "totalContrats": 31,
+    "contratsActifs": 18,
+    "totalVisites": 89,
+    "visitesEnAttente": 12,
+    "visitesAujourdhui": 2,
+    "totalSignalements": 5,
+    "signalementsOuverts": 2,
     "totalLeads": 67,
     "leadsEnCours": 23,
     "leadsConvertis": 31,
-    "totalVisites": 89,
-    "visitesEnAttente": 12,
-    "totalContrats": 31,
-    "contratsActifs": 18,
-    "totalSignalements": 5,
-    "signalementsOuverts": 2
+    "leadsAbandonnes": 13,
+    "tauxConversionLeads": 70.45,
+    "totalDiscussions": 93,
+    "activitesRecentes": [
+      {
+        "type": "VISITE",
+        "titre": "Visite : Villa F5 - Almadies",
+        "description": "Aminata Diallo",
+        "statut": "EN_ATTENTE",
+        "createdAt": "2024-01-15T11:30:00"
+      }
+    ]
   }
 }
 ```
+
+---
+
+### Audit Trail — Historique métier (ADMIN)
+
+Chaque module métier expose un endpoint de traçabilité enregistrant toutes les transitions de statut et actions effectuées.
+
+| Méthode | Route | Description |
+|---|---|---|
+| `GET` | `/contrats/{id}/historique` | Historique des transitions d'un contrat |
+| `GET` | `/leads/{id}/historique` | Historique des transitions d'un lead |
+| `GET` | `/visites/{id}/historique` | Historique des transitions et reprogrammations d'une visite |
+
+**Réponse paginée (même structure pour les trois endpoints) :**
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "ancienStatut": "EN_ATTENTE",
+      "nouveauStatut": "ACTIF",
+      "auteurId": 5,
+      "auteurEmail": "admin@immosn.sn",
+      "action": "ACTIVATION",
+      "commentaire": null,
+      "createdAt": "2024-02-01T10:00:00"
+    }
+  ],
+  "page": 0, "size": 20, "totalElements": 3, "totalPages": 1, "last": true
+}
+```
+
+> `VisiteHistoryDto` inclut en plus `ancienneDateVisite` et `nouvelleDateVisite` pour tracer les reprogrammations.
 
 ---
 
@@ -785,7 +843,7 @@ La réponse paginée est :
 |---|---|---|---|
 | `GET` | `/departements` | Public | Liste des départements disponibles |
 | `GET` | `/quartiers?departement={nom}` | Public | Quartiers d'un département |
-| `GET` | `/geocode?departement=&quartier=&adresse=` | ADMIN | Prévisualisation coordonnées (Nominatim) |
+| `GET` | `/geocode?departement=&quartier=&adresse=` | Public | Coordonnées GPS via Nominatim (prévisualisation carte) |
 
 **Départements disponibles (région Dakar uniquement) :**
 - Dakar, Pikine, Guédiawaye, Rufisque, Keur Massar
@@ -827,7 +885,7 @@ La réponse paginée est :
 | Signalements | ❌ | ✅ (les siens) | ✅ (tous) | ✅ |
 | Dashboard | ❌ | ❌ | ✅ | ✅ |
 | Gestion admins | ❌ | ❌ | ❌ | ✅ |
-| /locations/geocode | ❌ | ❌ | ✅ | ✅ |
+| /locations/geocode | ✅ | ✅ | ✅ | ✅ |
 
 ### Génération de la clé JWT
 
@@ -1021,9 +1079,9 @@ Soumission formulaire → Spring Boot régéocode automatiquement
 
 | Fichier | Usage | Base de données |
 |---|---|---|
-| `docker-compose.yaml` | Production standard | PostgreSQL Neon |
-| `docker-compose.dev.yml` | Développement | H2 in-memory |
-| `docker-compose.prod.yml` | VPS Linux | PostgreSQL Neon |
+| `docker-compose.yml` | Production — VPS (nginx.vps.conf) | PostgreSQL Neon |
+| `docker-compose.dev.yml` | Développement local | H2 in-memory |
+| `docker-compose.local.yaml` | Développement Docker | PostgreSQL locale |
 
 ### Commandes utiles
 
@@ -1031,8 +1089,11 @@ Soumission formulaire → Spring Boot régéocode automatiquement
 # Développement
 docker compose -f docker-compose.dev.yml up --build
 
-# Production
-docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+# Production local
+docker compose -f docker-compose.local.yml up -d --build
+
+# Production 
+docker compose up -d --build
 
 # Logs backend
 docker compose logs -f backend
@@ -1049,15 +1110,16 @@ docker compose up --build backend -d
 
 ### Health check
 
-Le backend expose un endpoint de santé implicite sur `GET /api/v1/annonces`.  
+Le backend expose `GET /actuator/health` (sans requête DB) — réponse en < 1 s même après cold start Neon.  
 Docker Compose attend que le backend soit `healthy` avant de démarrer Nginx.
 
 ```yaml
 healthcheck:
-  test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/v1/annonces"]
-  interval: 20s
+  test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/actuator/health || exit 1"]
+  interval: 30s
   timeout: 10s
   retries: 5
+  start_period: 90s
 ```
 
 ---

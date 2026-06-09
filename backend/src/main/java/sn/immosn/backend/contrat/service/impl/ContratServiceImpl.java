@@ -102,7 +102,6 @@ public class ContratServiceImpl implements ContratService {
             .documentUrl(request.documentUrl())
             .notes(request.notes());
 
-        Lead convertedLead = null;
         if (request.leadId() != null) {
             var lead = leadRepository.findById(request.leadId())
                 .orElseThrow(() -> new EntityNotFoundException("Lead non trouvé : id=" + request.leadId()));
@@ -111,7 +110,6 @@ public class ContratServiceImpl implements ContratService {
             lead.setStatut(StatutLead.CONVERTI);
             lead.setConvertedAt(LocalDateTime.now());
             leadRepository.save(lead);
-            convertedLead = lead;
             leadHistoryService.record(lead, ancienStatutLead, StatutLead.CONVERTI,
                 "CONVERSION", "Conversion lors de la création du contrat");
         }

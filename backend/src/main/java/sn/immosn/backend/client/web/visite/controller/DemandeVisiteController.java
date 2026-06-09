@@ -391,6 +391,18 @@ public class DemandeVisiteController {
     }
 
     @Operation(summary = "Historique d'une visite", description = "Retourne l'historique complet des transitions et reprogrammations d'une visite. **Accès : ADMIN uniquement**")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Historique de la visite",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Identifiant invalide",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Visite non trouvée",
+            content = @Content(mediaType = "application/json"))
+    })
     @GetMapping("/{id}/historique")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<PagedResponse<VisiteHistoryDto>> getHistorique(
