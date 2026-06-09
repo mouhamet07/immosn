@@ -45,6 +45,7 @@ const router = createRouter({
         { path: 'visites',             name: 'admin-visites',        component: () => import('@/views/admin/VisitesAdminView.vue') },
         { path: 'visites/:id',        name: 'admin-detail-visite',  component: () => import('@/views/admin/VisiteDetailAdminView.vue') },
         { path: 'leads',               name: 'admin-leads',          component: () => import('@/views/admin/LeadsAdminView.vue') },
+        { path: 'leads/:id',           name: 'admin-detail-lead',    component: () => import('@/views/admin/LeadDetailAdminView.vue') },
         { path: 'contrats',            name: 'admin-contrats',       component: () => import('@/views/admin/ContratsAdminView.vue') },
         { path: 'contrats/:id',       name: 'admin-detail-contrat', component: () => import('@/views/admin/ContratDetailAdminView.vue') },
         { path: 'signalements',        name: 'admin-signalements',   component: () => import('@/views/admin/SignalementsAdminView.vue') },

@@ -30,4 +30,7 @@ public interface ContratRepository extends JpaRepository<Contrat, Long> {
     // Job d'expiration : contrats dont dateFin < aujourd'hui et statut ACTIF
     java.util.List<Contrat> findByStatutAndDateFinBefore(
         StatutContrat statut, java.time.LocalDate date);
+
+    // Navigation croisée Lead → Contrat (un lead produit au plus un contrat)
+    Optional<Contrat> findFirstByLeadId(Long leadId);
 }

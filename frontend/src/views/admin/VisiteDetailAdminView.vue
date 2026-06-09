@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Home, MapPin } from 'lucide-vue-next'
 import visiteService from '@/services/visiteService'
+import historyService from '@/services/historyService'
 
 const route  = useRoute()
 const router = useRouter()
@@ -137,6 +138,35 @@ function formatDatetime(d) {
   return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
+// ── Onglet Histoire ────────────────────────────────────────────────────────
+const tab               = ref('detail')
+const historique        = ref([])
+const historiqueLoading = ref(false)
+
+const ACTION_LABELS = {
+  CREATION:              'Création',
+  ACCEPTATION:           'Acceptation',
+  REFUS:                 'Refus',
+  ANNULATION:            'Annulation',
+  CLOTURE_SANS_SUITE:    'Clôturée sans suite',
+  CLOTURE_AVEC_CONTRAT:  'Clôturée avec contrat',
+  REPROGRAMMATION:       'Reprogrammation (admin)',
+  REPROGRAMMATION_CLIENT:'Reprogrammation (client)',
+}
+
+async function fetchHistorique() {
+  historiqueLoading.value = true
+  try {
+    const res = await historyService.getVisiteHistory(route.params.id)
+    historique.value = res.data.content ?? []
+  } catch { /* silently fail */ } finally { historiqueLoading.value = false }
+}
+
+function switchTab(t) {
+  tab.value = t
+  if (t === 'histoire' && !historique.value.length) fetchHistorique()
+}
+
 onMounted(() => fetchVisite())
 </script>
 
@@ -164,6 +194,13 @@ onMounted(() => fetchVisite())
           </div>
         </div>
 
+        <!-- Onglets Détail / Histoire -->
+        <div class="tabs">
+          <button :class="['tab', { 'tab--active': tab === 'detail' }]" @click="switchTab('detail')">Détail</button>
+          <button :class="['tab', { 'tab--active': tab === 'histoire' }]" @click="switchTab('histoire')">Histoire</button>
+        </div>
+
+        <div v-show="tab === 'detail'">
         <!-- Image -->
         <div class="vda-image" v-if="visite.imagePrincipale">
           <img :src="visite.imagePrincipale" :alt="visite.annonceLibelle" />
@@ -239,6 +276,37 @@ onMounted(() => fetchVisite())
             <p class="vda-readonly">Ce dossier est en lecture seule (statut : {{ STATUT_LABELS[visite.statut] }}).</p>
           </div>
         </div>
+        </div><!-- /tab-detail -->
+
+        <!-- Onglet Histoire -->
+        <div v-show="tab === 'histoire'" class="hist-section">
+          <div v-if="historiqueLoading" class="hist-empty">Chargement de l'historique…</div>
+          <div v-else-if="!historique.length" class="hist-empty">Aucun événement enregistré pour cette visite.</div>
+          <div v-else class="hist-list">
+            <div v-for="evt in historique" :key="evt.id" class="hist-item">
+              <div class="hist-item__dot"></div>
+              <div class="hist-item__card">
+                <div class="hist-item__header">
+                  <span class="hist-item__action">{{ ACTION_LABELS[evt.action] || evt.action }}</span>
+                  <span class="hist-item__date">{{ formatDatetime(evt.createdAt) }}</span>
+                </div>
+                <div v-if="evt.ancienStatut || evt.nouveauStatut" class="hist-item__statuts">
+                  <span v-if="evt.ancienStatut" class="hist-statut hist-statut--old">{{ STATUT_LABELS[evt.ancienStatut] || evt.ancienStatut }}</span>
+                  <span v-if="evt.ancienStatut && evt.nouveauStatut" class="hist-arrow">→</span>
+                  <span v-if="evt.nouveauStatut" class="hist-statut hist-statut--new">{{ STATUT_LABELS[evt.nouveauStatut] || evt.nouveauStatut }}</span>
+                </div>
+                <div v-if="evt.ancienneDateVisite || evt.nouvelleDateVisite" class="hist-item__dates">
+                  <span v-if="evt.ancienneDateVisite" class="hist-date hist-date--old">{{ formatDate(evt.ancienneDateVisite) }}</span>
+                  <span v-if="evt.ancienneDateVisite && evt.nouvelleDateVisite" class="hist-arrow">→</span>
+                  <span v-if="evt.nouvelleDateVisite" class="hist-date hist-date--new">{{ formatDate(evt.nouvelleDateVisite) }}</span>
+                </div>
+                <div class="hist-item__auteur">{{ evt.auteurEmail }}</div>
+                <div v-if="evt.commentaire" class="hist-item__comment">{{ evt.commentaire }}</div>
+              </div>
+            </div>
+          </div>
+        </div><!-- /tab-histoire -->
+
       </template>
     </div>
 
@@ -438,4 +506,34 @@ onMounted(() => fetchVisite())
 @keyframes spin { to { transform: rotate(360deg); } }
 
 @media (max-width: 640px) { .vda-grid { grid-template-columns: 1fr; } }
+
+/* Onglets */
+.tabs { display: flex; gap: .25rem; margin-bottom: 1.5rem; border-bottom: 2px solid var(--color-border); }
+.tab {
+  padding: .6rem 1.25rem; background: none; border: none; cursor: pointer;
+  font-size: .88rem; font-weight: 600; color: var(--color-text); opacity: .5;
+  border-bottom: 2px solid transparent; margin-bottom: -2px; transition: opacity .15s, border-color .15s;
+}
+.tab:hover { opacity: .75; }
+.tab--active { opacity: 1; border-bottom-color: var(--color-primary); color: var(--color-primary); }
+
+/* Timeline historique */
+.hist-section { padding-top: .5rem; }
+.hist-empty { text-align: center; padding: 3rem 1rem; font-size: .88rem; color: var(--color-text); opacity: .45; font-style: italic; }
+.hist-list { display: flex; flex-direction: column; position: relative; padding-left: 1.5rem; }
+.hist-list::before { content: ''; position: absolute; left: .45rem; top: .6rem; bottom: .6rem; width: 2px; background: var(--color-border); }
+.hist-item { display: flex; gap: 1rem; position: relative; padding-bottom: 1.25rem; }
+.hist-item:last-child { padding-bottom: 0; }
+.hist-item__dot { position: absolute; left: -1.5rem; top: .35rem; width: 10px; height: 10px; border-radius: 50%; background: var(--color-primary); border: 2px solid var(--color-background); flex-shrink: 0; }
+.hist-item__card { flex: 1; background: var(--color-card); border-radius: var(--radius-sm); padding: .85rem 1rem; box-shadow: var(--shadow-card); }
+.hist-item__header { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; flex-wrap: wrap; margin-bottom: .4rem; }
+.hist-item__action { font-size: .88rem; font-weight: 700; color: var(--color-text); }
+.hist-item__date { font-size: .75rem; color: var(--color-text); opacity: .5; white-space: nowrap; }
+.hist-item__statuts, .hist-item__dates { display: flex; align-items: center; gap: .4rem; margin-bottom: .35rem; flex-wrap: wrap; }
+.hist-statut, .hist-date { padding: .15rem .55rem; border-radius: 8px; font-size: .75rem; font-weight: 600; }
+.hist-statut--old, .hist-date--old { background: rgba(107,114,128,.1); color: #6b7280; }
+.hist-statut--new, .hist-date--new { background: rgba(74,124,111,.12); color: #3a6b5e; }
+.hist-arrow { font-size: .8rem; color: var(--color-text); opacity: .4; }
+.hist-item__auteur { font-size: .78rem; color: var(--color-text); opacity: .5; }
+.hist-item__comment { font-size: .82rem; color: var(--color-text); opacity: .7; font-style: italic; margin-top: .3rem; line-height: 1.5; }
 </style>

@@ -10,4 +10,5 @@ public interface LeadService {
     Page<LeadResponseDto> getAll(StatutLead statut, Pageable pageable);
     LeadResponseDto getById(Long id);
     LeadResponseDto updateStatut(Long id, UpdateStatutLeadDto dto);
+    LeadResponseDto updateNote(Long id, UpdateNoteLeadDto dto);
 }

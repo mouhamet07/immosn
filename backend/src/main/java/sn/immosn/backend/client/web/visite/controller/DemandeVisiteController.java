@@ -23,6 +23,7 @@ import sn.immosn.backend.shared.response.PagedResponse;
 import sn.immosn.backend.shared.response.RestResponse;
 import sn.immosn.backend.visite.data.entity.StatutDemandeVisite;
 import sn.immosn.backend.visite.service.DemandeVisiteService;
+import sn.immosn.backend.visite.service.VisiteHistoryService;
 
 import java.security.Principal;
 
@@ -34,6 +35,7 @@ import java.security.Principal;
 public class DemandeVisiteController {
 
     private final DemandeVisiteService service;
+    private final VisiteHistoryService historyService;
 
     @Operation(
         summary = "Demander une visite",
@@ -386,6 +388,20 @@ public class DemandeVisiteController {
         }
         ContratResponseDto contrat = service.cloturerVisite(id, dto);
         return ResponseEntity.ok(RestResponse.success(contrat, HttpStatus.OK));
+    }
+
+    @Operation(summary = "Historique d'une visite", description = "Retourne l'historique complet des transitions et reprogrammations d'une visite. **Accès : ADMIN uniquement**")
+    @GetMapping("/{id}/historique")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<PagedResponse<VisiteHistoryDto>> getHistorique(
+            @Parameter(description = "Identifiant de la visite", required = true) @PathVariable Long id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(PagedResponse.fromPage(historyService.getHistory(id, pageable)));
     }
 
     private boolean isAdmin(Principal principal) {

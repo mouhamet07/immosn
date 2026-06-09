@@ -20,5 +20,7 @@ public interface LeadRepository extends JpaRepository<Lead, Long> {
 
     List<Lead> findByVisiteId(Long visiteId);
 
+    boolean existsByVisiteId(Long visiteId);
+
     long countByStatut(StatutLead statut);
 }

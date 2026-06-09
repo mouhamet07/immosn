@@ -15,10 +15,12 @@ import sn.immosn.backend.contrat.data.entity.Contrat;
 import sn.immosn.backend.contrat.data.entity.StatutContrat;
 import sn.immosn.backend.contrat.data.entity.TypeContrat;
 import sn.immosn.backend.contrat.data.repository.ContratRepository;
+import sn.immosn.backend.contrat.service.ContratHistoryService;
 import sn.immosn.backend.contrat.service.ContratService;
 import sn.immosn.backend.lead.data.entity.Lead;
 import sn.immosn.backend.lead.data.entity.StatutLead;
 import sn.immosn.backend.lead.data.repository.LeadRepository;
+import sn.immosn.backend.lead.service.LeadHistoryService;
 import sn.immosn.backend.shared.exception.EntityNotFoundException;
 import sn.immosn.backend.visite.data.entity.DemandeVisite;
 
@@ -60,11 +62,13 @@ public class ContratServiceImpl implements ContratService {
         StatutContrat.RESILIE,                 Set.of()
     );
 
-    private final ContratRepository contratRepository;
-    private final UserRepository    userRepository;
-    private final AnnonceRepository annonceRepository;
-    private final LeadRepository    leadRepository;
-    private final ContratMapper     mapper;
+    private final ContratRepository      contratRepository;
+    private final UserRepository         userRepository;
+    private final AnnonceRepository      annonceRepository;
+    private final LeadRepository         leadRepository;
+    private final ContratMapper          mapper;
+    private final ContratHistoryService  contratHistoryService;
+    private final LeadHistoryService     leadHistoryService;
 
     @Override
     @Transactional
@@ -82,27 +86,39 @@ public class ContratServiceImpl implements ContratService {
         if (request.dateFin() != null && !request.dateFin().isAfter(request.dateDebut())) {
             throw new IllegalArgumentException("La date de fin doit être strictement postérieure à la date de début.");
         }
+        // Un lead ne peut être converti que si le type de contrat est renseigné
+        if (request.leadId() != null && request.typeContrat() == null) {
+            throw new IllegalArgumentException(
+                "typeContrat est obligatoire lors de la conversion d'un lead en contrat (VENTE ou LOCATION).");
+        }
 
         Contrat.ContratBuilder builder = Contrat.builder()
             .client(client)
             .annonce(annonce)
+            .typeContrat(request.typeContrat())
             .dateDebut(request.dateDebut())
             .dateFin(request.dateFin())
             .montant(request.montant())
             .documentUrl(request.documentUrl())
             .notes(request.notes());
 
+        Lead convertedLead = null;
         if (request.leadId() != null) {
             var lead = leadRepository.findById(request.leadId())
                 .orElseThrow(() -> new EntityNotFoundException("Lead non trouvé : id=" + request.leadId()));
             builder.lead(lead);
+            StatutLead ancienStatutLead = lead.getStatut();
             lead.setStatut(StatutLead.CONVERTI);
             lead.setConvertedAt(LocalDateTime.now());
             leadRepository.save(lead);
+            convertedLead = lead;
+            leadHistoryService.record(lead, ancienStatutLead, StatutLead.CONVERTI,
+                "CONVERSION", "Conversion lors de la création du contrat");
         }
 
         Contrat saved = contratRepository.save(builder.build());
         log.info("Contrat créé : id={}", saved.getId());
+        contratHistoryService.record(saved, null, StatutContrat.EN_ATTENTE, "CREATION", null);
         return mapper.toDto(saved);
     }
 
@@ -123,6 +139,11 @@ public class ContratServiceImpl implements ContratService {
         }
 
         List<Lead> leads = leadRepository.findByVisiteId(visite.getId());
+        if (leads.size() > 1) {
+            throw new IllegalStateException(
+                "Incohérence de données : " + leads.size() + " leads liés à la visite #" + visite.getId()
+                + ". Résolvez la duplication de leads avant de clôturer cette visite.");
+        }
         Lead lead = leads.isEmpty() ? null : leads.get(0);
         if (lead == null) {
             log.warn("Aucun lead trouvé pour visite #{} — contrat créé sans lead. Le statut CONVERTI ne sera pas positionné.", visite.getId());
@@ -150,13 +171,18 @@ public class ContratServiceImpl implements ContratService {
 
         if (lead != null) {
             builder.lead(lead);
+            StatutLead ancienStatutLead = lead.getStatut();
             lead.setStatut(StatutLead.CONVERTI);
             lead.setConvertedAt(LocalDateTime.now());
             leadRepository.save(lead);
+            leadHistoryService.record(lead, ancienStatutLead, StatutLead.CONVERTI,
+                "CONVERSION", "Conversion automatique lors de la clôture visite #" + visite.getId());
         }
 
         Contrat saved = contratRepository.save(builder.build());
         log.info("Contrat auto-créé depuis visite #{} : contratId={}, type={}", visite.getId(), saved.getId(), typeContrat);
+        contratHistoryService.record(saved, null, StatutContrat.EN_ATTENTE,
+            "CREATION_AUTO_VISITE", "Contrat créé automatiquement depuis la visite #" + visite.getId());
         return mapper.toDto(saved);
     }
 
@@ -198,6 +224,7 @@ public class ContratServiceImpl implements ContratService {
         Contrat contrat = contratRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Contrat non trouvé : id=" + id));
 
+        StatutContrat ancienStatut = contrat.getStatut();
         boolean isLocation = contrat.getTypeContrat() == TypeContrat.LOCATION;
 
         // ── Guardrails LOCATION ────────────────────────────────────────────────
@@ -248,7 +275,12 @@ public class ContratServiceImpl implements ContratService {
                 throw new IllegalArgumentException("La date de fin doit être strictement postérieure à la date de début.");
             }
             if (request.montant()   != null) contrat.setMontant(request.montant());
-            return mapper.toDto(contratRepository.save(contrat));
+            Contrat saved = contratRepository.save(contrat);
+            if (request.statut() != null && !ancienStatut.equals(saved.getStatut())) {
+                contratHistoryService.record(saved, ancienStatut, saved.getStatut(),
+                    resolveUpdateAction(ancienStatut, saved.getStatut()), null);
+            }
+            return mapper.toDto(saved);
         }
 
         // ── Mise à jour LOCATION (recalcul centralisé des champs dérivés) ───────
@@ -279,7 +311,12 @@ public class ContratServiceImpl implements ContratService {
             contrat.setDateFin(dateFinLocation(effectiveDateDebut, effectiveDuree));
         }
 
-        return mapper.toDto(contratRepository.save(contrat));
+        Contrat saved = contratRepository.save(contrat);
+        if (request.statut() != null && !ancienStatut.equals(saved.getStatut())) {
+            contratHistoryService.record(saved, ancienStatut, saved.getStatut(),
+                resolveUpdateAction(ancienStatut, saved.getStatut()), null);
+        }
+        return mapper.toDto(saved);
     }
 
     @Override
@@ -289,8 +326,11 @@ public class ContratServiceImpl implements ContratService {
         validateTransition(contrat.getStatut(), StatutContrat.EN_ATTENTE_RESILIATION);
         contrat.setStatut(StatutContrat.EN_ATTENTE_RESILIATION);
         contrat.setMotifResiliation(dto.motif());
+        Contrat saved = contratRepository.save(contrat);
         log.info("Demande de résiliation enregistrée : contratId={}, client={}", id, clientEmail);
-        return mapper.toDto(contratRepository.save(contrat));
+        contratHistoryService.record(saved, StatutContrat.ACTIF, StatutContrat.EN_ATTENTE_RESILIATION,
+            "DEMANDE_RESILIATION", dto.motif());
+        return mapper.toDto(saved);
     }
 
     @Override
@@ -303,8 +343,11 @@ public class ContratServiceImpl implements ContratService {
             ? "Prolongation demandée jusqu'au " + dto.nouvelleDate() + (dto.motif() != null ? " — " + dto.motif() : "")
             : (dto.motif() != null ? dto.motif() : null);
         contrat.setMotifProlongation(motifProlong);
+        Contrat saved = contratRepository.save(contrat);
         log.info("Demande de prolongation enregistrée : contratId={}, client={}", id, clientEmail);
-        return mapper.toDto(contratRepository.save(contrat));
+        contratHistoryService.record(saved, StatutContrat.ACTIF, StatutContrat.PROLONGATION_EN_ATTENTE,
+            "DEMANDE_PROLONGATION", motifProlong);
+        return mapper.toDto(saved);
     }
 
     @Override
@@ -314,13 +357,18 @@ public class ContratServiceImpl implements ContratService {
             .orElseThrow(() -> new EntityNotFoundException("Contrat non trouvé : id=" + id));
         validateTransition(contrat.getStatut(), StatutContrat.RESILIE);
         contrat.setStatut(StatutContrat.RESILIE);
+        String motif = null;
         if (dto != null && dto.motif() != null && !dto.motif().isBlank()) {
-            String note     = "[Admin] Résiliation acceptée — " + dto.motif();
+            motif = dto.motif();
+            String note     = "[Admin] Résiliation acceptée — " + motif;
             String existing = contrat.getNotes();
             contrat.setNotes(existing != null && !existing.isBlank() ? existing + "\n" + note : note);
         }
+        Contrat saved = contratRepository.save(contrat);
         log.info("Résiliation acceptée : contratId={}", id);
-        return mapper.toDto(contratRepository.save(contrat));
+        contratHistoryService.record(saved, StatutContrat.EN_ATTENTE_RESILIATION, StatutContrat.RESILIE,
+            "ACCEPTATION_RESILIATION", motif);
+        return mapper.toDto(saved);
     }
 
     @Override
@@ -330,13 +378,18 @@ public class ContratServiceImpl implements ContratService {
             .orElseThrow(() -> new EntityNotFoundException("Contrat non trouvé : id=" + id));
         validateTransition(contrat.getStatut(), StatutContrat.ACTIF);
         contrat.setStatut(StatutContrat.ACTIF);
+        String motif = null;
         if (dto != null && dto.motif() != null && !dto.motif().isBlank()) {
-            String note     = "[Admin] Résiliation refusée — " + dto.motif();
+            motif = dto.motif();
+            String note     = "[Admin] Résiliation refusée — " + motif;
             String existing = contrat.getNotes();
             contrat.setNotes(existing != null && !existing.isBlank() ? existing + "\n" + note : note);
         }
+        Contrat saved = contratRepository.save(contrat);
         log.info("Résiliation refusée : contratId={}", id);
-        return mapper.toDto(contratRepository.save(contrat));
+        contratHistoryService.record(saved, StatutContrat.EN_ATTENTE_RESILIATION, StatutContrat.ACTIF,
+            "REFUS_RESILIATION", motif);
+        return mapper.toDto(saved);
     }
 
     @Override
@@ -371,13 +424,18 @@ public class ContratServiceImpl implements ContratService {
         }
 
         contrat.setStatut(StatutContrat.ACTIF);
+        String motif = null;
         if (dto != null && dto.motif() != null && !dto.motif().isBlank()) {
-            String note     = "[Admin] Prolongation acceptée — " + dto.motif();
+            motif = dto.motif();
+            String note     = "[Admin] Prolongation acceptée — " + motif;
             String existing = contrat.getNotes();
             contrat.setNotes(existing != null && !existing.isBlank() ? existing + "\n" + note : note);
         }
+        Contrat saved = contratRepository.save(contrat);
         log.info("Prolongation acceptée : contratId={}", id);
-        return mapper.toDto(contratRepository.save(contrat));
+        contratHistoryService.record(saved, StatutContrat.PROLONGATION_EN_ATTENTE, StatutContrat.ACTIF,
+            "ACCEPTATION_PROLONGATION", motif);
+        return mapper.toDto(saved);
     }
 
     @Override
@@ -387,13 +445,18 @@ public class ContratServiceImpl implements ContratService {
             .orElseThrow(() -> new EntityNotFoundException("Contrat non trouvé : id=" + id));
         validateTransition(contrat.getStatut(), StatutContrat.ACTIF);
         contrat.setStatut(StatutContrat.ACTIF);
+        String motif = null;
         if (dto != null && dto.motif() != null && !dto.motif().isBlank()) {
-            String note     = "[Admin] Prolongation refusée — " + dto.motif();
+            motif = dto.motif();
+            String note     = "[Admin] Prolongation refusée — " + motif;
             String existing = contrat.getNotes();
             contrat.setNotes(existing != null && !existing.isBlank() ? existing + "\n" + note : note);
         }
+        Contrat saved = contratRepository.save(contrat);
         log.info("Prolongation refusée : contratId={}", id);
-        return mapper.toDto(contratRepository.save(contrat));
+        contratHistoryService.record(saved, StatutContrat.PROLONGATION_EN_ATTENTE, StatutContrat.ACTIF,
+            "REFUS_PROLONGATION", motif);
+        return mapper.toDto(saved);
     }
 
     private Contrat loadClientContrat(Long id, String clientEmail) {
@@ -413,6 +476,12 @@ public class ContratServiceImpl implements ContratService {
                 "Transition de statut invalide : " + actuel + " → " + cible
                 + ". Transitions autorisées depuis " + actuel + " : " + autorisees + ".");
         }
+    }
+
+    private String resolveUpdateAction(StatutContrat ancien, StatutContrat nouveau) {
+        if (ancien == StatutContrat.EN_ATTENTE && nouveau == StatutContrat.ACTIF)    return "VALIDATION";
+        if (ancien == StatutContrat.EN_ATTENTE && nouveau == StatutContrat.RESILIE)  return "REJET";
+        return "CHANGEMENT_STATUT";
     }
 
     // ─── Calculs LOCATION centralisés ─────────────────────────────────────────

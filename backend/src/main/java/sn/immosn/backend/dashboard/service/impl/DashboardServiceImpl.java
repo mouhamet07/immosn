@@ -59,6 +59,12 @@ public class DashboardServiceImpl implements DashboardService {
             StatutSignalement.OUVERT, PageRequest.of(0, 1)).getTotalElements();
         long totalLeads       = leadRepository.count();
         long leadsEnCours     = leadRepository.countByStatut(StatutLead.EN_COURS);
+        long leadsConvertis   = leadRepository.countByStatut(StatutLead.CONVERTI);
+        long leadsAbandonnes  = leadRepository.countByStatut(StatutLead.ABANDONNE);
+        long leadsTermines    = leadsConvertis + leadsAbandonnes;
+        double tauxConversionLeads = leadsTermines > 0
+            ? Math.round(leadsConvertis * 10000.0 / leadsTermines) / 100.0
+            : 0.0;
         long totalDisc        = discussionRepository.count();
 
         // ── Activités récentes (5 dernières par domaine, fusionnées et triées) ─
@@ -70,23 +76,16 @@ public class DashboardServiceImpl implements DashboardService {
             totalContrats, contratsActifs,
             totalVisites, visitesEnAttente, visitesAujourdhui,
             totalSig, sigOuverts,
-            totalLeads, leadsEnCours,
+            totalLeads, leadsEnCours, leadsConvertis, leadsAbandonnes, tauxConversionLeads,
             totalDisc,
             activites
         );
     }
 
     private long countVisitesToday() {
-        // Compter les visites dont la dateVisite est aujourd'hui
         var start = LocalDate.now().atStartOfDay();
         var end   = start.plusDays(1);
-        return visiteRepository.findByIsArchivedFalseOrderByCreatedAtDesc(
-            PageRequest.of(0, Integer.MAX_VALUE))
-            .stream()
-            .filter(v -> v.getDateVisite() != null
-                && !v.getDateVisite().isBefore(start)
-                && v.getDateVisite().isBefore(end))
-            .count();
+        return visiteRepository.countByDateVisiteBetweenAndIsArchivedFalse(start, end);
     }
 
     private List<RecentActivityDto> buildRecentActivities(PageRequest page) {

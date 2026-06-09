@@ -8,6 +8,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+
+import java.time.LocalDateTime;
 import sn.immosn.backend.annonce.data.repository.AnnonceRepository;
 import sn.immosn.backend.auth.data.entity.RoleType;
 import sn.immosn.backend.auth.data.repository.UserRepository;
@@ -64,6 +66,9 @@ class DashboardServiceTest {
         when(visiteRepository.findByStatutAndIsArchivedFalseOrderByCreatedAtDesc(
             eq(StatutDemandeVisite.EN_ATTENTE), any(Pageable.class)))
             .thenReturn(new PageImpl<>(List.of(), Pageable.ofSize(1), 4));
+        when(visiteRepository.countByDateVisiteBetweenAndIsArchivedFalse(
+            any(LocalDateTime.class), any(LocalDateTime.class)))
+            .thenReturn(2L);
         when(visiteRepository.findByIsArchivedFalseOrderByCreatedAtDesc(any(Pageable.class)))
             .thenReturn(new PageImpl<>(List.of()));
 
@@ -76,6 +81,8 @@ class DashboardServiceTest {
 
         when(leadRepository.count()).thenReturn(15L);
         when(leadRepository.countByStatut(StatutLead.EN_COURS)).thenReturn(6L);
+        when(leadRepository.countByStatut(StatutLead.CONVERTI)).thenReturn(4L);
+        when(leadRepository.countByStatut(StatutLead.ABANDONNE)).thenReturn(2L);
         when(leadRepository.findAllByOrderByCreatedAtDesc(any(Pageable.class)))
             .thenReturn(new PageImpl<>(List.of()));
 
@@ -101,10 +108,14 @@ class DashboardServiceTest {
         assertThat(stats.contratsActifs()).isEqualTo(5L);
         assertThat(stats.totalVisites()).isEqualTo(30L);
         assertThat(stats.visitesEnAttente()).isEqualTo(4L);
+        assertThat(stats.visitesAujourdhui()).isEqualTo(2L);
         assertThat(stats.totalSignalements()).isEqualTo(10L);
         assertThat(stats.signalementsOuverts()).isEqualTo(2L);
         assertThat(stats.totalLeads()).isEqualTo(15L);
         assertThat(stats.leadsEnCours()).isEqualTo(6L);
+        assertThat(stats.leadsConvertis()).isEqualTo(4L);
+        assertThat(stats.leadsAbandonnes()).isEqualTo(2L);
+        assertThat(stats.tauxConversionLeads()).isEqualTo(66.67);
         assertThat(stats.totalDiscussions()).isEqualTo(20L);
         assertThat(stats.activitesRecentes()).isNotNull();
     }

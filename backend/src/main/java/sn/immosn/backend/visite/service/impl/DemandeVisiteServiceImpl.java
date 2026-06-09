@@ -19,12 +19,15 @@ import sn.immosn.backend.contrat.service.ContratService;
 import sn.immosn.backend.lead.data.entity.Lead;
 import sn.immosn.backend.lead.data.entity.StatutLead;
 import sn.immosn.backend.lead.data.repository.LeadRepository;
+import sn.immosn.backend.lead.service.LeadHistoryService;
 import sn.immosn.backend.shared.exception.EntityNotFoundException;
 import sn.immosn.backend.visite.data.entity.DemandeVisite;
 import sn.immosn.backend.visite.data.entity.StatutDemandeVisite;
 import sn.immosn.backend.visite.data.repository.DemandeVisiteRepository;
 import sn.immosn.backend.visite.service.DemandeVisiteService;
+import sn.immosn.backend.visite.service.VisiteHistoryService;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -39,6 +42,8 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
     private final LeadRepository          leadRepository;
     private final DemandeVisiteMapper     mapper;
     private final ContratService          contratService;
+    private final VisiteHistoryService    visiteHistoryService;
+    private final LeadHistoryService      leadHistoryService;
 
     /**
      * Crée une demande de visite ET un lead automatiquement.
@@ -70,6 +75,9 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
 
         visite = visiteRepository.save(visite);
 
+        visiteHistoryService.record(visite, null, StatutDemandeVisite.EN_ATTENTE,
+            "CREATION", request.commentaire(), null, null);
+
         // Lead créé automatiquement dès la demande de visite (pas à l'acceptation)
         boolean leadExisteDeja = !leadRepository.findByVisiteId(visite.getId()).isEmpty();
         if (!leadExisteDeja) {
@@ -78,7 +86,9 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
                 .annonce(annonce)
                 .visite(visite)
                 .build();
-            leadRepository.save(lead);
+            Lead savedLead = leadRepository.save(lead);
+            leadHistoryService.record(savedLead, null, StatutLead.EN_COURS,
+                "CREATION", "Lead créé automatiquement pour visite #" + visite.getId());
             log.info("Lead auto-créé pour visite #{} (client={}, annonce={})", visite.getId(), client.getEmail(), annonce.getId());
         }
 
@@ -173,16 +183,30 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
             abandonnerLeadsDeLaVisite(visite.getId());
         }
 
-        return mapper.toDto(visiteRepository.save(visite));
+        DemandeVisite saved = visiteRepository.save(visite);
+
+        String action = switch (cible) {
+            case ACCEPTEE -> "ACCEPTATION";
+            case REFUSEE  -> "REFUS";
+            case ANNULEE  -> "ANNULATION";
+            default       -> "CHANGEMENT_STATUT";
+        };
+        visiteHistoryService.record(saved, actuel, cible, action, dto.commentaire(), null, null);
+
+        return mapper.toDto(saved);
     }
 
     @Override
     @Transactional
     public DemandeVisiteResponseDto updateDate(Long id, UpdateDateVisiteDto dto) {
         DemandeVisite visite = loadVisite(id);
+        LocalDateTime ancienneDate = visite.getDateVisite();
         visite.setDateVisite(dto.dateVisite());
         if (dto.commentaire() != null) visite.setCommentaire(dto.commentaire());
-        return mapper.toDto(visiteRepository.save(visite));
+        DemandeVisite saved = visiteRepository.save(visite);
+        visiteHistoryService.record(saved, saved.getStatut(), saved.getStatut(),
+            "REPROGRAMMATION", dto.commentaire(), ancienneDate, dto.dateVisite());
+        return mapper.toDto(saved);
     }
 
     /**
@@ -199,9 +223,13 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
             throw new IllegalStateException(
                 "Seule une visite EN_ATTENTE peut être modifiée. Statut actuel : " + visite.getStatut());
         }
+        LocalDateTime ancienneDate = visite.getDateVisite();
         visite.setDateVisite(dto.dateVisite());
         if (dto.commentaire() != null) visite.setCommentaire(dto.commentaire());
-        return mapper.toDto(visiteRepository.save(visite));
+        DemandeVisite saved = visiteRepository.save(visite);
+        visiteHistoryService.record(saved, StatutDemandeVisite.EN_ATTENTE, StatutDemandeVisite.EN_ATTENTE,
+            "REPROGRAMMATION_CLIENT", dto.commentaire(), ancienneDate, dto.dateVisite());
+        return mapper.toDto(saved);
     }
 
     /**
@@ -214,9 +242,12 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
         if (!visite.getClient().getEmail().equals(clientEmail)) {
             throw new EntityNotFoundException("Demande non trouvée");
         }
+        StatutDemandeVisite actuel = visite.getStatut();
         visite.setStatut(StatutDemandeVisite.ANNULEE);
         visite.setArchived(true);
         visiteRepository.save(visite);
+        visiteHistoryService.record(visite, actuel, StatutDemandeVisite.ANNULEE,
+            "ANNULATION", null, null, null);
         abandonnerLeadsDeLaVisite(id);
     }
 
@@ -240,6 +271,9 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
             case SANS_SUITE -> {
                 visite.setStatut(StatutDemandeVisite.CLOTUREE_SANS_SUITE);
                 visiteRepository.save(visite);
+                visiteHistoryService.record(visite, StatutDemandeVisite.ACCEPTEE,
+                    StatutDemandeVisite.CLOTUREE_SANS_SUITE,
+                    "CLOTURE_SANS_SUITE", null, null, null);
                 abandonnerLeadsDeLaVisite(id);
                 log.info("Visite #{} clôturée sans suite", id);
                 return null;
@@ -258,6 +292,9 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
                 }
                 visite.setStatut(StatutDemandeVisite.CLOTUREE_AVEC_CONTRAT);
                 visiteRepository.save(visite);
+                visiteHistoryService.record(visite, StatutDemandeVisite.ACCEPTEE,
+                    StatutDemandeVisite.CLOTUREE_AVEC_CONTRAT,
+                    "CLOTURE_AVEC_CONTRAT", null, null, null);
                 ContratResponseDto contrat = contratService.createFromVisite(visite, dto.typeContrat(), dto.dureeLocationMois());
                 log.info("Visite #{} clôturée avec contrat #{}", id, contrat.id());
                 return contrat;
@@ -275,6 +312,8 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
             .forEach(l -> {
                 l.setStatut(StatutLead.ABANDONNE);
                 leadRepository.save(l);
+                leadHistoryService.record(l, StatutLead.EN_COURS, StatutLead.ABANDONNE,
+                    "ABANDON", "Abandon automatique — visite #" + visiteId);
                 log.info("Lead #{} → ABANDONNE (visite #{})", l.getId(), visiteId);
             });
     }

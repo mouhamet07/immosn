@@ -19,6 +19,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import sn.immosn.backend.client.web.contrat.dto.*;
 import sn.immosn.backend.contrat.data.entity.StatutContrat;
+import sn.immosn.backend.contrat.service.ContratHistoryService;
 import sn.immosn.backend.contrat.service.ContratService;
 import sn.immosn.backend.shared.response.PagedResponse;
 import sn.immosn.backend.shared.response.RestResponse;
@@ -32,7 +33,8 @@ import java.security.Principal;
 @SecurityRequirement(name = "bearerAuth")
 public class ContratController {
 
-    private final ContratService service;
+    private final ContratService        service;
+    private final ContratHistoryService historyService;
 
     @Operation(
         summary = "Créer un contrat",
@@ -448,6 +450,20 @@ public class ContratController {
                 .body(RestResponse.badRequest("Identifiant de contrat invalide", null));
         }
         return ResponseEntity.ok(RestResponse.success(service.refuserProlongation(id, dto), HttpStatus.OK));
+    }
+
+    @Operation(summary = "Historique d'un contrat", description = "Retourne l'historique complet des transitions et actions sur un contrat. **Accès : ADMIN uniquement**")
+    @GetMapping("/{id}/historique")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<PagedResponse<ContratHistoryDto>> getHistorique(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(PagedResponse.fromPage(historyService.getHistory(id, pageable)));
     }
 
     private boolean isAdmin(Principal principal) {
