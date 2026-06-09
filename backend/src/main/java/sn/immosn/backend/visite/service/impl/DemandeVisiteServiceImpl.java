@@ -114,6 +114,7 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
      */
     @Override
     @Transactional
+    @SuppressWarnings("deprecation")
     public DemandeVisiteResponseDto updateStatut(Long id, UpdateStatutVisiteDto dto, String userEmail, boolean isAdmin) {
         DemandeVisite visite = loadVisite(id);
         StatutDemandeVisite actuel = visite.getStatut();
