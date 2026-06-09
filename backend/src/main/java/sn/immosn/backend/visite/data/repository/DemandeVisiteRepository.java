@@ -10,6 +10,7 @@ import sn.immosn.backend.visite.data.entity.DemandeVisite;
 import sn.immosn.backend.visite.data.entity.StatutDemandeVisite;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -30,6 +31,17 @@ public interface DemandeVisiteRepository extends JpaRepository<DemandeVisite, Lo
     boolean existsByClientIdAndAnnonceIdAndStatutIn(
         Long clientId, Long annonceId, java.util.List<StatutDemandeVisite> statuts);
 
+    long countByStatutAndIsArchivedFalse(StatutDemandeVisite statut);
+
     @Query("SELECT COUNT(v) FROM DemandeVisite v WHERE v.dateVisite >= :start AND v.dateVisite < :end AND v.isArchived = false")
     long countByDateVisiteBetweenAndIsArchivedFalse(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    // JOIN FETCH annonce + client : élimine le N+1 du dashboard (1 query au lieu de 1+5+5+5)
+    @Query("""
+        SELECT v FROM DemandeVisite v
+        JOIN FETCH v.annonce
+        JOIN FETCH v.client
+        WHERE v.isArchived = false
+        """)
+    List<DemandeVisite> findRecentForDashboard(Pageable pageable);
 }
