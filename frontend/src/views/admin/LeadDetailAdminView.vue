@@ -105,13 +105,13 @@ async function fetchHistorique() {
   historiqueLoading.value = true
   try {
     const res = await historyService.getLeadHistory(route.params.id)
-    historique.value = res.data.content ?? []
+    historique.value = res.data.data ?? []
   } catch { /* silently fail */ } finally { historiqueLoading.value = false }
 }
 
 function switchTab(t) {
   tab.value = t
-  if (t === 'histoire' && !historique.value.length) fetchHistorique()
+  if (t === 'histoire') fetchHistorique()
 }
 
 onMounted(fetchLead)

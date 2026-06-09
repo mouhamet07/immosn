@@ -8,6 +8,6 @@ export default {
     return api.get(`/leads/${id}/historique`, { params: { page, size } })
   },
   getVisiteHistory(id, page = 0, size = 50) {
-    return api.get(`/visites/${id}/historique`, { params: { page, size } })
+    return api.get(`/demandes-visite/${id}/historique`, { params: { page, size } })
   },
 }
