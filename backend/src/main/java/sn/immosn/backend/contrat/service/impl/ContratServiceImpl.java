@@ -24,13 +24,41 @@ import sn.immosn.backend.visite.data.entity.DemandeVisite;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class ContratServiceImpl implements ContratService {
 
     private static final Logger log = LoggerFactory.getLogger(ContratServiceImpl.class);
+
+    /**
+     * Machine à états des contrats — source unique de vérité pour toutes les transitions.
+     *
+     * EN_ATTENTE              → ACTIF, RESILIE          (admin : activation ou rejet)
+     * ACTIF                   → EXPIRE, EN_ATTENTE_RESILIATION, PROLONGATION_EN_ATTENTE
+     *                           (respectivement : job, demande client, demande client)
+     * EN_ATTENTE_RESILIATION  → RESILIE, ACTIF          (admin : acceptation ou refus)
+     * PROLONGATION_EN_ATTENTE → ACTIF                   (admin : acceptation ou refus)
+     * EXPIRE, RESILIE         → (aucune) — états finaux
+     *
+     * Le job ContratExpirationJob applique ACTIF → EXPIRE directement sur les entités
+     * sans passer par cette validation (bypass assumé, cohérent avec la machine à états).
+     */
+    private static final Map<StatutContrat, Set<StatutContrat>> TRANSITIONS_AUTORISEES = Map.of(
+        StatutContrat.EN_ATTENTE,              Set.of(StatutContrat.ACTIF, StatutContrat.RESILIE),
+        StatutContrat.ACTIF,                   Set.of(StatutContrat.EXPIRE,
+                                                      StatutContrat.EN_ATTENTE_RESILIATION,
+                                                      StatutContrat.PROLONGATION_EN_ATTENTE),
+        StatutContrat.EN_ATTENTE_RESILIATION,  Set.of(StatutContrat.RESILIE, StatutContrat.ACTIF),
+        StatutContrat.PROLONGATION_EN_ATTENTE, Set.of(StatutContrat.ACTIF),
+        StatutContrat.EXPIRE,                  Set.of(),
+        StatutContrat.RESILIE,                 Set.of()
+    );
 
     private final ContratRepository contratRepository;
     private final UserRepository    userRepository;
@@ -62,6 +90,7 @@ public class ContratServiceImpl implements ContratService {
                 .orElseThrow(() -> new EntityNotFoundException("Lead non trouvé : id=" + request.leadId()));
             builder.lead(lead);
             lead.setStatut(StatutLead.CONVERTI);
+            lead.setConvertedAt(LocalDateTime.now());
             leadRepository.save(lead);
         }
 
@@ -115,6 +144,7 @@ public class ContratServiceImpl implements ContratService {
         if (lead != null) {
             builder.lead(lead);
             lead.setStatut(StatutLead.CONVERTI);
+            lead.setConvertedAt(LocalDateTime.now());
             leadRepository.save(lead);
         }
 
@@ -187,7 +217,19 @@ public class ContratServiceImpl implements ContratService {
         }
 
         // ── Champs toujours modifiables ────────────────────────────────────────
-        if (request.statut()      != null) contrat.setStatut(request.statut());
+        if (request.statut() != null) {
+            // Ces statuts sont réservés aux endpoints dédiés ou au job système — bloqués en modification directe
+            if (request.statut() == StatutContrat.EN_ATTENTE_RESILIATION
+                    || request.statut() == StatutContrat.PROLONGATION_EN_ATTENTE
+                    || request.statut() == StatutContrat.EXPIRE) {
+                throw new IllegalArgumentException(
+                    "Le statut " + request.statut() + " ne peut pas être défini directement. "
+                    + "EXPIRE est réservé au job système quotidien. "
+                    + "Utilisez les endpoints /resiliation ou /prolongation pour les autres statuts protégés.");
+            }
+            validateTransition(contrat.getStatut(), request.statut());
+            contrat.setStatut(request.statut());
+        }
         if (request.documentUrl() != null) contrat.setDocumentUrl(request.documentUrl());
         if (request.notes()       != null) contrat.setNotes(request.notes());
 
@@ -234,15 +276,9 @@ public class ContratServiceImpl implements ContratService {
     @Transactional
     public ContratResponseDto demanderResiliation(Long id, ContratActionDto dto, String clientEmail) {
         Contrat contrat = loadClientContrat(id, clientEmail);
-        if (contrat.getStatut() != StatutContrat.ACTIF) {
-            throw new IllegalStateException(
-                "Seul un contrat ACTIF peut faire l'objet d'une demande de résiliation. Statut actuel : " + contrat.getStatut()
-            );
-        }
+        validateTransition(contrat.getStatut(), StatutContrat.EN_ATTENTE_RESILIATION);
         contrat.setStatut(StatutContrat.EN_ATTENTE_RESILIATION);
-        if (dto.motif() != null) {
-            contrat.setNotes("Demande résiliation client : " + dto.motif());
-        }
+        contrat.setMotifResiliation(dto.motif());
         log.info("Demande de résiliation enregistrée : contratId={}, client={}", id, clientEmail);
         return mapper.toDto(contratRepository.save(contrat));
     }
@@ -251,17 +287,102 @@ public class ContratServiceImpl implements ContratService {
     @Transactional
     public ContratResponseDto demanderProlongation(Long id, ContratActionDto dto, String clientEmail) {
         Contrat contrat = loadClientContrat(id, clientEmail);
-        if (contrat.getStatut() != StatutContrat.ACTIF) {
-            throw new IllegalStateException(
-                "Seul un contrat ACTIF peut faire l'objet d'une demande de prolongation. Statut actuel : " + contrat.getStatut()
-            );
-        }
+        validateTransition(contrat.getStatut(), StatutContrat.PROLONGATION_EN_ATTENTE);
         contrat.setStatut(StatutContrat.PROLONGATION_EN_ATTENTE);
-        String note = dto.nouvelleDate() != null
+        String motifProlong = dto.nouvelleDate() != null
             ? "Prolongation demandée jusqu'au " + dto.nouvelleDate() + (dto.motif() != null ? " — " + dto.motif() : "")
-            : "Prolongation demandée" + (dto.motif() != null ? " — " + dto.motif() : "");
-        contrat.setNotes(note);
+            : (dto.motif() != null ? dto.motif() : null);
+        contrat.setMotifProlongation(motifProlong);
         log.info("Demande de prolongation enregistrée : contratId={}, client={}", id, clientEmail);
+        return mapper.toDto(contratRepository.save(contrat));
+    }
+
+    @Override
+    @Transactional
+    public ContratResponseDto accepterResiliation(Long id, ContratActionDto dto) {
+        Contrat contrat = contratRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Contrat non trouvé : id=" + id));
+        validateTransition(contrat.getStatut(), StatutContrat.RESILIE);
+        contrat.setStatut(StatutContrat.RESILIE);
+        if (dto != null && dto.motif() != null && !dto.motif().isBlank()) {
+            String note     = "[Admin] Résiliation acceptée — " + dto.motif();
+            String existing = contrat.getNotes();
+            contrat.setNotes(existing != null && !existing.isBlank() ? existing + "\n" + note : note);
+        }
+        log.info("Résiliation acceptée : contratId={}", id);
+        return mapper.toDto(contratRepository.save(contrat));
+    }
+
+    @Override
+    @Transactional
+    public ContratResponseDto refuserResiliation(Long id, ContratActionDto dto) {
+        Contrat contrat = contratRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Contrat non trouvé : id=" + id));
+        validateTransition(contrat.getStatut(), StatutContrat.ACTIF);
+        contrat.setStatut(StatutContrat.ACTIF);
+        if (dto != null && dto.motif() != null && !dto.motif().isBlank()) {
+            String note     = "[Admin] Résiliation refusée — " + dto.motif();
+            String existing = contrat.getNotes();
+            contrat.setNotes(existing != null && !existing.isBlank() ? existing + "\n" + note : note);
+        }
+        log.info("Résiliation refusée : contratId={}", id);
+        return mapper.toDto(contratRepository.save(contrat));
+    }
+
+    @Override
+    @Transactional
+    public ContratResponseDto accepterProlongation(Long id, ContratActionDto dto) {
+        Contrat contrat = contratRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Contrat non trouvé : id=" + id));
+        validateTransition(contrat.getStatut(), StatutContrat.ACTIF);
+
+        if (dto != null && dto.nouvelleDate() != null) {
+            LocalDate nouvelleDate = dto.nouvelleDate();
+            if (contrat.getTypeContrat() == TypeContrat.LOCATION) {
+                long nouvelleDureeL = ChronoUnit.MONTHS.between(contrat.getDateDebut(), nouvelleDate);
+                if (nouvelleDureeL <= 0) {
+                    throw new IllegalArgumentException(
+                        "La nouvelle date de fin doit être postérieure à la date de début du contrat.");
+                }
+                if (contrat.getDureeLocationMois() != null && nouvelleDureeL <= contrat.getDureeLocationMois()) {
+                    throw new IllegalArgumentException(
+                        "La nouvelle durée (" + nouvelleDureeL + " mois) doit être supérieure à la durée actuelle ("
+                        + contrat.getDureeLocationMois() + " mois) pour une prolongation.");
+                }
+                int nouvelleDuree = (int) nouvelleDureeL;
+                contrat.setDureeLocationMois(nouvelleDuree);
+                contrat.setDateFin(nouvelleDate);
+                contrat.setMontant(montantLocation(contrat.getAnnonce().getPrix(), nouvelleDuree));
+                log.info("Prolongation LOCATION #{} : {}mois, dateFin={}, montant={} FCFA",
+                    id, nouvelleDuree, nouvelleDate, contrat.getMontant());
+            } else {
+                contrat.setDateFin(nouvelleDate);
+            }
+        }
+
+        contrat.setStatut(StatutContrat.ACTIF);
+        if (dto != null && dto.motif() != null && !dto.motif().isBlank()) {
+            String note     = "[Admin] Prolongation acceptée — " + dto.motif();
+            String existing = contrat.getNotes();
+            contrat.setNotes(existing != null && !existing.isBlank() ? existing + "\n" + note : note);
+        }
+        log.info("Prolongation acceptée : contratId={}", id);
+        return mapper.toDto(contratRepository.save(contrat));
+    }
+
+    @Override
+    @Transactional
+    public ContratResponseDto refuserProlongation(Long id, ContratActionDto dto) {
+        Contrat contrat = contratRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Contrat non trouvé : id=" + id));
+        validateTransition(contrat.getStatut(), StatutContrat.ACTIF);
+        contrat.setStatut(StatutContrat.ACTIF);
+        if (dto != null && dto.motif() != null && !dto.motif().isBlank()) {
+            String note     = "[Admin] Prolongation refusée — " + dto.motif();
+            String existing = contrat.getNotes();
+            contrat.setNotes(existing != null && !existing.isBlank() ? existing + "\n" + note : note);
+        }
+        log.info("Prolongation refusée : contratId={}", id);
         return mapper.toDto(contratRepository.save(contrat));
     }
 
@@ -270,6 +391,18 @@ public class ContratServiceImpl implements ContratService {
             .orElseThrow(() -> new EntityNotFoundException("Utilisateur non trouvé"));
         return contratRepository.findByIdAndClientId(id, client.getId())
             .orElseThrow(() -> new EntityNotFoundException("Contrat non trouvé pour ce client : id=" + id));
+    }
+
+    // ─── Machine à états ──────────────────────────────────────────────────────
+
+    private void validateTransition(StatutContrat actuel, StatutContrat cible) {
+        Set<StatutContrat> permis = TRANSITIONS_AUTORISEES.getOrDefault(actuel, Set.of());
+        if (!permis.contains(cible)) {
+            String autorisees = permis.isEmpty() ? "aucune — état final" : permis.toString();
+            throw new IllegalStateException(
+                "Transition de statut invalide : " + actuel + " → " + cible
+                + ". Transitions autorisées depuis " + actuel + " : " + autorisees + ".");
+        }
     }
 
     // ─── Calculs LOCATION centralisés ─────────────────────────────────────────

@@ -17,7 +17,7 @@ import ButtonPrimary from '@/components/ButtonPrimary.vue'
 import { useAuthStore } from '@/stores/authStore'
 import { useToastStore } from '@/stores/toastStore'
 import { uploadImage } from '@/services/cloudinaryService'
-import api from '@/services/api'
+import authService from '@/services/authService'
 
 const authStore = useAuthStore()
 const toast = useToastStore()
@@ -45,10 +45,8 @@ const handleAvatarChange = (event) => {
 const uploadAvatar = async () => {
   if (!avatarFile.value) return
   try {
-    // Upload Cloudinary depuis le frontend
     const url = await uploadImage(avatarFile.value)
-    // Sauvegarder l'URL via PUT /auth/profile — champ photo de UpdateProfileRequestDto
-    await api.put('/auth/profile', { photo: url })
+    await authService.updateProfile({ photo: url })
     authStore.user.photo = url
     localStorage.setItem('user', JSON.stringify(authStore.user))
   } catch {
@@ -67,6 +65,7 @@ const formInfo = reactive({
 const formSecurite = reactive({
   motDePasseActuel: '',
   nouveauMotDePasse: '',
+  confirmationMotDePasse: '',
 })
 
 const loadingInfo = ref(false)
@@ -92,8 +91,7 @@ async function saveInfo() {
   try {
     // Upload avatar si un nouveau fichier est sélectionné
     await uploadAvatar()
-    // PUT /api/v1/auth/profile — champs exacts de UpdateProfileRequestDto
-    const res = await api.put('/auth/profile', {
+    const res = await authService.updateProfile({
       nomComplet: formInfo.nomComplet,
       email:      formInfo.email,
       telephone:  formInfo.telephone,
@@ -113,22 +111,28 @@ async function saveInfo() {
 }
 
 async function saveSecurite() {
-  if (!formSecurite.motDePasseActuel || !formSecurite.nouveauMotDePasse) {
-    errorSecurite.value = 'Veuillez remplir les deux champs.'
+  if (!formSecurite.motDePasseActuel || !formSecurite.nouveauMotDePasse || !formSecurite.confirmationMotDePasse) {
+    errorSecurite.value = 'Veuillez remplir les trois champs.'
+    return
+  }
+  if (formSecurite.nouveauMotDePasse !== formSecurite.confirmationMotDePasse) {
+    errorSecurite.value = 'La confirmation du mot de passe ne correspond pas.'
     return
   }
   loadingSecurite.value = true
   successSecurite.value = ''
   errorSecurite.value   = ''
   try {
-    // PUT /api/v1/auth/profile — champs mot de passe de UpdateProfileRequestDto
-    await api.put('/auth/profile', {
-      motDePasseActuel:  formSecurite.motDePasseActuel,
-      nouveauMotDePasse: formSecurite.nouveauMotDePasse,
-    })
-    formSecurite.motDePasseActuel  = ''
-    formSecurite.nouveauMotDePasse = ''
+    await authService.changePassword(
+      formSecurite.motDePasseActuel,
+      formSecurite.nouveauMotDePasse,
+      formSecurite.confirmationMotDePasse,
+    )
+    formSecurite.motDePasseActuel     = ''
+    formSecurite.nouveauMotDePasse    = ''
+    formSecurite.confirmationMotDePasse = ''
     successSecurite.value = 'Mot de passe mis à jour avec succès.'
+    toast.success('Mot de passe mis à jour avec succès.')
   } catch (err) {
     errorSecurite.value = err.response?.data?.message || 'Erreur lors de la mise à jour.'
   } finally {
@@ -166,6 +170,7 @@ async function saveSecurite() {
             <form class="profil-card__form" @submit.prevent="saveSecurite">
               <InputField v-model="formSecurite.motDePasseActuel" label="Mot de passe actuel" type="password" />
               <InputField v-model="formSecurite.nouveauMotDePasse" label="Nouveau mot de passe" type="password" />
+              <InputField v-model="formSecurite.confirmationMotDePasse" label="Confirmer le nouveau mot de passe" type="password" />
 
               <div v-if="successSecurite" class="profil-alert profil-alert--success">{{ successSecurite }}</div>
               <div v-if="errorSecurite" class="profil-alert profil-alert--error">{{ errorSecurite }}</div>
@@ -308,7 +313,7 @@ async function saveSecurite() {
   padding: 0.75rem;
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-sm);
-  background: #fff;
+  background: var(--color-card);
   font-size: 0.95rem;
   color: var(--color-text);
   transition: border-color 0.2s;
@@ -334,7 +339,7 @@ async function saveSecurite() {
   border-radius: var(--radius-sm);
   font-size: 0.9rem;
   color: var(--color-text);
-  background: #fff;
+  background: var(--color-card);
   transition: border-color 0.2s;
   box-sizing: border-box;
 }

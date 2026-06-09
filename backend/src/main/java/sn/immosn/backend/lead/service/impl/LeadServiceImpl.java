@@ -16,6 +16,8 @@ import sn.immosn.backend.lead.service.LeadService;
 import sn.immosn.backend.shared.exception.EntityNotFoundException;
 import sn.immosn.backend.visite.data.repository.DemandeVisiteRepository;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class LeadServiceImpl implements LeadService {
@@ -70,6 +72,9 @@ public class LeadServiceImpl implements LeadService {
         Lead lead = leadRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Lead non trouvé avec l'ID: " + id));
         lead.setStatut(dto.statut());
+        if (dto.statut() == StatutLead.CONVERTI && lead.getConvertedAt() == null) {
+            lead.setConvertedAt(LocalDateTime.now());
+        }
         if (dto.noteAdmin() != null) lead.setNoteAdmin(dto.noteAdmin());
         return mapper.toDto(leadRepository.save(lead));
     }

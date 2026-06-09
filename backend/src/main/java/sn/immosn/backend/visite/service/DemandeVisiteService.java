@@ -10,6 +10,8 @@ public interface DemandeVisiteService {
 
     DemandeVisiteResponseDto create(DemandeVisiteCreateRequestDto request, String clientEmail);
 
+    DemandeVisiteResponseDto getById(Long id, String userEmail, boolean isAdmin);
+
     Page<DemandeVisiteResponseDto> getClientVisites(String clientEmail, StatutDemandeVisite statut, Pageable pageable);
 
     Page<DemandeVisiteResponseDto> getAllVisites(StatutDemandeVisite statut, Pageable pageable);
@@ -17,6 +19,8 @@ public interface DemandeVisiteService {
     DemandeVisiteResponseDto updateStatut(Long id, UpdateStatutVisiteDto dto, String userEmail, boolean isAdmin);
 
     DemandeVisiteResponseDto updateDate(Long id, UpdateDateVisiteDto dto);
+
+    DemandeVisiteResponseDto modifierParClient(Long id, UpdateDateVisiteDto dto, String clientEmail);
 
     void annuler(Long id, String clientEmail);
 

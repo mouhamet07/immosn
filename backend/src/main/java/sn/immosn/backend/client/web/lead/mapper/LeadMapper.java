@@ -23,7 +23,8 @@ public class LeadMapper {
             l.getStatut(),
             l.getNoteAdmin(),
             l.getCreatedAt(),
-            l.getUpdatedAt()
+            l.getUpdatedAt(),
+            l.getConvertedAt()
         );
     }
 }

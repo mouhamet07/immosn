@@ -17,5 +17,6 @@ public record LeadResponseDto(
     StatutLead statut,
     String noteAdmin,
     LocalDateTime createdAt,
-    LocalDateTime updatedAt
+    LocalDateTime updatedAt,
+    LocalDateTime convertedAt
 ) {}

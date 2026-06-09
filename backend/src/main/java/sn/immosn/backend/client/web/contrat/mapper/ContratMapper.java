@@ -32,6 +32,8 @@ public class ContratMapper {
             c.getDureeLocationMois(),
             c.getDocumentUrl(),
             c.getNotes(),
+            c.getMotifResiliation(),
+            c.getMotifProlongation(),
             c.getCreatedAt(),
             c.getUpdatedAt()
         );

@@ -17,10 +17,24 @@ const editForm    = ref({})
 const editIsLoc   = ref(false)  // true si le contrat édité est de type LOCATION
 const saving      = ref(false)
 
-const STATUTS       = ['', 'EN_ATTENTE', 'ACTIF', 'EXPIRE', 'RESILIE']
-const STATUT_LABELS = { EN_ATTENTE: 'En attente', ACTIF: 'Actif', EXPIRE: 'Expiré', RESILIE: 'Résilié' }
+const STATUTS       = ['', 'EN_ATTENTE', 'ACTIF', 'EXPIRE', 'RESILIE', 'EN_ATTENTE_RESILIATION', 'PROLONGATION_EN_ATTENTE']
+const STATUT_LABELS = {
+  EN_ATTENTE:              'En attente',
+  ACTIF:                   'Actif',
+  EXPIRE:                  'Expiré',
+  RESILIE:                 'Résilié',
+  EN_ATTENTE_RESILIATION:  'Résiliation en attente',
+  PROLONGATION_EN_ATTENTE: 'Prolongation en attente',
+}
 const filterOptions = STATUTS.map(s => ({ value: s, label: s ? STATUT_LABELS[s] : 'Tous les statuts' }))
-const STATUT_COLORS = { EN_ATTENTE: 'badge--warning', ACTIF: 'badge--success', EXPIRE: 'badge--neutral', RESILIE: 'badge--danger' }
+const STATUT_COLORS = {
+  EN_ATTENTE:              'badge--warning',
+  ACTIF:                   'badge--success',
+  EXPIRE:                  'badge--neutral',
+  RESILIE:                 'badge--danger',
+  EN_ATTENTE_RESILIATION:  'badge--warning',
+  PROLONGATION_EN_ATTENTE: 'badge--warning',
+}
 
 async function fetchContrats(page = 0) {
   loading.value = true
@@ -127,7 +141,8 @@ onMounted(() => fetchContrats(0))
             <td>{{ formatDate(c.dateDebut) }}</td>
             <td>{{ formatDate(c.dateFin) }}</td>
             <td><span :class="['badge', STATUT_COLORS[c.statut]]">{{ STATUT_LABELS[c.statut] }}</span></td>
-            <td>
+            <td class="ca-td-actions">
+              <RouterLink :to="`/admin/contrats/${c.id}`" class="ca-btn">Voir</RouterLink>
               <button class="ca-btn" @click="openEdit(c)">✎ Modifier</button>
             </td>
           </tr>
@@ -218,7 +233,8 @@ onMounted(() => fetchContrats(0))
 .badge-type--vente { background: #fef9c3; color: #a16207; }
 .badge-type--location { background: #ede9fe; color: #7c3aed; }
 .badge-type__duree { font-size: .68rem; font-weight: 500; opacity: .75; }
-.ca-btn { padding: .3rem .7rem; border: 1.5px solid var(--color-border); border-radius: 6px; font-size: .78rem; cursor: pointer; background: none; color: var(--color-text); transition: all .15s; }
+.ca-td-actions { display: flex; gap: .4rem; align-items: center; }
+.ca-btn { padding: .3rem .7rem; border: 1.5px solid var(--color-border); border-radius: 6px; font-size: .78rem; cursor: pointer; background: none; color: var(--color-text); transition: all .15s; text-decoration: none; display: inline-block; }
 .ca-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
 .ca-pager { display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1.25rem; font-size: .88rem; }
 .ca-pager button { padding: .4rem .9rem; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-card); cursor: pointer; }

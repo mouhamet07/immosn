@@ -203,6 +203,9 @@ public class AuthService {
                     || !passwordEncoder.matches(request.getMotDePasseActuel(), user.getPassword())) {
                 throw new IllegalStateException("Mot de passe actuel incorrect");
             }
+            if (!request.getNouveauMotDePasse().equals(request.getConfirmationMotDePasse())) {
+                throw new IllegalStateException("La confirmation du mot de passe ne correspond pas");
+            }
             user.setPassword(passwordEncoder.encode(request.getNouveauMotDePasse()));
         }
 

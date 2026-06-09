@@ -39,4 +39,25 @@ export default {
   demanderProlongation(id, nouvelleDate, motif) {
     return api.put(`/contrats/${id}/prolongation`, { nouvelleDate, motif })
   },
+
+  // PUT /api/v1/contrats/{id}/resiliation/accepter — ADMIN
+  accepterResiliation(id, motif = null) {
+    return api.put(`/contrats/${id}/resiliation/accepter`, motif ? { motif } : {})
+  },
+
+  // PUT /api/v1/contrats/{id}/resiliation/refuser — ADMIN
+  refuserResiliation(id, motif = null) {
+    return api.put(`/contrats/${id}/resiliation/refuser`, motif ? { motif } : {})
+  },
+
+  // PUT /api/v1/contrats/{id}/prolongation/accepter — ADMIN
+  // nouvelleDate : nouvelle date de fin (LocalDate ISO)
+  accepterProlongation(id, nouvelleDate = null, motif = null) {
+    return api.put(`/contrats/${id}/prolongation/accepter`, { nouvelleDate, motif })
+  },
+
+  // PUT /api/v1/contrats/{id}/prolongation/refuser — ADMIN
+  refuserProlongation(id, motif = null) {
+    return api.put(`/contrats/${id}/prolongation/refuser`, motif ? { motif } : {})
+  },
 }

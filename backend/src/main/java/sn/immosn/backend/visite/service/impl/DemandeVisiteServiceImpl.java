@@ -77,6 +77,17 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
 
     @Override
     @Transactional(readOnly = true)
+    public DemandeVisiteResponseDto getById(Long id, String userEmail, boolean isAdmin) {
+        DemandeVisite visite = visiteRepository.findByIdAndIsArchivedFalse(id)
+            .orElseThrow(() -> new EntityNotFoundException("Demande de visite non trouvée : id=" + id));
+        if (!isAdmin && !visite.getClient().getEmail().equals(userEmail)) {
+            throw new EntityNotFoundException("Demande de visite non trouvée");
+        }
+        return mapper.toDto(visite);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Page<DemandeVisiteResponseDto> getClientVisites(String clientEmail, StatutDemandeVisite statut, Pageable pageable) {
         User client = loadUser(clientEmail);
         Page<DemandeVisite> page = statut != null
@@ -95,30 +106,59 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
     }
 
     /**
-     * Transitions de statut.
-     * CLIENT : peut uniquement passer à ANNULEE → lead → ABANDONNE.
-     * ADMIN  : peut passer à ACCEPTEE ou REFUSEE (REFUSEE → lead → ABANDONNE).
-     * La clôture (CLOTUREE_*) passe par cloturerVisite() — pas via cet endpoint.
+     * Transitions de statut autorisées via cet endpoint.
+     * CLIENT : EN_ATTENTE → ANNULEE  |  ACCEPTEE → ANNULEE  (lead → ABANDONNE).
+     * ADMIN  : EN_ATTENTE → ACCEPTEE  |  EN_ATTENTE → REFUSEE  (REFUSEE → lead → ABANDONNE).
+     * La clôture (CLOTUREE_*) passe exclusivement par cloturerVisite() — PUT /{id}/cloture.
+     * TERMINEE est un statut historique en lecture seule : ne peut plus être défini via l'API.
      */
     @Override
     @Transactional
     public DemandeVisiteResponseDto updateStatut(Long id, UpdateStatutVisiteDto dto, String userEmail, boolean isAdmin) {
         DemandeVisite visite = loadVisite(id);
+        StatutDemandeVisite actuel = visite.getStatut();
+        StatutDemandeVisite cible  = dto.statut();
+
+        // TERMINEE est en lecture seule — interdit en tant que cible via l'API
+        if (cible == StatutDemandeVisite.TERMINEE) {
+            throw new IllegalArgumentException(
+                "TERMINEE est un statut historique en lecture seule. "
+                + "Utilisez PUT /visites/{id}/cloture pour CLOTUREE_SANS_SUITE ou CLOTUREE_AVEC_CONTRAT.");
+        }
 
         if (!isAdmin) {
             if (!visite.getClient().getEmail().equals(userEmail)) {
                 throw new EntityNotFoundException("Demande non trouvée");
             }
-            if (dto.statut() != StatutDemandeVisite.ANNULEE) {
-                throw new IllegalStateException("Le client peut seulement annuler une demande");
+            if (cible != StatutDemandeVisite.ANNULEE) {
+                throw new IllegalStateException("Le client peut seulement annuler une demande.");
+            }
+            if (actuel != StatutDemandeVisite.EN_ATTENTE && actuel != StatutDemandeVisite.ACCEPTEE) {
+                throw new IllegalStateException(
+                    "Annulation impossible : la visite est déjà " + actuel + ".");
+            }
+        } else {
+            // ADMIN : seules deux transitions sont autorisées via cet endpoint
+            boolean transitionValide =
+                (actuel == StatutDemandeVisite.EN_ATTENTE && cible == StatutDemandeVisite.ACCEPTEE) ||
+                (actuel == StatutDemandeVisite.EN_ATTENTE && cible == StatutDemandeVisite.REFUSEE);
+            if (!transitionValide) {
+                throw new IllegalStateException(
+                    "Transition invalide : " + actuel + " → " + cible
+                    + ". Cet endpoint autorise uniquement EN_ATTENTE → ACCEPTEE ou EN_ATTENTE → REFUSEE. "
+                    + "Pour clôturer une visite ACCEPTEE, utilisez PUT /visites/{id}/cloture.");
             }
         }
 
-        visite.setStatut(dto.statut());
+        visite.setStatut(cible);
         if (dto.commentaire() != null) visite.setCommentaire(dto.commentaire());
+        // ANNULEE : archiver pour masquer des listes — identique au comportement DELETE /visites/{id}
+        if (cible == StatutDemandeVisite.ANNULEE) {
+            visite.setArchived(true);
+        }
 
-        // Lead → ABANDONNE si la visite est refusée ou annulée via cet endpoint
-        if (dto.statut() == StatutDemandeVisite.REFUSEE || dto.statut() == StatutDemandeVisite.ANNULEE) {
+        // Lead → ABANDONNE si la visite est refusée ou annulée
+        if (cible == StatutDemandeVisite.REFUSEE || cible == StatutDemandeVisite.ANNULEE) {
             abandonnerLeadsDeLaVisite(visite.getId());
         }
 
@@ -129,6 +169,25 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
     @Transactional
     public DemandeVisiteResponseDto updateDate(Long id, UpdateDateVisiteDto dto) {
         DemandeVisite visite = loadVisite(id);
+        visite.setDateVisite(dto.dateVisite());
+        if (dto.commentaire() != null) visite.setCommentaire(dto.commentaire());
+        return mapper.toDto(visiteRepository.save(visite));
+    }
+
+    /**
+     * Modification client (EN_ATTENTE uniquement) : date et/ou commentaire.
+     */
+    @Override
+    @Transactional
+    public DemandeVisiteResponseDto modifierParClient(Long id, UpdateDateVisiteDto dto, String clientEmail) {
+        DemandeVisite visite = loadVisite(id);
+        if (!visite.getClient().getEmail().equals(clientEmail)) {
+            throw new EntityNotFoundException("Demande non trouvée");
+        }
+        if (visite.getStatut() != StatutDemandeVisite.EN_ATTENTE) {
+            throw new IllegalStateException(
+                "Seule une visite EN_ATTENTE peut être modifiée. Statut actuel : " + visite.getStatut());
+        }
         visite.setDateVisite(dto.dateVisite());
         if (dto.commentaire() != null) visite.setCommentaire(dto.commentaire());
         return mapper.toDto(visiteRepository.save(visite));

@@ -29,4 +29,6 @@ public class UpdateProfileRequestDto {
 
     @Size(min = 8, message = "Le nouveau mot de passe doit avoir au moins 8 caractères")
     private String nouveauMotDePasse;
+
+    private String confirmationMotDePasse;
 }

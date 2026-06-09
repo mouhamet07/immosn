@@ -46,6 +46,9 @@ public class Lead {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "converted_at")
+    private LocalDateTime convertedAt;
+
     @PrePersist
     protected void onCreate() {
         createdAt = updatedAt = LocalDateTime.now();
