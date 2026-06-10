@@ -302,7 +302,7 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
         }
     }
 
-    // helpers
+    // Helpers
 
     private void abandonnerLeadsDeLaVisite(Long visiteId) {
         List<Lead> leads = leadRepository.findByVisiteId(visiteId);

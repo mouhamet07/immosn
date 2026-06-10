@@ -225,9 +225,7 @@ public class ContratServiceImpl implements ContratService {
         StatutContrat ancienStatut = contrat.getStatut();
         boolean isLocation = contrat.getTypeContrat() == TypeContrat.LOCATION;
 
-        // ── Guardrails LOCATION ────────────────────────────────────────────────
-        // montant et dateFin sont des valeurs dérivées : bloqués en écriture directe.
-        // Utiliser dureeLocationMois pour recalculer les deux automatiquement.
+        // Guardrails LOCATION : montant et dateFin sont des valeurs dérivées, bloqués en écriture directe.
         if (isLocation && request.montant() != null) {
             throw new IllegalArgumentException(
                 "Le montant d'un contrat LOCATION est calculé automatiquement (loyer × durée). " +
@@ -242,13 +240,13 @@ public class ContratServiceImpl implements ContratService {
             throw new IllegalArgumentException("La durée doit être supérieure à 0 mois.");
         }
 
-        // ── Guardrail VENTE ────────────────────────────────────────────────────
+        // Guardrail VENTE
         if (!isLocation && request.dureeLocationMois() != null) {
             throw new IllegalArgumentException(
                 "Le champ dureeLocationMois ne s'applique qu'aux contrats LOCATION.");
         }
 
-        // ── Champs toujours modifiables ────────────────────────────────────────
+        // Champs toujours modifiables
         if (request.statut() != null) {
             // Ces statuts sont réservés aux endpoints dédiés ou au job système — bloqués en modification directe
             if (request.statut() == StatutContrat.EN_ATTENTE_RESILIATION
@@ -265,7 +263,7 @@ public class ContratServiceImpl implements ContratService {
         if (request.documentUrl() != null) contrat.setDocumentUrl(request.documentUrl());
         if (request.notes()       != null) contrat.setNotes(request.notes());
 
-        // ── Mise à jour VENTE (libre) ──────────────────────────────────────────
+        // Mise à jour VENTE
         if (!isLocation) {
             if (request.dateDebut() != null) contrat.setDateDebut(request.dateDebut());
             if (request.dateFin()   != null) contrat.setDateFin(request.dateFin());
@@ -281,7 +279,7 @@ public class ContratServiceImpl implements ContratService {
             return mapper.toDto(saved);
         }
 
-        // ── Mise à jour LOCATION (recalcul centralisé des champs dérivés) ───────
+        // Mise à jour LOCATION — recalcul centralisé des champs dérivés
         // Fix NPE : Integer (non primitif) pour supporter dureeLocationMois null en base
         Integer effectiveDuree = request.dureeLocationMois() != null
             ? request.dureeLocationMois() : contrat.getDureeLocationMois();
@@ -482,8 +480,7 @@ public class ContratServiceImpl implements ContratService {
         return "CHANGEMENT_STATUT";
     }
 
-    // Calculs LOCATION centralisés
-    // Source unique de vérité : toute modification des règles métier se fait ici.
+    // Calculs LOCATION
 
     private BigDecimal montantLocation(BigDecimal loyerMensuel, int dureeEnMois) {
         return loyerMensuel.multiply(BigDecimal.valueOf(dureeEnMois));

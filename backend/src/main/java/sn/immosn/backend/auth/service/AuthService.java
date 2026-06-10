@@ -46,7 +46,7 @@ public class AuthService {
     private final BlacklistedTokenRepository   blacklistedTokenRepository;
     private final UserSessionRepository        userSessionRepository;
 
-    // ── Déconnexion ────────────────────────────────────────
+    // Déconnexion
 
     public void logout(String token) {
         try {
@@ -63,7 +63,7 @@ public class AuthService {
         }
     }
 
-    // ── Inscription CLIENT ──────────────────────────────────
+    // Inscription CLIENT
 
     @Transactional
     public AuthResponseDto register(AuthRegisterRequestDto request) {
@@ -86,7 +86,7 @@ public class AuthService {
         return authMapper.toAuthResponseDto(saved, jwt, 1L);
     }
 
-    // ── Connexion ───────────────────────────────────────────
+    // Connexion
 
     @Transactional
     public AuthResponseDto login(AuthLoginRequestDto request) {
@@ -107,7 +107,7 @@ public class AuthService {
         return authMapper.toAuthResponseDto(user, jwt, sessions);
     }
 
-    // ── Création ADMIN (réservé SUPER_ADMIN, contrôlé par SecurityConfig) ─
+    // Création ADMIN (réservé SUPER_ADMIN)
 
     @Transactional
     public AuthResponseDto registerAdmin(AuthRegisterRequestDto request) {
@@ -125,7 +125,7 @@ public class AuthService {
         return authMapper.toAuthResponseDto(saved, jwtTokenProvider.generateToken(saved));
     }
 
-    // ── Liste des admins (SUPER_ADMIN) ──────────────────────
+    // Liste des admins (SUPER_ADMIN)
 
     @Transactional(readOnly = true)
     public Page<AuthResponseDto> listAdmins(Pageable pageable) {
@@ -134,7 +134,7 @@ public class AuthService {
             .map(user -> authMapper.toAuthResponseDto(user, null));
     }
 
-    // ── Archivage admin (SUPER_ADMIN) ───────────────────────
+    // Archivage admin (SUPER_ADMIN)
 
     @Transactional
     public void archiveUser(Long id, User operator) {
@@ -150,7 +150,7 @@ public class AuthService {
             operator.getRoles().stream().map(r -> r.getRole().name()).findFirst().orElse("?"), id);
     }
 
-    // ── Restauration admin (SUPER_ADMIN) ────────────────────
+    // Restauration admin (SUPER_ADMIN)
 
     @Transactional
     public AuthResponseDto restoreAdmin(Long id, User operator) {
@@ -172,7 +172,7 @@ public class AuthService {
         return authMapper.toAuthResponseDto(saved, null);
     }
 
-    // ── Révocation admin → CLIENT (SUPER_ADMIN) ─────────────
+    // Révocation admin → CLIENT (SUPER_ADMIN)
 
     @Transactional
     public AuthResponseDto revokeAdmin(Long id, User operator) {
@@ -192,6 +192,7 @@ public class AuthService {
         return authMapper.toAuthResponseDto(saved, null);
     }
 
+    // Modification profil (utilisateur connecté)
     // ── Sessions actives ────────────────────────────────────
 
     public long countActiveSessions(Long userId) {
@@ -242,7 +243,7 @@ public class AuthService {
         return authMapper.toAuthResponseDto(saved, null, countActiveSessions(saved.getId()));
     }
 
-    // ── Helpers ─────────────────────────────────────────────
+    // Helpers
 
     private void saveSession(User user, String jwt) {
         LocalDateTime expiresAt = jwtTokenProvider.getExpirationDateFromToken(jwt);
