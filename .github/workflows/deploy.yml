@@ -18,20 +18,23 @@ jobs:
       - name: Setup SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_KEY }}
+          SSH_PORT: ${{ secrets.VPS_SSH_PORT || '22' }}
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           touch ~/.ssh/known_hosts
-          ssh-keyscan -T 10 -p ${{ secrets.VPS_SSH_PORT || 22 }} -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+          ssh-keyscan -T 10 -p "${SSH_PORT}" -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
           chmod 644 ~/.ssh/known_hosts
 
       - name: Test SSH connection
+        env:
+          SSH_PORT: ${{ secrets.VPS_SSH_PORT || '22' }}
         run: |
           ssh \
             -i ~/.ssh/id_ed25519 \
-            -p ${{ secrets.VPS_SSH_PORT || 22 }} \
+            -p "${SSH_PORT}" \
             -o BatchMode=yes \
             -o ConnectTimeout=30 \
             -o StrictHostKeyChecking=accept-new \
@@ -39,10 +42,12 @@ jobs:
             "echo SSH connection successful"
 
       - name: Deploy to VPS
+        env:
+          SSH_PORT: ${{ secrets.VPS_SSH_PORT || '22' }}
         run: |
           ssh \
             -i ~/.ssh/id_ed25519 \
-            -p ${{ secrets.VPS_SSH_PORT || 22 }} \
+            -p "${SSH_PORT}" \
             -o ConnectTimeout=30 \
             -o StrictHostKeyChecking=accept-new \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
