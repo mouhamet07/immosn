@@ -53,10 +53,10 @@ defineEmits(['update:modelValue'])
   -webkit-appearance: none;
   padding: 0.42rem 2.25rem 0.42rem 0.85rem;
   border: 1.5px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--color-card);
   color: var(--color-text);
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   font-weight: 500;
   cursor: pointer;
   min-width: 150px;
@@ -66,11 +66,11 @@ defineEmits(['update:modelValue'])
 .filter-select__input:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(74, 124, 111, 0.12);
+  box-shadow: 0 0 0 3px rgba(74, 124, 111, 0.15);
 }
 
 .filter-select__input:hover {
-  border-color: var(--color-primary);
+  border-color: var(--color-border-hover);
 }
 
 .filter-select__arrow {

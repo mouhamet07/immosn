@@ -147,19 +147,19 @@ onMounted(async () => {
         <button v-if="filtres.adresse || filtres.typeBienId || filtres.prixMin || filtres.prixMax || filtres.chambresRange || selectedCommoditeIds.length" class="filters-reset" @click="resetFiltres">
           <SvgIcon name="x" :size="14" />
         </button>
-      </div>
 
-      <!-- Filtres commodités sous la barre principale -->
-      <div v-if="commodites.length" class="commodites-filter">
-        <label
-          v-for="c in commodites"
-          :key="c.id"
-          class="commodite-chip"
-          :class="{ selected: selectedCommoditeIds.includes(c.id) }"
-        >
-          <input type="checkbox" :value="c.id" v-model="selectedCommoditeIds" hidden />
-          {{ c.libelle }}
-        </label>
+        <!-- Commodités — affichées sous les contrôles mais à l'intérieur du bloc de filtres -->
+        <div v-if="commodites.length" class="commodites-filter commodites-filter--inside">
+          <label
+            v-for="c in commodites"
+            :key="c.id"
+            class="commodite-chip"
+            :class="{ selected: selectedCommoditeIds.includes(c.id) }"
+          >
+            <input type="checkbox" :value="c.id" v-model="selectedCommoditeIds" hidden />
+            {{ c.libelle }}
+          </label>
+        </div>
       </div>
 
       <!-- Chargement -->
@@ -302,6 +302,8 @@ onMounted(async () => {
   flex: 1;
   min-width: 80px;
 }
+.filter-input:hover,
+.filter-select:hover { border-color: var(--color-border-hover); }
 .filter-input:focus,
 .filter-select:focus { border-color: var(--color-primary); outline: none; }
 
@@ -343,6 +345,13 @@ onMounted(async () => {
   flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 1.5rem;
+}
+.commodites-filter--inside {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border);
+  margin-bottom: 0;
 }
 .commodite-chip {
   display: flex;

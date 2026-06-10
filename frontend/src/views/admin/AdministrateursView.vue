@@ -200,7 +200,7 @@ async function restoreAccess(id) {
       <p class="security-card__text">
         Assurez-vous que tous les administrateurs respectent les politiques d'accès et de confidentialité de la plateforme ImmoSN.
       </p>
-      <a href="#" class="security-card__link">Consulter les journaux de sécurité →</a>
+
     </div>
   </div>
 </template>

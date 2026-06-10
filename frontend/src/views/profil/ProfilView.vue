@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { computed, ref, reactive, onMounted } from 'vue'
 
 // Formate le numéro en +221 XX XXX XX XX
 function formatTelephone(val) {
@@ -17,10 +17,27 @@ import ButtonPrimary from '@/components/ButtonPrimary.vue'
 import { useAuthStore } from '@/stores/authStore'
 import { useToastStore } from '@/stores/toastStore'
 import { uploadImage } from '@/services/cloudinaryService'
-import api from '@/services/api'
+import authService from '@/services/authService'
 
 const authStore = useAuthStore()
 const toast = useToastStore()
+
+const lastConnexionRaw = computed(() => authStore.user?.dernierConnexion ?? authStore.user?.lastLogin)
+const sessionsActives = computed(() => authStore.user?.sessionsActives ?? authStore.user?.activeSessions ?? 0)
+
+// Formate la date/heure de connexion
+function formatLastConnexion(value) {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value)
+  return date.toLocaleString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
 
 // Avatar
 const previewUrl = ref(null)
@@ -45,10 +62,8 @@ const handleAvatarChange = (event) => {
 const uploadAvatar = async () => {
   if (!avatarFile.value) return
   try {
-    // Upload Cloudinary depuis le frontend
     const url = await uploadImage(avatarFile.value)
-    // Sauvegarder l'URL via PUT /auth/profile — champ photo de UpdateProfileRequestDto
-    await api.put('/auth/profile', { photo: url })
+    await authService.updateProfile({ photo: url })
     authStore.user.photo = url
     localStorage.setItem('user', JSON.stringify(authStore.user))
   } catch {
@@ -67,6 +82,7 @@ const formInfo = reactive({
 const formSecurite = reactive({
   motDePasseActuel: '',
   nouveauMotDePasse: '',
+  confirmationMotDePasse: '',
 })
 
 const loadingInfo = ref(false)
@@ -92,8 +108,7 @@ async function saveInfo() {
   try {
     // Upload avatar si un nouveau fichier est sélectionné
     await uploadAvatar()
-    // PUT /api/v1/auth/profile — champs exacts de UpdateProfileRequestDto
-    const res = await api.put('/auth/profile', {
+    const res = await authService.updateProfile({
       nomComplet: formInfo.nomComplet,
       email:      formInfo.email,
       telephone:  formInfo.telephone,
@@ -113,22 +128,28 @@ async function saveInfo() {
 }
 
 async function saveSecurite() {
-  if (!formSecurite.motDePasseActuel || !formSecurite.nouveauMotDePasse) {
-    errorSecurite.value = 'Veuillez remplir les deux champs.'
+  if (!formSecurite.motDePasseActuel || !formSecurite.nouveauMotDePasse || !formSecurite.confirmationMotDePasse) {
+    errorSecurite.value = 'Veuillez remplir les trois champs.'
+    return
+  }
+  if (formSecurite.nouveauMotDePasse !== formSecurite.confirmationMotDePasse) {
+    errorSecurite.value = 'La confirmation du mot de passe ne correspond pas.'
     return
   }
   loadingSecurite.value = true
   successSecurite.value = ''
   errorSecurite.value   = ''
   try {
-    // PUT /api/v1/auth/profile — champs mot de passe de UpdateProfileRequestDto
-    await api.put('/auth/profile', {
-      motDePasseActuel:  formSecurite.motDePasseActuel,
-      nouveauMotDePasse: formSecurite.nouveauMotDePasse,
-    })
-    formSecurite.motDePasseActuel  = ''
-    formSecurite.nouveauMotDePasse = ''
+    await authService.changePassword(
+      formSecurite.motDePasseActuel,
+      formSecurite.nouveauMotDePasse,
+      formSecurite.confirmationMotDePasse,
+    )
+    formSecurite.motDePasseActuel     = ''
+    formSecurite.nouveauMotDePasse    = ''
+    formSecurite.confirmationMotDePasse = ''
     successSecurite.value = 'Mot de passe mis à jour avec succès.'
+    toast.success('Mot de passe mis à jour avec succès.')
   } catch (err) {
     errorSecurite.value = err.response?.data?.message || 'Erreur lors de la mise à jour.'
   } finally {
@@ -166,6 +187,7 @@ async function saveSecurite() {
             <form class="profil-card__form" @submit.prevent="saveSecurite">
               <InputField v-model="formSecurite.motDePasseActuel" label="Mot de passe actuel" type="password" />
               <InputField v-model="formSecurite.nouveauMotDePasse" label="Nouveau mot de passe" type="password" />
+              <InputField v-model="formSecurite.confirmationMotDePasse" label="Confirmer le nouveau mot de passe" type="password" />
 
               <div v-if="successSecurite" class="profil-alert profil-alert--success">{{ successSecurite }}</div>
               <div v-if="errorSecurite" class="profil-alert profil-alert--error">{{ errorSecurite }}</div>
@@ -208,16 +230,26 @@ async function saveSecurite() {
             </div>
             <p class="profil-user__email">{{ authStore.user?.email }}</p>
             <p class="profil-user__phone">{{ authStore.user?.telephone }}</p>
-            <span class="profil-user__role">{{ authStore.user?.role }}</span>
+            <span class="profil-user__role">{{ authStore.user?.roles?.[0] }}</span>
           </section>
 
-          <!-- Besoin d'aide -->
+          <!-- Activité de connexion -->
           <section class="profil-card">
-            <h2 class="profil-card__title">Besoin d'aide ?</h2>
-            <ul class="profil-help">
-              <li><a href="#" class="profil-help__link">Contacter le support</a></li>
-              <li><a href="#" class="profil-help__link">Guide d'utilisation</a></li>
-            </ul>
+            <h2 class="profil-card__title">Activité du compte</h2>
+            <div class="profil-activity">
+              <div class="profil-activity__item">
+                <span class="profil-activity__label">Dernière connexion</span>
+                <span class="profil-activity__value">
+                  {{ formatLastConnexion(lastConnexionRaw) ?? 'Non disponible' }}
+                </span>
+              </div>
+              <div class="profil-activity__item">
+                <span class="profil-activity__label">Sessions actives</span>
+                <span class="profil-activity__value">
+                  {{ sessionsActives }}
+                </span>
+              </div>
+            </div>
           </section>
         </div>
       </div>
@@ -308,7 +340,7 @@ async function saveSecurite() {
   padding: 0.75rem;
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-sm);
-  background: #fff;
+  background: var(--color-card);
   font-size: 0.95rem;
   color: var(--color-text);
   transition: border-color 0.2s;
@@ -334,7 +366,7 @@ async function saveSecurite() {
   border-radius: var(--radius-sm);
   font-size: 0.9rem;
   color: var(--color-text);
-  background: #fff;
+  background: var(--color-card);
   transition: border-color 0.2s;
   box-sizing: border-box;
 }
@@ -447,6 +479,35 @@ async function saveSecurite() {
   font-size: 0.78rem;
   font-weight: 700;
   text-transform: uppercase;
+}
+
+.profil-activity {
+  display: grid;
+  gap: 1rem;
+}
+
+.profil-activity__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  background: rgba(245, 247, 249, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+}
+
+.profil-activity__label {
+  color: #4f4f4f;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.profil-activity__value {
+  color: var(--color-primary);
+  font-size: 0.95rem;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 /* Aide */

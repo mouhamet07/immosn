@@ -46,7 +46,9 @@ jobs:
             echo "=== Pull code ==="
             git pull origin master
             echo "=== Build containers ==="
-            docker compose up -d --build
+            docker compose down
+            docker compose build --no-cache
+            docker compose up -d
             echo "=== Wait backend startup ==="
             sleep 40
             echo "=== Healthcheck backend ==="

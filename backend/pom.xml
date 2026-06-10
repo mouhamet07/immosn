@@ -120,6 +120,13 @@
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 			<version>2.6.0</version>
 		</dependency>
+
+		<!-- AOP — requis pour DatabaseRetryAspect (retry transparent sur connexions mortes) -->
+		<!-- Spring Boot 4.x : renommé spring-boot-starter-aop → spring-boot-starter-aspectj -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-aspectj</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>

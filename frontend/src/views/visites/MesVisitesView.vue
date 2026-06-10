@@ -142,6 +142,7 @@ onMounted(() => fetchVisites(0))
             <p v-if="v.commentaire" class="mv-card__comment">{{ v.commentaire }}</p>
           </div>
           <div class="mv-card__actions">
+            <RouterLink :to="`/visites/${v.id}`" class="mv-card__detail">Voir le détail</RouterLink>
             <button
               v-if="v.statut === 'EN_ATTENTE'"
               class="mv-card__cancel"
@@ -244,6 +245,12 @@ onMounted(() => fetchVisites(0))
 }
 
 .mv-card__actions { flex-shrink: 0; }
+.mv-card__detail {
+  padding: .4rem .9rem; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm);
+  color: var(--color-text); font-size: .82rem; font-weight: 600; background: none;
+  text-decoration: none; transition: all .15s; display: inline-block;
+}
+.mv-card__detail:hover { border-color: var(--color-primary); color: var(--color-primary); }
 .mv-card__cancel {
   padding: .4rem .9rem; border: 1.5px solid #e53e3e; border-radius: var(--radius-sm);
   color: #e53e3e; font-size: .82rem; font-weight: 600; background: none;

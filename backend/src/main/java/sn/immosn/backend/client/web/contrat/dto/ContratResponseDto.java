@@ -25,6 +25,8 @@ public record ContratResponseDto(
     Integer dureeLocationMois,
     String documentUrl,
     String notes,
+    String motifResiliation,
+    String motifProlongation,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
 ) {}

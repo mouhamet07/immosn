@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import sn.immosn.backend.contrat.data.entity.Contrat;
 import sn.immosn.backend.contrat.data.entity.StatutContrat;
 import sn.immosn.backend.contrat.data.repository.ContratRepository;
+import sn.immosn.backend.contrat.service.ContratHistoryService;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -25,12 +26,14 @@ public class ContratExpirationJob {
 
     private static final Logger log = LoggerFactory.getLogger(ContratExpirationJob.class);
 
-    private final ContratRepository contratRepository;
+    private final ContratRepository     contratRepository;
+    private final ContratHistoryService contratHistoryService;
 
     /**
      * Passe les contrats ACTIF dont dateFin < aujourd'hui vers EXPIRE.
      * Cron : tous les jours à 00:05 (par défaut).
      * Override avec la variable d'env CONTRAT_EXPIRATION_CRON.
+     * SecurityContext absent (job système) → auteurEmail = "SYSTEM".
      */
     @Scheduled(cron = "${contrat.expiration.cron:0 5 0 * * *}")
     @Transactional
@@ -53,6 +56,12 @@ public class ContratExpirationJob {
         });
 
         contratRepository.saveAll(expired);
+
+        expired.forEach(c ->
+            contratHistoryService.record(c, StatutContrat.ACTIF, StatutContrat.EXPIRE,
+                "EXPIRATION_AUTOMATIQUE", "Expiration automatique au " + today)
+        );
+
         log.info("[ContratExpirationJob] {} contrat(s) passé(s) en EXPIRE.", expired.size());
     }
 }

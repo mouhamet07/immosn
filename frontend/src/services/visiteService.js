@@ -20,6 +20,11 @@ export default {
     return api.get('/visites/admin', { params })
   },
 
+  // GET /api/v1/visites/{id}
+  getById(id) {
+    return api.get(`/visites/${id}`)
+  },
+
   // PUT /api/v1/visites/{id}/status — { statut, commentaire? }
   updateStatut(id, statut, commentaire = null) {
     return api.put(`/visites/${id}/status`, { statut, commentaire })
@@ -28,6 +33,11 @@ export default {
   // PUT /api/v1/visites/{id}/date — ADMIN : { dateVisite, commentaire? }
   updateDate(id, dateVisite, commentaire = null) {
     return api.put(`/visites/${id}/date`, { dateVisite, commentaire })
+  },
+
+  // PUT /api/v1/visites/{id}/modifier — CLIENT : modifier date/commentaire (EN_ATTENTE uniquement)
+  modifierVisite(id, dateVisite, commentaire = null) {
+    return api.put(`/visites/${id}/modifier`, { dateVisite, commentaire })
   },
 
   // DELETE /api/v1/visites/{id} — CLIENT : annuler

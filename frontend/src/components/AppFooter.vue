@@ -49,7 +49,6 @@ const year = new Date().getFullYear()
 .footer-tagline {
   font-size: 12px;
   color: var(--color-text-secondary);
-  white-space: nowrap;
 }
 
 .footer-links {
@@ -63,15 +62,20 @@ const year = new Date().getFullYear()
   font-size: 12px;
   color: var(--color-text-secondary);
   text-decoration: none;
-  white-space: nowrap;
   transition: color 150ms ease;
 }
 
 .footer-links a:hover { color: var(--color-primary); }
 
-@media (max-width: 480px) {
-  .app-footer { padding: 16px; }
-  .footer-inner { flex-direction: column; align-items: flex-start; }
-  .footer-links { gap: 12px; }
+@media (max-width: 768px) {
+  .app-footer { padding: 20px 16px; }
+  .footer-inner {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+  }
+  .footer-brand { flex-direction: column; align-items: center; gap: 6px; }
+  .footer-links { justify-content: center; gap: 12px 20px; }
 }
 </style>

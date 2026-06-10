@@ -7,7 +7,7 @@ import FilterTabs from '@/components/FilterTabs.vue'
 const allItems     = ref([])
 const loading      = ref(false)
 const activeFilter = ref('tous')
-const ITEMS_PER_PAGE = 10
+const ITEMS_PER_PAGE = 8
 const currentPage  = ref(1)
 
 const showModal    = ref(false)
@@ -152,7 +152,7 @@ onMounted(() => fetchItems())
 
       <table v-else class="tb-table">
         <thead>
-          <tr><th>#</th><th>Libellé</th><th>Statut</th><th>Actions</th></tr>
+          <tr><th>ID</th><th>Libellé</th><th>Statut</th><th>Actions</th></tr>
         </thead>
         <tbody>
           <tr v-for="item in paginatedItems" :key="item.id">
@@ -175,13 +175,23 @@ onMounted(() => fetchItems())
       </table>
 
       <div v-if="totalPages > 1" class="tb-pagination">
-        <button :disabled="currentPage === 1" @click="currentPage--"><ChevronLeft :size="16" /></button>
-        <button
-          v-for="p in totalPages" :key="p"
-          class="tb-page-btn" :class="{ 'tb-page-btn--active': p === currentPage }"
-          @click="currentPage = p"
-        >{{ p }}</button>
-        <button :disabled="currentPage === totalPages" @click="currentPage++"><ChevronRight :size="16" /></button>
+        <button class="pagination-nav" :disabled="currentPage === 1" @click="currentPage--">
+          <ChevronLeft :size="16" />
+          <span>Précédent</span>
+        </button>
+
+        <div class="pagination-pages">
+          <button
+            v-for="p in totalPages" :key="p"
+            class="pagination-page" :class="{ 'pagination-page--active': p === currentPage }"
+            @click="currentPage = p"
+          >{{ p }}</button>
+        </div>
+
+        <button class="pagination-nav" :disabled="currentPage === totalPages" @click="currentPage++">
+          <span>Suivant</span>
+          <ChevronRight :size="16" />
+        </button>
       </div>
     </div>
 
@@ -233,25 +243,56 @@ onMounted(() => fetchItems())
 
 .tb-card { background: var(--color-card); border-radius: var(--radius); box-shadow: var(--shadow-card); overflow: hidden; }
 
-.tb-table { width: 100%; border-collapse: collapse; }
-.tb-table th { padding: 0.75rem 1rem; text-align: left; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; background: var(--color-background); border-bottom: 1px solid var(--color-border); }
-.tb-table td { padding: 0.85rem 1rem; border-bottom: 1px solid var(--color-border); font-size: 0.88rem; color: var(--color-text); }
+.tb-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.tb-table th { padding: 0.5rem 0.65rem; text-align: center; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; background: var(--color-background); border-bottom: 1px solid var(--color-border); }
+.tb-table th:first-child { width: 10%; }
+.tb-table th:nth-child(2) { width: 34%; }
+.tb-table th:nth-child(3) { width: 22%; }
+.tb-table th:nth-child(4) { width: 34%; }
+.tb-table td { padding: 0.5rem 0.65rem; border-bottom: 1px solid var(--color-border); font-size: 0.88rem; color: var(--color-text); text-align: center; line-height: 1.2; }
 .tb-table tbody tr:last-child td { border-bottom: none; }
 .tb-table tbody tr:hover { background: var(--color-hover-row); }
-.tb-id    { color: #9ca3af; font-size: 0.8rem; }
-.tb-label { font-weight: 600; }
-.tb-actions { display: flex; gap: 0.5rem; }
+.tb-id, .tb-label { text-align: center; }
+.tb-actions { display: flex; gap: 0.5rem; justify-content: center; }
 
 .badge { padding: 0.25rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
 .badge--success { background: #dcfce7; color: #16a34a; }
 .badge--neutral { background: #f3f4f6; color: #6b7280; }
 
-.tb-pagination { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 1rem; border-top: 1px solid var(--color-border); }
-.tb-pagination button { width: 32px; height: 32px; border: 1px solid var(--color-border); border-radius: 6px; background: var(--color-card); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.82rem; transition: background .15s; }
-.tb-pagination button:hover:not(:disabled) { background: var(--color-hover-row); }
-.tb-pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
-.tb-page-btn { font-weight: 600; color: var(--color-text); }
-.tb-page-btn--active { background: var(--color-primary) !important; color: #fff !important; border-color: var(--color-primary) !important; }
+.tb-pagination { display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 1rem; border-top: 1px solid var(--color-border); }
+.tb-pagination .pagination-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: transparent;
+  transition: background 0.2s, color 0.2s;
+}
+.tb-pagination .pagination-nav:hover:not(:disabled) {
+  background: var(--color-border);
+  color: var(--color-text);
+}
+.tb-pagination .pagination-nav:disabled { opacity: 0.35; cursor: not-allowed; }
+.tb-pagination .pagination-pages { display: flex; gap: 0.25rem; }
+.tb-pagination .pagination-page {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: transparent;
+  transition: background 0.2s, color 0.2s;
+}
+.tb-pagination .pagination-page:hover { background: var(--color-border); color: var(--color-text); }
+.tb-pagination .pagination-page--active {
+  background: var(--color-primary);
+  color: #fff;
+}
 
 .tb-loading, .tb-empty { display: flex; align-items: center; justify-content: center; padding: 3rem; color: #6b7280; font-size: 0.9rem; }
 .spinner { width: 32px; height: 32px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin .7s linear infinite; }

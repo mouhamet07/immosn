@@ -46,4 +46,14 @@ export default {
   revokeAdmin(id) {
     return api.patch(`/auth/admins/${id}/revoke`)
   },
+
+  // PUT /api/v1/auth/profile — mise à jour informations (nomComplet, email, telephone, photo)
+  updateProfile(data) {
+    return api.put('/auth/profile', data)
+  },
+
+  // PUT /api/v1/auth/profile — changement de mot de passe (motDePasseActuel, nouveauMotDePasse, confirmationMotDePasse)
+  changePassword(motDePasseActuel, nouveauMotDePasse, confirmationMotDePasse) {
+    return api.put('/auth/profile', { motDePasseActuel, nouveauMotDePasse, confirmationMotDePasse })
+  },
 }

@@ -1,5 +1,6 @@
 package sn.immosn.backend.annonce.data.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -38,6 +39,11 @@ public interface AnnonceRepository extends JpaRepository<Annonce, Long>, JpaSpec
         @Param("adresse")    String adresse,
         Pageable pageable
     );
+
+    long countByIsArchivedFalse();
+
+    // 5 dernières annonces actives pour le dashboard (List = pas de COUNT inutile)
+    List<Annonce> findTop5ByIsArchivedFalseOrderByCreatedAtDesc();
 
     // Vérifie l'existence d'une annonce non archivée
     boolean existsByIdAndIsArchivedFalse(Long id);
