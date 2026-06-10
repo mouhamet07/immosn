@@ -39,6 +39,7 @@ public class Notification {
     @Column(name = "entity_type", length = 50)
     private String entityType;
 
+    @Builder.Default
     @Column(name = "is_read", nullable = false)
     private boolean isRead = false;
 

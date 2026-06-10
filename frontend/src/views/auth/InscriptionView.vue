@@ -33,15 +33,6 @@ const passwordStrength = computed(() => {
   return 'fort'
 })
 
-// Formater le numéro de téléphone avec le préfixe +221
-const formatPhoneNumber = (event) => {
-  let value = event.target.value.replace(/\D/g, '')
-  if (value.length > 9) value = value.slice(0, 9)
-  form.telephone = '+221 ' + value
-    .replace(/(\d{2})(\d{3})(\d{2})(\d{2})/, '$1 $2 $3 $4')
-    .trim()
-}
-
 async function handleSubmit() {
   errorMessage.value = ''
   if (!form.nomComplet.trim()) { errorMessage.value = 'Le nom complet est requis.'; return }
