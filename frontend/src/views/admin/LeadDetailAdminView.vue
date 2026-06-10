@@ -89,7 +89,7 @@ function formatDateTime(dt) {
   })
 }
 
-// Onglet Histoire
+// ── Onglet Histoire ────────────────────────────────────────────────────────
 const tab               = ref('detail')
 const historique        = ref([])
 const historiqueLoading = ref(false)

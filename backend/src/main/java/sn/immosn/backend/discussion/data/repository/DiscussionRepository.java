@@ -3,8 +3,6 @@ package sn.immosn.backend.discussion.data.repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-
-import java.util.List;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -39,15 +37,6 @@ public interface DiscussionRepository extends JpaRepository<Discussion, Long> {
 
     // Vérifier si une discussion existe déjà entre un client et une annonce
     Optional<Discussion> findByClientIdAndAnnonceId(Long clientId, Long annonceId);
-
-    // JOIN FETCH client + annonce pour le dashboard (évite le N+1)
-    @Query("""
-        SELECT d FROM Discussion d
-        JOIN FETCH d.client
-        JOIN FETCH d.annonce
-        ORDER BY d.createdAt DESC
-        """)
-    List<Discussion> findTopRecentForDashboard(Pageable pageable);
 
     // Compter les messages non lus d'une discussion pour un rôle donné
     @Query("""

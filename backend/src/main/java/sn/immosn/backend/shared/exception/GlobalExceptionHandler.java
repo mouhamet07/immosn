@@ -23,7 +23,7 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    // 404 — Entité introuvable
+    // ── Entité introuvable ──────────────────────────────────────────────── 404
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<RestResponse<Void>> handleEntityNotFound(EntityNotFoundException ex) {
         log.debug("EntityNotFoundException : {}", ex.getMessage());
@@ -32,7 +32,7 @@ public class GlobalExceptionHandler {
             .body(RestResponse.error(ex.getMessage(), HttpStatus.NOT_FOUND));
     }
 
-    // 409 — Entité déjà existante
+    // ── Entité déjà existante ───────────────────────────────────────────── 409
     @ExceptionHandler(EntityExistException.class)
     public ResponseEntity<RestResponse<Void>> handleEntityExist(EntityExistException ex) {
         log.debug("EntityExistException : {}", ex.getMessage());
@@ -41,7 +41,7 @@ public class GlobalExceptionHandler {
             .body(RestResponse.error(ex.getMessage(), HttpStatus.CONFLICT));
     }
 
-    // 422 — Règle métier violée
+    // ── Règle métier violée ─────────────────────────────────────────────── 422
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<RestResponse<Void>> handleIllegalState(IllegalStateException ex) {
         log.warn("IllegalStateException : {}", ex.getMessage());
@@ -50,7 +50,7 @@ public class GlobalExceptionHandler {
             .body(RestResponse.error(ex.getMessage(), HttpStatus.valueOf(422)));
     }
 
-    // 400 — Argument invalide
+    // ── Argument invalide (ex : mauvais type d'enum, valeur hors plage) ── 400
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<RestResponse<Void>> handleIllegalArgument(IllegalArgumentException ex) {
         log.debug("IllegalArgumentException : {}", ex.getMessage());
@@ -59,7 +59,7 @@ public class GlobalExceptionHandler {
             .body(RestResponse.error("Paramètre invalide : " + ex.getMessage(), HttpStatus.BAD_REQUEST));
     }
 
-    // 403 — Accès refusé
+    // ── Accès refusé (rôle insuffisant) ────────────────────────────────── 403
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<RestResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
         log.warn("Accès refusé : {}", ex.getMessage());
@@ -68,7 +68,7 @@ public class GlobalExceptionHandler {
             .body(RestResponse.error("Accès refusé : vous n'avez pas les permissions nécessaires", HttpStatus.FORBIDDEN));
     }
 
-    // 401 — Token absent ou invalide
+    // ── Token absent ou invalide ────────────────────────────────────────── 401
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<RestResponse<Void>> handleAuthentication(AuthenticationException ex) {
         log.debug("AuthenticationException : {}", ex.getMessage());
@@ -77,7 +77,7 @@ public class GlobalExceptionHandler {
             .body(RestResponse.error("Authentification requise", HttpStatus.UNAUTHORIZED));
     }
 
-    // 400 — Corps JSON invalide
+    // ── Corps JSON invalide ou absent ───────────────────────────────────── 400
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<RestResponse<Void>> handleUnreadableBody(HttpMessageNotReadableException ex) {
         log.debug("Corps de la requête illisible : {}", ex.getMessage());
@@ -86,7 +86,7 @@ public class GlobalExceptionHandler {
             .body(RestResponse.error("Corps de la requête invalide ou absent", HttpStatus.BAD_REQUEST));
     }
 
-    // 400 — Paramètre manquant
+    // ── Paramètre de requête manquant ───────────────────────────────────── 400
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<RestResponse<Void>> handleMissingParam(MissingServletRequestParameterException ex) {
         log.debug("Paramètre manquant : {}", ex.getParameterName());
@@ -95,7 +95,7 @@ public class GlobalExceptionHandler {
             .body(RestResponse.error("Paramètre requis manquant : " + ex.getParameterName(), HttpStatus.BAD_REQUEST));
     }
 
-    // 400 — Type incorrect
+    // ── Type de paramètre incorrect (ex : String au lieu de Long) ───────── 400
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<RestResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
         String msg = String.format("Valeur '%s' invalide pour le paramètre '%s'", ex.getValue(), ex.getName());
@@ -105,7 +105,7 @@ public class GlobalExceptionHandler {
             .body(RestResponse.error(msg, HttpStatus.BAD_REQUEST));
     }
 
-    // 400 — Validation @Valid
+    // ── Validation Bean Validation (@Valid) ─────────────────────────────── 400
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<RestResponse<Map<String, String>>> handleValidation(
             MethodArgumentNotValidException ex) {
@@ -119,7 +119,7 @@ public class GlobalExceptionHandler {
             .body(RestResponse.badRequest("Erreur de validation des données", errors));
     }
 
-    // 503 — DB indisponible
+    // ── Connexion DB indisponible après retry (Neon cold start résiduel) ── 503
     @ExceptionHandler(DataAccessException.class)
     public ResponseEntity<RestResponse<Void>> handleDataAccess(DataAccessException ex) {
         log.error("DataAccessException (connexion DB perdue) : {}", ex.getMessage());
@@ -128,7 +128,7 @@ public class GlobalExceptionHandler {
             .body(RestResponse.error("Service temporairement indisponible — veuillez réessayer dans quelques secondes", HttpStatus.SERVICE_UNAVAILABLE));
     }
 
-    // 500 — Fallback générique
+    // ── Fallback générique ──────────────────────────────────────────────── 500
     @ExceptionHandler(Exception.class)
     public ResponseEntity<RestResponse<Void>> handleUnexpected(Exception ex) {
         log.error("Erreur interne non gérée [{}] : {}", ex.getClass().getSimpleName(), ex.getMessage(), ex);

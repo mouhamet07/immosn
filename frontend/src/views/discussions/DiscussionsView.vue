@@ -16,7 +16,7 @@ const newMessage    = ref('')
 const sending       = ref(false)
 const messagesRef   = ref(null)
 
-// Pagination liste
+// ── Pagination liste ──────────────────────────────────────
 const currentPage = ref(0)
 const totalPages  = ref(1)
 

@@ -68,7 +68,7 @@ async function fetchContrat() {
   }
 }
 
-// Activation / rejet EN_ATTENTE
+// ── Activation / rejet EN_ATTENTE ──────────────────────────────────────────
 
 async function activer() {
   if (activating.value) return
@@ -97,7 +97,7 @@ async function rejeter() {
   }
 }
 
-// Modal résiliation
+// ── Modal résiliation ──────────────────────────────────────────────────────
 
 function openResiliation(action) {
   resiliationAction.value = action
@@ -123,7 +123,7 @@ async function submitResiliation() {
   }
 }
 
-// Modal prolongation
+// ── Modal prolongation ─────────────────────────────────────────────────────
 
 function openProlongation(action) {
   prolongationAction.value  = action
@@ -158,7 +158,7 @@ async function submitProlongation() {
   }
 }
 
-// Modal édition générale
+// ── Modal édition générale ─────────────────────────────────────────────────
 
 function openEdit() {
   editStatut.value      = contrat.value.statut
@@ -204,7 +204,7 @@ function formatMontant(v) {
   return new Intl.NumberFormat('fr-SN').format(v) + ' FCFA'
 }
 
-// Onglet Histoire
+// ── Onglet Histoire ────────────────────────────────────────────────────────
 const tab               = ref('detail')
 const historique        = ref([])
 const historiqueLoading = ref(false)
