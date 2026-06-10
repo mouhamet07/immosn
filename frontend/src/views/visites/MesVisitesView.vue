@@ -144,7 +144,7 @@ onMounted(() => fetchVisites(0))
           <div class="mv-card__actions">
             <RouterLink :to="`/visites/${v.id}`" class="mv-card__detail">Voir le détail</RouterLink>
             <button
-              v-if="v.statut === 'EN_ATTENTE'"
+              v-if="v.statut === 'EN_ATTENTE' || v.statut === 'ACCEPTEE'"
               class="mv-card__cancel"
               :disabled="cancelling === v.id"
               @click="annuler(v.id)"
