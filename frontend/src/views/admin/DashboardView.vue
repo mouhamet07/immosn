@@ -72,12 +72,88 @@ const loading = ref(true)
 const error   = ref('')
 const stats   = ref(null)
 
+// Activités paginées
+const activities         = ref([])
+const activitiesLoading  = ref(false)
+const activitiesPage     = ref(0)
+const activitiesTotalPages = ref(1)
+const activitiesTotal    = ref(0)
+const activityType       = ref('ALL')
+
+const ACTIVITY_FILTER_TABS = [
+  { value: 'ALL',         label: 'Toutes' },
+  { value: 'VISITE',      label: 'Visites' },
+  { value: 'CONTRAT',     label: 'Contrats' },
+  { value: 'SIGNALEMENT', label: 'Signalements' },
+  { value: 'BIEN',        label: 'Biens' },
+  { value: 'MESSAGE',     label: 'Messages' },
+]
+
+async function fetchActivities(page = 0, type = activityType.value) {
+  activitiesLoading.value = true
+  try {
+    const res = await dashboardService.getActivities(page, 10, type)
+    const paged = res.data.data
+    activities.value         = paged.data
+    activitiesPage.value     = paged.currentPage
+    activitiesTotalPages.value = paged.totalPages
+    activitiesTotal.value    = paged.totalElements
+  } catch (e) {
+    console.error('[DashboardActivities]', e)
+  } finally {
+    activitiesLoading.value = false
+  }
+}
+
+function changeActivityType(type) {
+  activityType.value = type
+  fetchActivities(0, type)
+}
+
+function changeActivityPage(page) {
+  fetchActivities(page, activityType.value)
+}
+
+function isUrgent(a) {
+  return a.statut === 'EN_ATTENTE' || a.statut === 'OUVERT'
+}
+
+// Donut chart — répartition leads par statut (données déjà dans DashboardStatsDto, 0 requête ajoutée)
+const DONUT_R = 34
+const DONUT_C = 2 * Math.PI * DONUT_R  // ≈ 213.63
+
+const donutSegments = computed(() => {
+  if (!stats.value || stats.value.totalLeads === 0) return []
+  const s = stats.value
+  const total = s.totalLeads
+  // Ordre d'affichage : CONVERTI (succès) → EN_COURS (neutre) → ABANDONNE (échec)
+  const data = [
+    { key: 'conv',  label: 'Convertis',  count: s.leadsConvertis,  color: '#059669' },
+    { key: 'cours', label: 'En cours',   count: s.leadsEnCours,    color: '#7c3aed' },
+    { key: 'aband', label: 'Abandonnés', count: s.leadsAbandonnes, color: '#d1d5db' },
+  ]
+  const GAP = 1.5  // px de séparation entre segments
+  let cumulative = 0
+  return data.map(seg => {
+    const raw = (seg.count / total) * DONUT_C
+    const length = Math.max(0, raw - GAP)
+    const result = {
+      ...seg,
+      dasharray:   `${length.toFixed(3)} ${(DONUT_C - length).toFixed(3)}`,
+      dashoffset:  (-cumulative).toFixed(3),
+      pct: total > 0 ? ((seg.count / total) * 100).toFixed(0) : '0',
+    }
+    cumulative += raw  // offset utilise raw pour aligner les gaps correctement
+    return result
+  })
+})
+
 // Date du jour en français
 const dateAujourdhui = new Date().toLocaleDateString('fr-FR', {
   weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
 })
 
-// ── Chargement ─────────────────────────────────────────────
+// Chargement
 onMounted(async () => {
   try {
     const res = await dashboardService.getStats()
@@ -87,9 +163,10 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+  fetchActivities()
 })
 
-// ── Cards statistiques ──────────────────────────────────────
+// Cards statistiques
 const statCards = computed(() => {
   if (!stats.value) return []
   const s = stats.value
@@ -111,9 +188,7 @@ const statCards = computed(() => {
   return cards
 })
 
-const recentActivities = computed(() => stats.value?.activitesRecentes ?? [])
-
-const ACTIVITY_ICONS  = { ANNONCE: 'building', VISITE: 'calendar', CONTRAT: 'document', SIGNALEMENT: 'alert', CLIENT: 'user' }
+const ACTIVITY_ICONS  = { BIEN: 'building', ANNONCE: 'building', VISITE: 'calendar', CONTRAT: 'document', SIGNALEMENT: 'alert', MESSAGE: 'chat', CLIENT: 'user' }
 const STATUT_COLORS   = {
   ACTIVE: 'badge--success', EN_ATTENTE: 'badge--warning', ACCEPTEE: 'badge--success',
   REFUSEE: 'badge--danger', ACTIF: 'badge--success', RESILIE: 'badge--danger',
@@ -192,22 +267,71 @@ const shortcuts = [
         </component>
       </div>
 
-      <!-- Taux de conversion leads -->
+      <!-- Répartition leads -->
       <div v-if="stats" class="dash__conversion">
         <div class="conv-card">
-          <div class="conv-card__left">
-            <p class="conv-card__label">Taux de conversion leads</p>
-            <p class="conv-card__sub">
-              {{ stats.leadsConvertis }} converti{{ stats.leadsConvertis !== 1 ? 's' : '' }}
-              sur {{ stats.leadsConvertis + stats.leadsAbandonnes }} terminé{{ (stats.leadsConvertis + stats.leadsAbandonnes) !== 1 ? 's' : '' }}
+
+          <!-- Donut SVG -->
+          <div class="conv-donut" aria-hidden="true">
+            <svg viewBox="0 0 100 100" class="donut-svg">
+              <!-- Piste de fond -->
+              <circle cx="50" cy="50" :r="DONUT_R" fill="none" stroke="#f3f4f6" stroke-width="13" />
+              <!-- Segments de données -->
+              <circle
+                v-for="seg in donutSegments"
+                :key="seg.key"
+                cx="50" cy="50"
+                :r="DONUT_R"
+                fill="none"
+                :stroke="seg.color"
+                stroke-width="13"
+                stroke-linecap="butt"
+                :stroke-dasharray="seg.dasharray"
+                :stroke-dashoffset="seg.dashoffset"
+                transform="rotate(-90 50 50)"
+              />
+              <!-- État vide -->
+              <circle v-if="!donutSegments.length" cx="50" cy="50" :r="DONUT_R" fill="none" stroke="#e5e7eb" stroke-width="13" />
+              <!-- Taux au centre -->
+              <text x="50" y="47" text-anchor="middle" class="donut-big">
+                {{ stats.tauxConversionLeads.toFixed(0) }}
+              </text>
+              <text x="50" y="60" text-anchor="middle" class="donut-small">% conv.</text>
+            </svg>
+          </div>
+
+          <!-- Légende -->
+          <div class="conv-legend">
+            <p class="conv-legend__title">Leads — répartition</p>
+            <div class="conv-legend__rows">
+              <div class="conv-legend__row">
+                <span class="conv-legend__dot" style="background:#059669"></span>
+                <span class="conv-legend__lbl">Convertis</span>
+                <span class="conv-legend__val">{{ stats.leadsConvertis }}</span>
+              </div>
+              <div class="conv-legend__row">
+                <span class="conv-legend__dot" style="background:#7c3aed"></span>
+                <span class="conv-legend__lbl">En cours</span>
+                <span class="conv-legend__val">{{ stats.leadsEnCours }}</span>
+              </div>
+              <div class="conv-legend__row">
+                <span class="conv-legend__dot" style="background:#d1d5db"></span>
+                <span class="conv-legend__lbl">Abandonnés</span>
+                <span class="conv-legend__val">{{ stats.leadsAbandonnes }}</span>
+              </div>
+            </div>
+            <p class="conv-legend__sub">
+              {{ stats.leadsConvertis }} sur {{ stats.leadsConvertis + stats.leadsAbandonnes }} terminés
+              — taux : <strong>{{ stats.tauxConversionLeads.toFixed(1) }}&thinsp;%</strong>
             </p>
           </div>
-          <div class="conv-card__right">
-            <span class="conv-card__pct">{{ stats.tauxConversionLeads.toFixed(1) }}&thinsp;%</span>
+
+          <!-- Total leads -->
+          <div class="conv-total">
+            <span class="conv-total__val">{{ stats.totalLeads }}</span>
+            <span class="conv-total__lbl">leads total</span>
           </div>
-          <div class="conv-bar">
-            <div class="conv-bar__fill" :style="{ width: stats.tauxConversionLeads + '%' }"></div>
-          </div>
+
         </div>
       </div>
 
@@ -218,10 +342,36 @@ const shortcuts = [
         <div class="dash__section">
           <div class="section-head">
             <h2 class="section-head__title">Activités récentes</h2>
+            <span v-if="activitiesTotal > 0" class="activity-count">{{ activitiesTotal.toLocaleString('fr-FR') }}</span>
           </div>
-          <p v-if="!recentActivities.length" class="dash__empty">Aucune activité récente.</p>
+
+          <!-- Filtres par type -->
+          <div class="activity-filters" role="tablist">
+            <button
+              v-for="tab in ACTIVITY_FILTER_TABS"
+              :key="tab.value"
+              role="tab"
+              :aria-selected="activityType === tab.value"
+              :class="['filter-tab', { 'filter-tab--active': activityType === tab.value }]"
+              @click="changeActivityType(tab.value)"
+            >{{ tab.label }}</button>
+          </div>
+
+          <!-- Chargement -->
+          <div v-if="activitiesLoading" class="activity-loading">
+            <div class="spinner spinner--sm"></div>
+          </div>
+
+          <!-- Vide -->
+          <p v-else-if="!activities.length" class="dash__empty">Aucune activité pour ce filtre.</p>
+
+          <!-- Liste -->
           <ul v-else class="activity-list">
-            <li v-for="(a, i) in recentActivities" :key="i" class="activity-item">
+            <li
+              v-for="(a, i) in activities"
+              :key="i"
+              :class="['activity-item', { 'activity-item--urgent': isUrgent(a) }]"
+            >
               <span class="activity-item__icon">
                 <DashIcon :name="ACTIVITY_ICONS[a.type] ?? 'document'" />
               </span>
@@ -237,6 +387,21 @@ const shortcuts = [
               </div>
             </li>
           </ul>
+
+          <!-- Pagination -->
+          <div v-if="activitiesTotalPages > 1" class="activity-pager">
+            <button
+              class="pager-btn"
+              :disabled="activitiesPage === 0"
+              @click="changeActivityPage(activitiesPage - 1)"
+            >←</button>
+            <span class="pager-info">{{ activitiesPage + 1 }} / {{ activitiesTotalPages }}</span>
+            <button
+              class="pager-btn"
+              :disabled="activitiesPage >= activitiesTotalPages - 1"
+              @click="changeActivityPage(activitiesPage + 1)"
+            >→</button>
+          </div>
         </div>
 
         <!-- Raccourcis -->
@@ -396,36 +561,39 @@ const shortcuts = [
   color: #4b5563;
 }
 
-/* Taux de conversion */
+/* Répartition leads — carte donut */
 .conv-card {
-  position: relative;
   background: #fff;
   border: 1px solid #eef2f7;
   border-radius: 16px;
-  padding: 1rem 1.25rem 1.5rem;
+  padding: 1rem 1.5rem;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.5rem;
   box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
-  overflow: hidden;
 }
-.conv-card__left { flex: 1; }
-.conv-card__label { font-size: .88rem; font-weight: 700; color: #374151; }
-.conv-card__sub   { font-size: .75rem; color: #9ca3af; margin-top: .15rem; }
-.conv-card__pct   { font-size: 1.8rem; font-weight: 800; color: #059669; line-height: 1; }
-.conv-bar {
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  height: 5px;
-  background: #e5e7eb;
-}
-.conv-bar__fill {
-  height: 100%;
-  background: linear-gradient(90deg, #4A7C6F, #059669);
-  border-radius: 0 3px 3px 0;
-  transition: width .4s ease;
-  min-width: 2px;
-}
+
+/* Donut SVG */
+.conv-donut { flex-shrink: 0; }
+.donut-svg  { width: 96px; height: 96px; display: block; }
+.donut-big  { font-size: 22px; font-weight: 800; fill: #111827; }
+.donut-small { font-size: 10px; fill: #6b7280; }
+
+/* Légende */
+.conv-legend { flex: 1; min-width: 0; }
+.conv-legend__title { font-size: .8rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: .05em; margin-bottom: .55rem; }
+.conv-legend__rows  { display: flex; flex-direction: column; gap: .3rem; }
+.conv-legend__row   { display: flex; align-items: center; gap: .5rem; }
+.conv-legend__dot   { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.conv-legend__lbl   { font-size: .78rem; color: #374151; flex: 1; }
+.conv-legend__val   { font-size: .82rem; font-weight: 700; color: #111827; }
+.conv-legend__sub   { font-size: .72rem; color: #9ca3af; margin-top: .55rem; }
+.conv-legend__sub strong { color: #059669; }
+
+/* Total à droite */
+.conv-total      { flex-shrink: 0; text-align: center; padding-left: 1rem; border-left: 1px solid #f3f4f6; }
+.conv-total__val { display: block; font-size: 1.8rem; font-weight: 800; color: #111827; line-height: 1; }
+.conv-total__lbl { display: block; font-size: .72rem; color: #9ca3af; margin-top: .2rem; white-space: nowrap; }
 
 /* Grille 2 colonnes */
 .dash__grid { display: grid; grid-template-columns: 1fr 300px; gap: 1.5rem; align-items: start; }
@@ -436,11 +604,26 @@ const shortcuts = [
 .section-head { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem .75rem; border-bottom: 1px solid var(--color-border); }
 .section-head__title { font-size: .95rem; font-weight: 700; color: var(--color-text); }
 
-/* Activités */
+/* Activités — header */
+.activity-count { font-size: .75rem; font-weight: 600; color: var(--color-text); opacity: .45; }
+
+/* Filtres */
+.activity-filters { display: flex; gap: .35rem; padding: .6rem 1rem; border-bottom: 1px solid var(--color-border); overflow-x: auto; scrollbar-width: none; }
+.activity-filters::-webkit-scrollbar { display: none; }
+.filter-tab { flex-shrink: 0; padding: .28rem .7rem; border-radius: 20px; border: 1px solid var(--color-border); background: transparent; font-size: .75rem; font-weight: 500; color: var(--color-text); cursor: pointer; transition: all .15s; }
+.filter-tab:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.filter-tab--active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+
+/* Chargement activités */
+.activity-loading { display: flex; justify-content: center; padding: 2rem; }
+.spinner--sm { width: 22px; height: 22px; border-width: 2px; }
+
+/* Liste activités */
 .activity-list { list-style: none; margin: 0; padding: 0; }
 .activity-item { display: flex; align-items: center; gap: .9rem; padding: .85rem 1.25rem; border-bottom: 1px solid var(--color-border); transition: background .12s; }
 .activity-item:last-child { border-bottom: none; }
 .activity-item:hover { background: var(--color-background); }
+.activity-item--urgent { border-left: 3px solid #d97706; }
 .activity-item__icon { flex-shrink: 0; width: 24px; display: flex; align-items: center; justify-content: center; }
 .activity-item__icon svg { width: 16px; height: 16px; stroke: var(--color-text-muted); }
 .activity-item__body { flex: 1; min-width: 0; }
@@ -448,6 +631,13 @@ const shortcuts = [
 .activity-item__desc  { font-size: .75rem; color: var(--color-text); opacity: .5; }
 .activity-item__right { display: flex; flex-direction: column; align-items: flex-end; gap: .2rem; flex-shrink: 0; }
 .activity-item__date  { font-size: .68rem; color: var(--color-text); opacity: .4; }
+
+/* Pagination activités */
+.activity-pager { display: flex; align-items: center; justify-content: center; gap: .75rem; padding: .75rem; border-top: 1px solid var(--color-border); }
+.pager-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--color-border); background: transparent; font-size: .85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+.pager-btn:hover:not(:disabled) { border-color: var(--color-primary); color: var(--color-primary); }
+.pager-btn:disabled { opacity: .35; cursor: not-allowed; }
+.pager-info { font-size: .78rem; color: var(--color-text); opacity: .55; min-width: 50px; text-align: center; }
 
 /* Raccourcis */
 .shortcuts-grid { display: grid; grid-template-columns: 1fr 1fr; }
@@ -476,4 +666,5 @@ const shortcuts = [
 
 @media (max-width: 900px)  { .dash__stats { grid-template-columns: repeat(2, 1fr); } .dash__grid { grid-template-columns: 1fr; } }
 @media (max-width: 560px)  { .dash__stats { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px)  { .conv-card { gap: 1rem; } .donut-svg { width: 76px; height: 76px; } .conv-total { display: none; } }
 </style>

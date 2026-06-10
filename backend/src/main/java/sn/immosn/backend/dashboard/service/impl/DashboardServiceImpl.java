@@ -16,6 +16,7 @@ import sn.immosn.backend.dashboard.service.DashboardService;
 import sn.immosn.backend.discussion.data.repository.DiscussionRepository;
 import sn.immosn.backend.lead.data.entity.StatutLead;
 import sn.immosn.backend.lead.data.repository.LeadRepository;
+import sn.immosn.backend.shared.response.PagedResponse;
 import sn.immosn.backend.signalement.data.entity.StatutSignalement;
 import sn.immosn.backend.signalement.data.repository.SignalementRepository;
 import sn.immosn.backend.visite.data.entity.StatutDemandeVisite;
@@ -25,51 +26,60 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 
-// N+1 fix: toutes les associations LAZY dans buildRecentActivities() sont chargées via JOIN FETCH
-// (visites.annonce, visites.client, contrats.annonce, contrats.client, signalements.client).
-// Les compteurs utilisent countBy...() directs (plus de Page à getTotalElements() qui tire data+count+EAGER).
+// N+1 fix: toutes les associations LAZY dans les builders sont chargées via JOIN FETCH.
+// Compteurs via countBy...() directs — pas de Page à getTotalElements() qui charge data+count+EAGER.
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class DashboardServiceImpl implements DashboardService {
 
-    private final AnnonceRepository annonceRepository;
-    private final UserRepository userRepository;
-    private final ContratRepository contratRepository;
+    private static final int BOUNDED_FETCH_CAP = 200;
+
+    // Statuts qui nécessitent une action admin → affichés en priorité
+    private static final Set<String> ACTION_REQUIRED_STATUS = Set.of("EN_ATTENTE", "OUVERT");
+
+    private static final Comparator<RecentActivityDto> PRIORITY_COMPARATOR =
+        Comparator.comparingInt((RecentActivityDto a) -> ACTION_REQUIRED_STATUS.contains(a.statut()) ? 0 : 1)
+                  .thenComparing(Comparator.comparing(RecentActivityDto::createdAt).reversed());
+
+    private final AnnonceRepository      annonceRepository;
+    private final UserRepository         userRepository;
+    private final ContratRepository      contratRepository;
     private final DemandeVisiteRepository visiteRepository;
-    private final SignalementRepository signalementRepository;
-    private final LeadRepository leadRepository;
-    private final DiscussionRepository discussionRepository;
+    private final SignalementRepository  signalementRepository;
+    private final LeadRepository         leadRepository;
+    private final DiscussionRepository   discussionRepository;
 
     @Override
     public DashboardStatsDto getStats() {
         var page = PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        // ── Compteurs : COUNT uniquement, aucune entité chargée ───────────────
-        long totalAnnonces    = annonceRepository.count();
-        long annoncesActives  = annonceRepository.countByIsArchivedFalse();
-        long totalClients     = userRepository.countByRoles_Role(RoleType.CLIENT);
-        long totalAdmins      = userRepository.countByRoles_Role(RoleType.ADMIN);
-        long totalContrats    = contratRepository.count();
-        long contratsActifs   = contratRepository.countByStatut(StatutContrat.ACTIF);
-        long totalVisites     = visiteRepository.count();
-        long visitesEnAttente = visiteRepository.countByStatutAndIsArchivedFalse(StatutDemandeVisite.EN_ATTENTE);
+        // Compteurs : COUNT uniquement, aucune entité chargée
+        long totalAnnonces     = annonceRepository.count();
+        long annoncesActives   = annonceRepository.countByIsArchivedFalse();
+        long totalClients      = userRepository.countByRoles_Role(RoleType.CLIENT);
+        long totalAdmins       = userRepository.countByRoles_Role(RoleType.ADMIN);
+        long totalContrats     = contratRepository.count();
+        long contratsActifs    = contratRepository.countByStatut(StatutContrat.ACTIF);
+        long totalVisites      = visiteRepository.count();
+        long visitesEnAttente  = visiteRepository.countByStatutAndIsArchivedFalse(StatutDemandeVisite.EN_ATTENTE);
         long visitesAujourdhui = countVisitesToday();
-        long totalSig         = signalementRepository.count();
-        long sigOuverts       = signalementRepository.countByStatut(StatutSignalement.OUVERT);
-        long totalLeads       = leadRepository.count();
-        long leadsEnCours     = leadRepository.countByStatut(StatutLead.EN_COURS);
-        long leadsConvertis   = leadRepository.countByStatut(StatutLead.CONVERTI);
-        long leadsAbandonnes  = leadRepository.countByStatut(StatutLead.ABANDONNE);
-        long leadsTermines    = leadsConvertis + leadsAbandonnes;
+        long totalSig          = signalementRepository.count();
+        long sigOuverts        = signalementRepository.countByStatut(StatutSignalement.OUVERT);
+        long totalLeads        = leadRepository.count();
+        long leadsEnCours      = leadRepository.countByStatut(StatutLead.EN_COURS);
+        long leadsConvertis    = leadRepository.countByStatut(StatutLead.CONVERTI);
+        long leadsAbandonnes   = leadRepository.countByStatut(StatutLead.ABANDONNE);
+        long leadsTermines     = leadsConvertis + leadsAbandonnes;
         double tauxConversionLeads = leadsTermines > 0
             ? Math.round(leadsConvertis * 10000.0 / leadsTermines) / 100.0
             : 0.0;
-        long totalDisc        = discussionRepository.count();
+        long totalDisc = discussionRepository.count();
 
-        // ── Activités récentes (5 dernières par domaine, fusionnées et triées) ─
+        // Activités récentes (5 par domaine, fusionnées, priorité EN_ATTENTE/OUVERT en tête)
         List<RecentActivityDto> activites = buildRecentActivities(page);
 
         return new DashboardStatsDto(
@@ -84,6 +94,57 @@ public class DashboardServiceImpl implements DashboardService {
         );
     }
 
+    @Override
+    public PagedResponse<RecentActivityDto> getActivities(int page, int size, String type) {
+        String upper = type == null ? "ALL" : type.toUpperCase();
+        var cap = PageRequest.of(0, BOUNDED_FETCH_CAP, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        List<RecentActivityDto> all = switch (upper) {
+            case "VISITE"      -> buildVisites(cap);
+            case "CONTRAT"     -> buildContrats(cap);
+            case "SIGNALEMENT" -> buildSignalements(cap);
+            case "BIEN"        -> buildAnnonces(cap);
+            case "MESSAGE"     -> buildMessages(cap);
+            default            -> {
+                List<RecentActivityDto> merged = new ArrayList<>();
+                merged.addAll(buildAnnonces(cap));
+                merged.addAll(buildVisites(cap));
+                merged.addAll(buildContrats(cap));
+                merged.addAll(buildSignalements(cap));
+                merged.addAll(buildMessages(cap));
+                yield merged;
+            }
+        };
+
+        List<RecentActivityDto> sorted = all.stream()
+            .sorted(PRIORITY_COMPARATOR)
+            .toList();
+
+        long totalElements = countByType(upper);
+        int  totalPages    = (int) Math.max(1, Math.ceil((double) totalElements / size));
+        int  fromIdx       = page * size;
+        int  toIdx         = Math.min(fromIdx + size, sorted.size());
+        List<RecentActivityDto> content = fromIdx >= sorted.size() ? List.of() : sorted.subList(fromIdx, toIdx);
+
+        return new PagedResponse<>(content, totalElements, totalPages, page, size,
+            page == 0, page >= totalPages - 1);
+    }
+
+    private long countByType(String type) {
+        return switch (type) {
+            case "VISITE"      -> visiteRepository.count();
+            case "CONTRAT"     -> contratRepository.count();
+            case "SIGNALEMENT" -> signalementRepository.count();
+            case "BIEN"        -> annonceRepository.countByIsArchivedFalse();
+            case "MESSAGE"     -> discussionRepository.count();
+            default            -> annonceRepository.countByIsArchivedFalse()
+                                + visiteRepository.count()
+                                + contratRepository.count()
+                                + signalementRepository.count()
+                                + discussionRepository.count();
+        };
+    }
+
     private long countVisitesToday() {
         var start = LocalDate.now().atStartOfDay();
         var end   = start.plusDays(1);
@@ -92,42 +153,63 @@ public class DashboardServiceImpl implements DashboardService {
 
     private List<RecentActivityDto> buildRecentActivities(PageRequest page) {
         List<RecentActivityDto> activities = new ArrayList<>();
+        activities.addAll(buildAnnonces(page));
+        activities.addAll(buildVisites(page));
+        activities.addAll(buildContrats(page));
+        activities.addAll(buildSignalements(page));
+        activities.addAll(buildMessages(page));
+        return activities.stream()
+            .filter(a -> a.createdAt() != null)
+            .sorted(PRIORITY_COMPARATOR)
+            .limit(10)
+            .toList();
+    }
 
-        // Dernières annonces — champs directs uniquement, pas de JOIN nécessaire
-        annonceRepository.findTop5ByIsArchivedFalseOrderByCreatedAtDesc().forEach(a ->
-            activities.add(new RecentActivityDto(
-                "ANNONCE", a.getLibelle(), a.getAdresse(),
-                a.isArchived() ? "ARCHIVEE" : "ACTIVE", a.getCreatedAt())));
+    private List<RecentActivityDto> buildAnnonces(PageRequest page) {
+        return annonceRepository.findByIsArchivedFalseOrderByCreatedAtDesc(page).stream()
+            .map(a -> new RecentActivityDto(
+                "BIEN", a.getLibelle(), a.getAdresse(),
+                "ACTIVE", a.getCreatedAt()))
+            .toList();
+    }
 
-        // Dernières visites — JOIN FETCH v.annonce + v.client : 1 query au lieu de 1+5+5+5
-        visiteRepository.findRecentForDashboard(page).forEach(v ->
-            activities.add(new RecentActivityDto(
+    private List<RecentActivityDto> buildVisites(PageRequest page) {
+        return visiteRepository.findRecentForDashboard(page).stream()
+            .map(v -> new RecentActivityDto(
                 "VISITE",
                 "Visite : " + v.getAnnonce().getLibelle(),
                 v.getClient().getNomComplet(),
-                v.getStatut().name(), v.getCreatedAt())));
+                v.getStatut().name(), v.getCreatedAt()))
+            .toList();
+    }
 
-        // Derniers contrats — JOIN FETCH c.annonce + c.client : 1 query au lieu de 1+5+5+5
-        contratRepository.findRecentForDashboard(page).forEach(c ->
-            activities.add(new RecentActivityDto(
+    private List<RecentActivityDto> buildContrats(PageRequest page) {
+        return contratRepository.findRecentForDashboard(page).stream()
+            .map(c -> new RecentActivityDto(
                 "CONTRAT",
                 "Contrat : " + c.getAnnonce().getLibelle(),
                 c.getClient().getNomComplet(),
-                c.getStatut().name(), c.getCreatedAt())));
+                c.getStatut().name(), c.getCreatedAt()))
+            .toList();
+    }
 
-        // Derniers signalements — JOIN FETCH s.client : 1 query au lieu de 1+5+5
-        signalementRepository.findRecentForDashboard(page).forEach(s ->
-            activities.add(new RecentActivityDto(
+    private List<RecentActivityDto> buildSignalements(PageRequest page) {
+        return signalementRepository.findRecentForDashboard(page).stream()
+            .map(s -> new RecentActivityDto(
                 "SIGNALEMENT",
                 "Signalement SAV",
                 s.getClient().getNomComplet(),
-                s.getStatut().name(), s.getCreatedAt())));
+                s.getStatut().name(), s.getCreatedAt()))
+            .toList();
+    }
 
-        // Fusionner, trier par date décroissante, garder les 10 plus récentes
-        return activities.stream()
-            .filter(a -> a.createdAt() != null)
-            .sorted(Comparator.comparing(RecentActivityDto::createdAt).reversed())
-            .limit(10)
+    private List<RecentActivityDto> buildMessages(PageRequest page) {
+        return discussionRepository.findTopRecentForDashboard(page).stream()
+            .map(d -> new RecentActivityDto(
+                "MESSAGE",
+                "Discussion : " + d.getAnnonce().getLibelle(),
+                d.getClient().getNomComplet(),
+                "ACTIF", d.getCreatedAt()))
             .toList();
     }
 }

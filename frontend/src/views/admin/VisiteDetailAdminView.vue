@@ -138,7 +138,7 @@ function formatDatetime(d) {
   return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
-// ── Onglet Histoire ────────────────────────────────────────────────────────
+// Onglet Histoire
 const tab               = ref('detail')
 const historique        = ref([])
 const historiqueLoading = ref(false)
