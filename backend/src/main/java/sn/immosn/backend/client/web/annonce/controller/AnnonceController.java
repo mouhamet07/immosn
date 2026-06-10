@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import sn.immosn.backend.annonce.service.AnnonceService;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceCreateRequestDto;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceListDto;
@@ -368,6 +369,7 @@ public class AnnonceController {
             content = @Content(mediaType = "application/json"))
     })
     @GetMapping("/admin/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<RestResponse<AnnonceResponseDto>> getByIdAdmin(
             @Parameter(description = "Identifiant de l'annonce", required = true, example = "15")
             @PathVariable Long id) {
