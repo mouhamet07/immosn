@@ -3,6 +3,7 @@ package sn.immosn.backend.discussion.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +20,7 @@ import sn.immosn.backend.discussion.data.entity.Message;
 import sn.immosn.backend.discussion.data.entity.SenderRole;
 import sn.immosn.backend.discussion.data.repository.DiscussionRepository;
 import sn.immosn.backend.discussion.data.repository.MessageRepository;
+import sn.immosn.backend.discussion.event.DiscussionMessageCreatedEvent;
 import sn.immosn.backend.discussion.service.DiscussionService;
 import sn.immosn.backend.shared.exception.EntityNotFoundException;
 
@@ -30,11 +32,12 @@ public class DiscussionServiceImpl implements DiscussionService {
 
     private static final Logger log = LoggerFactory.getLogger(DiscussionServiceImpl.class);
 
-    private final DiscussionRepository discussionRepository;
-    private final MessageRepository    messageRepository;
-    private final AnnonceRepository    annonceRepository;
-    private final UserRepository       userRepository;
-    private final DiscussionMapper     discussionMapper;
+    private final DiscussionRepository     discussionRepository;
+    private final MessageRepository        messageRepository;
+    private final AnnonceRepository        annonceRepository;
+    private final UserRepository           userRepository;
+    private final DiscussionMapper         discussionMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * Crée une discussion ou retourne l'existante (idempotent).
@@ -68,8 +71,12 @@ public class DiscussionServiceImpl implements DiscussionService {
                 .senderRole(SenderRole.CLIENT)
                 .discussion(discussion)
                 .build();
-            messageRepository.save(message);
-            discussion.getMessages().add(message);
+            Message savedMsg = messageRepository.save(message);
+            discussion.getMessages().add(savedMsg);
+            eventPublisher.publishEvent(new DiscussionMessageCreatedEvent(
+                discussion.getId(), savedMsg.getId(), request.premierMessage(),
+                "CLIENT", client.getEmail(), client.getId()
+            ));
         }
 
         long unread = discussionRepository.countUnread(discussion.getId(), SenderRole.CLIENT);
@@ -154,6 +161,12 @@ public class DiscussionServiceImpl implements DiscussionService {
         Message saved = messageRepository.save(message);
         log.info("[{}] USER_EMAIL:{} {} SEND_MESSAGE DISCUSSION:{}",
             LocalDateTime.now(), senderEmail, role, discussionId);
+        eventPublisher.publishEvent(new DiscussionMessageCreatedEvent(
+            discussionId, saved.getId(), request.contenu(),
+            isAdmin ? "ADMIN" : "CLIENT",
+            discussion.getClient().getEmail(),
+            discussion.getClient().getId()
+        ));
         return discussionMapper.toMessageDto(saved);
     }
 

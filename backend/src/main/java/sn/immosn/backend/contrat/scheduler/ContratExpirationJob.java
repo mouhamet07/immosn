@@ -3,12 +3,14 @@ package sn.immosn.backend.contrat.scheduler;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import sn.immosn.backend.contrat.data.entity.Contrat;
 import sn.immosn.backend.contrat.data.entity.StatutContrat;
 import sn.immosn.backend.contrat.data.repository.ContratRepository;
+import sn.immosn.backend.contrat.event.ContratStatusChangedEvent;
 import sn.immosn.backend.contrat.service.ContratHistoryService;
 
 import java.time.LocalDate;
@@ -26,8 +28,9 @@ public class ContratExpirationJob {
 
     private static final Logger log = LoggerFactory.getLogger(ContratExpirationJob.class);
 
-    private final ContratRepository     contratRepository;
-    private final ContratHistoryService contratHistoryService;
+    private final ContratRepository      contratRepository;
+    private final ContratHistoryService  contratHistoryService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * Passe les contrats ACTIF dont dateFin < aujourd'hui vers EXPIRE.
@@ -57,10 +60,14 @@ public class ContratExpirationJob {
 
         contratRepository.saveAll(expired);
 
-        expired.forEach(c ->
+        expired.forEach(c -> {
             contratHistoryService.record(c, StatutContrat.ACTIF, StatutContrat.EXPIRE,
-                "EXPIRATION_AUTOMATIQUE", "Expiration automatique au " + today)
-        );
+                "EXPIRATION_AUTOMATIQUE", "Expiration automatique au " + today);
+            eventPublisher.publishEvent(new ContratStatusChangedEvent(
+                c.getId(), StatutContrat.ACTIF, StatutContrat.EXPIRE,
+                c.getClient().getEmail(), c.getClient().getId(), "SYSTEM"
+            ));
+        });
 
         log.info("[ContratExpirationJob] {} contrat(s) passé(s) en EXPIRE.", expired.size());
     }

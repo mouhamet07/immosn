@@ -3,6 +3,8 @@ import { defineStore } from 'pinia'
 import router from '@/router'
 import api from '@/services/api'
 import authService from '@/services/authService'
+import { websocketService } from '@/services/websocketService'
+import { useToastStore } from '@/stores/toastStore'
 
 // Décode le payload d'un JWT sans librairie externe
 function parseJwt(token) {
@@ -58,6 +60,15 @@ export const useAuthStore = defineStore('auth', () => {
     api.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
   }
 
+  function _handleNotification(payload) {
+    try {
+      const toast = useToastStore()
+      toast.info(payload.message ?? payload.title ?? 'Nouvelle notification')
+    } catch {
+      // toastStore peut ne pas être disponible hors composant — silencieux
+    }
+  }
+
   async function login(email, motDePasse) {
     // POST /api/v1/auth/login via authService — Réponse: RestResponse<AuthResponseDto> → response.data.data
     const response = await authService.login(email, motDePasse)
@@ -71,6 +82,10 @@ export const useAuthStore = defineStore('auth', () => {
     role.value = sanitizeRole(roles.length ? roles[0] : null)
     localStorage.setItem('role', role.value)
     user.value = data
+
+    // Connexion WebSocket après authentification réussie
+    websocketService.connect(token.value, isAdmin.value, _handleNotification)
+
     // Redirection : page demandée avant la connexion en priorité, sinon selon le rôle
     const redirect = localStorage.getItem('redirectAfterLogin')
     if (redirect) {
@@ -89,6 +104,7 @@ export const useAuthStore = defineStore('auth', () => {
     } catch {
       // Ignorer les erreurs serveur
     } finally {
+      websocketService.disconnect()
       user.value = null
       token.value = null
       role.value = null
@@ -118,6 +134,10 @@ export const useAuthStore = defineStore('auth', () => {
   async function init() {
     if (token.value) {
       await fetchProfile()
+      // Rétablir la connexion WebSocket après un refresh de page
+      if (token.value) {
+        websocketService.connect(token.value, isAdmin.value, _handleNotification)
+      }
     }
   }
 

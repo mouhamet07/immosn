@@ -3,6 +3,7 @@ package sn.immosn.backend.contrat.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ import sn.immosn.backend.lead.data.entity.Lead;
 import sn.immosn.backend.lead.data.entity.StatutLead;
 import sn.immosn.backend.lead.data.repository.LeadRepository;
 import sn.immosn.backend.lead.service.LeadHistoryService;
+import sn.immosn.backend.contrat.event.ContratStatusChangedEvent;
 import sn.immosn.backend.shared.exception.EntityNotFoundException;
 import sn.immosn.backend.visite.data.entity.DemandeVisite;
 
@@ -62,13 +64,14 @@ public class ContratServiceImpl implements ContratService {
         StatutContrat.RESILIE,                 Set.of()
     );
 
-    private final ContratRepository      contratRepository;
-    private final UserRepository         userRepository;
-    private final AnnonceRepository      annonceRepository;
-    private final LeadRepository         leadRepository;
-    private final ContratMapper          mapper;
-    private final ContratHistoryService  contratHistoryService;
-    private final LeadHistoryService     leadHistoryService;
+    private final ContratRepository       contratRepository;
+    private final UserRepository          userRepository;
+    private final AnnonceRepository       annonceRepository;
+    private final LeadRepository          leadRepository;
+    private final ContratMapper           mapper;
+    private final ContratHistoryService   contratHistoryService;
+    private final LeadHistoryService      leadHistoryService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -117,6 +120,10 @@ public class ContratServiceImpl implements ContratService {
         Contrat saved = contratRepository.save(builder.build());
         log.info("Contrat créé : id={}", saved.getId());
         contratHistoryService.record(saved, null, StatutContrat.EN_ATTENTE, "CREATION", null);
+        eventPublisher.publishEvent(new ContratStatusChangedEvent(
+            saved.getId(), null, StatutContrat.EN_ATTENTE,
+            saved.getClient().getEmail(), saved.getClient().getId(), "ADMIN"
+        ));
         return mapper.toDto(saved);
     }
 
@@ -181,6 +188,10 @@ public class ContratServiceImpl implements ContratService {
         log.info("Contrat auto-créé depuis visite #{} : contratId={}, type={}", visite.getId(), saved.getId(), typeContrat);
         contratHistoryService.record(saved, null, StatutContrat.EN_ATTENTE,
             "CREATION_AUTO_VISITE", "Contrat créé automatiquement depuis la visite #" + visite.getId());
+        eventPublisher.publishEvent(new ContratStatusChangedEvent(
+            saved.getId(), null, StatutContrat.EN_ATTENTE,
+            saved.getClient().getEmail(), saved.getClient().getId(), "ADMIN"
+        ));
         return mapper.toDto(saved);
     }
 
@@ -328,6 +339,10 @@ public class ContratServiceImpl implements ContratService {
         log.info("Demande de résiliation enregistrée : contratId={}, client={}", id, clientEmail);
         contratHistoryService.record(saved, StatutContrat.ACTIF, StatutContrat.EN_ATTENTE_RESILIATION,
             "DEMANDE_RESILIATION", dto.motif());
+        eventPublisher.publishEvent(new ContratStatusChangedEvent(
+            saved.getId(), StatutContrat.ACTIF, StatutContrat.EN_ATTENTE_RESILIATION,
+            saved.getClient().getEmail(), saved.getClient().getId(), "CLIENT"
+        ));
         return mapper.toDto(saved);
     }
 
@@ -345,6 +360,10 @@ public class ContratServiceImpl implements ContratService {
         log.info("Demande de prolongation enregistrée : contratId={}, client={}", id, clientEmail);
         contratHistoryService.record(saved, StatutContrat.ACTIF, StatutContrat.PROLONGATION_EN_ATTENTE,
             "DEMANDE_PROLONGATION", motifProlong);
+        eventPublisher.publishEvent(new ContratStatusChangedEvent(
+            saved.getId(), StatutContrat.ACTIF, StatutContrat.PROLONGATION_EN_ATTENTE,
+            saved.getClient().getEmail(), saved.getClient().getId(), "CLIENT"
+        ));
         return mapper.toDto(saved);
     }
 
@@ -366,6 +385,10 @@ public class ContratServiceImpl implements ContratService {
         log.info("Résiliation acceptée : contratId={}", id);
         contratHistoryService.record(saved, StatutContrat.EN_ATTENTE_RESILIATION, StatutContrat.RESILIE,
             "ACCEPTATION_RESILIATION", motif);
+        eventPublisher.publishEvent(new ContratStatusChangedEvent(
+            saved.getId(), StatutContrat.EN_ATTENTE_RESILIATION, StatutContrat.RESILIE,
+            saved.getClient().getEmail(), saved.getClient().getId(), "ADMIN"
+        ));
         return mapper.toDto(saved);
     }
 
@@ -387,6 +410,10 @@ public class ContratServiceImpl implements ContratService {
         log.info("Résiliation refusée : contratId={}", id);
         contratHistoryService.record(saved, StatutContrat.EN_ATTENTE_RESILIATION, StatutContrat.ACTIF,
             "REFUS_RESILIATION", motif);
+        eventPublisher.publishEvent(new ContratStatusChangedEvent(
+            saved.getId(), StatutContrat.EN_ATTENTE_RESILIATION, StatutContrat.ACTIF,
+            saved.getClient().getEmail(), saved.getClient().getId(), "ADMIN"
+        ));
         return mapper.toDto(saved);
     }
 
@@ -433,6 +460,10 @@ public class ContratServiceImpl implements ContratService {
         log.info("Prolongation acceptée : contratId={}", id);
         contratHistoryService.record(saved, StatutContrat.PROLONGATION_EN_ATTENTE, StatutContrat.ACTIF,
             "ACCEPTATION_PROLONGATION", motif);
+        eventPublisher.publishEvent(new ContratStatusChangedEvent(
+            saved.getId(), StatutContrat.PROLONGATION_EN_ATTENTE, StatutContrat.ACTIF,
+            saved.getClient().getEmail(), saved.getClient().getId(), "ADMIN"
+        ));
         return mapper.toDto(saved);
     }
 
@@ -454,6 +485,10 @@ public class ContratServiceImpl implements ContratService {
         log.info("Prolongation refusée : contratId={}", id);
         contratHistoryService.record(saved, StatutContrat.PROLONGATION_EN_ATTENTE, StatutContrat.ACTIF,
             "REFUS_PROLONGATION", motif);
+        eventPublisher.publishEvent(new ContratStatusChangedEvent(
+            saved.getId(), StatutContrat.PROLONGATION_EN_ATTENTE, StatutContrat.ACTIF,
+            saved.getClient().getEmail(), saved.getClient().getId(), "ADMIN"
+        ));
         return mapper.toDto(saved);
     }
 

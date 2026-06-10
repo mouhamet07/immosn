@@ -3,6 +3,7 @@ package sn.immosn.backend.visite.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ import sn.immosn.backend.shared.exception.EntityNotFoundException;
 import sn.immosn.backend.visite.data.entity.DemandeVisite;
 import sn.immosn.backend.visite.data.entity.StatutDemandeVisite;
 import sn.immosn.backend.visite.data.repository.DemandeVisiteRepository;
+import sn.immosn.backend.visite.event.VisiteStatusChangedEvent;
 import sn.immosn.backend.visite.service.DemandeVisiteService;
 import sn.immosn.backend.visite.service.VisiteHistoryService;
 
@@ -44,6 +46,7 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
     private final ContratService          contratService;
     private final VisiteHistoryService    visiteHistoryService;
     private final LeadHistoryService      leadHistoryService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * Crée une demande de visite ET un lead automatiquement.
@@ -77,6 +80,10 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
 
         visiteHistoryService.record(visite, null, StatutDemandeVisite.EN_ATTENTE,
             "CREATION", request.commentaire(), null, null);
+        eventPublisher.publishEvent(new VisiteStatusChangedEvent(
+            visite.getId(), null, StatutDemandeVisite.EN_ATTENTE,
+            client.getEmail(), client.getId(), "CLIENT"
+        ));
 
         // Lead créé automatiquement dès la demande de visite (pas à l'acceptation)
         boolean leadExisteDeja = !leadRepository.findByVisiteId(visite.getId()).isEmpty();
@@ -188,6 +195,11 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
             default       -> "CHANGEMENT_STATUT";
         };
         visiteHistoryService.record(saved, actuel, cible, action, dto.commentaire(), null, null);
+        eventPublisher.publishEvent(new VisiteStatusChangedEvent(
+            saved.getId(), actuel, cible,
+            saved.getClient().getEmail(), saved.getClient().getId(),
+            isAdmin ? "ADMIN" : "CLIENT"
+        ));
 
         return mapper.toDto(saved);
     }
@@ -248,6 +260,10 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
         visiteHistoryService.record(visite, actuel, StatutDemandeVisite.ANNULEE,
             "ANNULATION", null, null, null);
         abandonnerLeadsDeLaVisite(id);
+        eventPublisher.publishEvent(new VisiteStatusChangedEvent(
+            visite.getId(), actuel, StatutDemandeVisite.ANNULEE,
+            visite.getClient().getEmail(), visite.getClient().getId(), "CLIENT"
+        ));
     }
 
     /**
@@ -275,6 +291,10 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
                     "CLOTURE_SANS_SUITE", null, null, null);
                 abandonnerLeadsDeLaVisite(id);
                 log.info("Visite #{} clôturée sans suite", id);
+                eventPublisher.publishEvent(new VisiteStatusChangedEvent(
+                    visite.getId(), StatutDemandeVisite.ACCEPTEE, StatutDemandeVisite.CLOTUREE_SANS_SUITE,
+                    visite.getClient().getEmail(), visite.getClient().getId(), "ADMIN"
+                ));
                 return null;
             }
             case AVEC_CONTRAT -> {
@@ -296,6 +316,10 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
                     "CLOTURE_AVEC_CONTRAT", null, null, null);
                 ContratResponseDto contrat = contratService.createFromVisite(visite, dto.typeContrat(), dto.dureeLocationMois());
                 log.info("Visite #{} clôturée avec contrat #{}", id, contrat.id());
+                eventPublisher.publishEvent(new VisiteStatusChangedEvent(
+                    visite.getId(), StatutDemandeVisite.ACCEPTEE, StatutDemandeVisite.CLOTUREE_AVEC_CONTRAT,
+                    visite.getClient().getEmail(), visite.getClient().getId(), "ADMIN"
+                ));
                 return contrat;
             }
             default -> throw new IllegalArgumentException("Type de clôture inconnu : " + dto.type());

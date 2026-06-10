@@ -1,6 +1,7 @@
 package sn.immosn.backend.signalement.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -13,16 +14,19 @@ import sn.immosn.backend.shared.exception.EntityNotFoundException;
 import sn.immosn.backend.signalement.data.entity.Signalement;
 import sn.immosn.backend.signalement.data.entity.StatutSignalement;
 import sn.immosn.backend.signalement.data.repository.SignalementRepository;
+import sn.immosn.backend.signalement.event.SignalementCreatedEvent;
+import sn.immosn.backend.signalement.event.SignalementUpdatedEvent;
 import sn.immosn.backend.signalement.service.SignalementService;
 
 @Service
 @RequiredArgsConstructor
 public class SignalementServiceImpl implements SignalementService {
 
-    private final SignalementRepository signalementRepository;
-    private final ContratRepository contratRepository;
-    private final UserRepository userRepository;
-    private final SignalementMapper mapper;
+    private final SignalementRepository    signalementRepository;
+    private final ContratRepository        contratRepository;
+    private final UserRepository           userRepository;
+    private final SignalementMapper        mapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -38,7 +42,12 @@ public class SignalementServiceImpl implements SignalementService {
             .contenu(request.contenu())
             .build();
 
-        return mapper.toDto(signalementRepository.save(sig));
+        Signalement saved = signalementRepository.save(sig);
+        eventPublisher.publishEvent(new SignalementCreatedEvent(
+            saved.getId(), contrat.getId(),
+            client.getEmail(), client.getId(), request.contenu()
+        ));
+        return mapper.toDto(saved);
     }
 
     @Override
@@ -67,7 +76,13 @@ public class SignalementServiceImpl implements SignalementService {
         Signalement sig = load(id);
         sig.setStatut(dto.statut());
         if (dto.reponseAdmin() != null) sig.setReponseAdmin(dto.reponseAdmin());
-        return mapper.toDto(signalementRepository.save(sig));
+        Signalement saved = signalementRepository.save(sig);
+        eventPublisher.publishEvent(new SignalementUpdatedEvent(
+            saved.getId(), saved.getStatut().name(),
+            saved.getClient().getEmail(), saved.getClient().getId(),
+            dto.reponseAdmin() != null && !dto.reponseAdmin().isBlank()
+        ));
+        return mapper.toDto(saved);
     }
 
     @Override

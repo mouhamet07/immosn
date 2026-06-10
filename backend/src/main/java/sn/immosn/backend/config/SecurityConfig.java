@@ -93,8 +93,11 @@ public class SecurityConfig {
             .headers(headers -> headers.frameOptions(frame -> frame.disable()))
             .authorizeHttpRequests(authz -> authz
 
-                //  Actuator health : sans auth (Docker healthcheck) 
+                //  Actuator health : sans auth (Docker healthcheck)
                 .requestMatchers("/actuator/health").permitAll()
+
+                //  WebSocket — la sécurité est assurée par WebSocketChannelInterceptor (JWT au CONNECT)
+                .requestMatchers("/ws/**").permitAll()
 
                 //  Public
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
