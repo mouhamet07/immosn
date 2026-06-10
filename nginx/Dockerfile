@@ -8,7 +8,7 @@ ENV VITE_CLOUDINARY_CLOUD_NAME=$VITE_CLOUDINARY_CLOUD_NAME
 ENV VITE_CLOUDINARY_UPLOAD_PRESET=$VITE_CLOUDINARY_UPLOAD_PRESET
 WORKDIR /app
 COPY frontend/package*.json ./
-RUN npm ci --prefer-offline --no-audit --progress=false
+RUN npm ci --no-audit --progress=false
 COPY frontend/ ./
 RUN npm run build
 # Étape 2 : Nginx
