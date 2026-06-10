@@ -464,7 +464,7 @@ public class ContratServiceImpl implements ContratService {
             .orElseThrow(() -> new EntityNotFoundException("Contrat non trouvé pour ce client : id=" + id));
     }
 
-    // ─── Machine à états ──────────────────────────────────────────────────────
+    // Machine à états
 
     private void validateTransition(StatutContrat actuel, StatutContrat cible) {
         Set<StatutContrat> permis = TRANSITIONS_AUTORISEES.getOrDefault(actuel, Set.of());
@@ -482,7 +482,7 @@ public class ContratServiceImpl implements ContratService {
         return "CHANGEMENT_STATUT";
     }
 
-    // ─── Calculs LOCATION centralisés ─────────────────────────────────────────
+    // Calculs LOCATION centralisés
     // Source unique de vérité : toute modification des règles métier se fait ici.
 
     private BigDecimal montantLocation(BigDecimal loyerMensuel, int dureeEnMois) {
