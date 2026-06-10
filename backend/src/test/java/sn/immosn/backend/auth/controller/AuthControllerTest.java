@@ -42,7 +42,7 @@ class AuthControllerTest {
         );
     }
 
-    // ── register — retourne CREATED ────────────────────────
+    // register — retourne CREATED
 
     @Test
     @DisplayName("register — délègue à AuthService et retourne 201 CREATED")
@@ -62,7 +62,7 @@ class AuthControllerTest {
         verify(authService).register(req);
     }
 
-    // ── login — retourne OK ────────────────────────────────
+    // login — retourne OK
 
     @Test
     @DisplayName("login — délègue à AuthService et retourne le token")
@@ -78,7 +78,7 @@ class AuthControllerTest {
         verify(authService).login(req);
     }
 
-    // ── logout — header valide → 204 ──────────────────────
+    // logout — header valide → 204
 
     @Test
     @DisplayName("logout — Bearer valide → délègue et retourne 204")
@@ -91,7 +91,7 @@ class AuthControllerTest {
         verify(authService).logout("jwt-token-xxx");
     }
 
-    // ── logout — header manquant → 400 ───────────────────
+    // logout — header manquant → 400
 
     @Test
     @DisplayName("logout — header absent → 400 BAD_REQUEST")

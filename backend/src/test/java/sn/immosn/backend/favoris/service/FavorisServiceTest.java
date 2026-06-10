@@ -71,7 +71,7 @@ class FavorisServiceTest {
         } catch (Exception ignored) {}
     }
 
-    // ── toggle : ajout ─────────────────────────────────────
+    // toggle : ajout
 
     @Test
     @DisplayName("toggle — ajoute le favori si absent")
@@ -88,7 +88,7 @@ class FavorisServiceTest {
         verify(favorisRepository).save(any(AnnonceFavoris.class));
     }
 
-    // ── toggle : retrait ───────────────────────────────────
+    // toggle : retrait
 
     @Test
     @DisplayName("toggle — retire le favori si déjà présent")
@@ -105,7 +105,7 @@ class FavorisServiceTest {
         verify(favorisRepository, never()).save(any());
     }
 
-    // ── toggle : annonce non trouvée ───────────────────────
+    // toggle : annonce non trouvée
 
     @Test
     @DisplayName("toggle — annonce inexistante → EntityNotFoundException")
@@ -117,7 +117,7 @@ class FavorisServiceTest {
             .isInstanceOf(EntityNotFoundException.class);
     }
 
-    // ── checkFavoris ───────────────────────────────────────
+    // checkFavoris
 
     @Test
     @DisplayName("checkFavoris — retourne true si présent")
@@ -141,7 +141,7 @@ class FavorisServiceTest {
         assertThat(result.isFavoris()).isFalse();
     }
 
-    // ── getClientFavoris ───────────────────────────────────
+    // getClientFavoris
 
     @Test
     @DisplayName("getClientFavoris — retourne une page de DTOs")

@@ -45,6 +45,9 @@ public interface AnnonceRepository extends JpaRepository<Annonce, Long>, JpaSpec
     // 5 dernières annonces actives pour le dashboard (List = pas de COUNT inutile)
     List<Annonce> findTop5ByIsArchivedFalseOrderByCreatedAtDesc();
 
+    // Bounded fetch paginé pour le dashboard activités (pas de COUNT — retourne List)
+    List<Annonce> findByIsArchivedFalseOrderByCreatedAtDesc(Pageable pageable);
+
     // Vérifie l'existence d'une annonce non archivée
     boolean existsByIdAndIsArchivedFalse(Long id);
 

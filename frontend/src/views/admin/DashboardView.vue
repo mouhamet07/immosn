@@ -72,12 +72,58 @@ const loading = ref(true)
 const error   = ref('')
 const stats   = ref(null)
 
+// Activités paginées
+const activities         = ref([])
+const activitiesLoading  = ref(false)
+const activitiesPage     = ref(0)
+const activitiesTotalPages = ref(1)
+const activitiesTotal    = ref(0)
+const activityType       = ref('ALL')
+
+const ACTIVITY_FILTER_TABS = [
+  { value: 'ALL',         label: 'Toutes' },
+  { value: 'VISITE',      label: 'Visites' },
+  { value: 'CONTRAT',     label: 'Contrats' },
+  { value: 'SIGNALEMENT', label: 'Signalements' },
+  { value: 'BIEN',        label: 'Biens' },
+  { value: 'MESSAGE',     label: 'Messages' },
+]
+
+async function fetchActivities(page = 0, type = activityType.value) {
+  activitiesLoading.value = true
+  try {
+    const res = await dashboardService.getActivities(page, 10, type)
+    const paged = res.data.data
+    activities.value         = paged.data
+    activitiesPage.value     = paged.currentPage
+    activitiesTotalPages.value = paged.totalPages
+    activitiesTotal.value    = paged.totalElements
+  } catch {
+    // silencieux — ne casse pas le reste du dashboard
+  } finally {
+    activitiesLoading.value = false
+  }
+}
+
+function changeActivityType(type) {
+  activityType.value = type
+  fetchActivities(0, type)
+}
+
+function changeActivityPage(page) {
+  fetchActivities(page, activityType.value)
+}
+
+function isUrgent(a) {
+  return a.statut === 'EN_ATTENTE' || a.statut === 'OUVERT'
+}
+
 // Date du jour en français
 const dateAujourdhui = new Date().toLocaleDateString('fr-FR', {
   weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
 })
 
-// ── Chargement ─────────────────────────────────────────────
+// Chargement
 onMounted(async () => {
   try {
     const res = await dashboardService.getStats()
@@ -87,9 +133,10 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+  fetchActivities()
 })
 
-// ── Cards statistiques ──────────────────────────────────────
+// Cards statistiques────
 const statCards = computed(() => {
   if (!stats.value) return []
   const s = stats.value
@@ -111,9 +158,7 @@ const statCards = computed(() => {
   return cards
 })
 
-const recentActivities = computed(() => stats.value?.activitesRecentes ?? [])
-
-const ACTIVITY_ICONS  = { ANNONCE: 'building', VISITE: 'calendar', CONTRAT: 'document', SIGNALEMENT: 'alert', CLIENT: 'user' }
+const ACTIVITY_ICONS  = { BIEN: 'building', ANNONCE: 'building', VISITE: 'calendar', CONTRAT: 'document', SIGNALEMENT: 'alert', MESSAGE: 'chat', CLIENT: 'user' }
 const STATUT_COLORS   = {
   ACTIVE: 'badge--success', EN_ATTENTE: 'badge--warning', ACCEPTEE: 'badge--success',
   REFUSEE: 'badge--danger', ACTIF: 'badge--success', RESILIE: 'badge--danger',
@@ -218,10 +263,36 @@ const shortcuts = [
         <div class="dash__section">
           <div class="section-head">
             <h2 class="section-head__title">Activités récentes</h2>
+            <span v-if="activitiesTotal > 0" class="activity-count">{{ activitiesTotal.toLocaleString('fr-FR') }}</span>
           </div>
-          <p v-if="!recentActivities.length" class="dash__empty">Aucune activité récente.</p>
+
+          <!-- Filtres par type -->
+          <div class="activity-filters" role="tablist">
+            <button
+              v-for="tab in ACTIVITY_FILTER_TABS"
+              :key="tab.value"
+              role="tab"
+              :aria-selected="activityType === tab.value"
+              :class="['filter-tab', { 'filter-tab--active': activityType === tab.value }]"
+              @click="changeActivityType(tab.value)"
+            >{{ tab.label }}</button>
+          </div>
+
+          <!-- Chargement -->
+          <div v-if="activitiesLoading" class="activity-loading">
+            <div class="spinner spinner--sm"></div>
+          </div>
+
+          <!-- Vide -->
+          <p v-else-if="!activities.length" class="dash__empty">Aucune activité pour ce filtre.</p>
+
+          <!-- Liste -->
           <ul v-else class="activity-list">
-            <li v-for="(a, i) in recentActivities" :key="i" class="activity-item">
+            <li
+              v-for="(a, i) in activities"
+              :key="i"
+              :class="['activity-item', { 'activity-item--urgent': isUrgent(a) }]"
+            >
               <span class="activity-item__icon">
                 <DashIcon :name="ACTIVITY_ICONS[a.type] ?? 'document'" />
               </span>
@@ -237,6 +308,21 @@ const shortcuts = [
               </div>
             </li>
           </ul>
+
+          <!-- Pagination -->
+          <div v-if="activitiesTotalPages > 1" class="activity-pager">
+            <button
+              class="pager-btn"
+              :disabled="activitiesPage === 0"
+              @click="changeActivityPage(activitiesPage - 1)"
+            >←</button>
+            <span class="pager-info">{{ activitiesPage + 1 }} / {{ activitiesTotalPages }}</span>
+            <button
+              class="pager-btn"
+              :disabled="activitiesPage >= activitiesTotalPages - 1"
+              @click="changeActivityPage(activitiesPage + 1)"
+            >→</button>
+          </div>
         </div>
 
         <!-- Raccourcis -->
@@ -436,11 +522,26 @@ const shortcuts = [
 .section-head { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem .75rem; border-bottom: 1px solid var(--color-border); }
 .section-head__title { font-size: .95rem; font-weight: 700; color: var(--color-text); }
 
-/* Activités */
+/* Activités — header */
+.activity-count { font-size: .75rem; font-weight: 600; color: var(--color-text); opacity: .45; }
+
+/* Filtres */
+.activity-filters { display: flex; gap: .35rem; padding: .6rem 1rem; border-bottom: 1px solid var(--color-border); overflow-x: auto; scrollbar-width: none; }
+.activity-filters::-webkit-scrollbar { display: none; }
+.filter-tab { flex-shrink: 0; padding: .28rem .7rem; border-radius: 20px; border: 1px solid var(--color-border); background: transparent; font-size: .75rem; font-weight: 500; color: var(--color-text); cursor: pointer; transition: all .15s; }
+.filter-tab:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.filter-tab--active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+
+/* Chargement activités */
+.activity-loading { display: flex; justify-content: center; padding: 2rem; }
+.spinner--sm { width: 22px; height: 22px; border-width: 2px; }
+
+/* Liste activités */
 .activity-list { list-style: none; margin: 0; padding: 0; }
 .activity-item { display: flex; align-items: center; gap: .9rem; padding: .85rem 1.25rem; border-bottom: 1px solid var(--color-border); transition: background .12s; }
 .activity-item:last-child { border-bottom: none; }
 .activity-item:hover { background: var(--color-background); }
+.activity-item--urgent { border-left: 3px solid #d97706; }
 .activity-item__icon { flex-shrink: 0; width: 24px; display: flex; align-items: center; justify-content: center; }
 .activity-item__icon svg { width: 16px; height: 16px; stroke: var(--color-text-muted); }
 .activity-item__body { flex: 1; min-width: 0; }
@@ -448,6 +549,13 @@ const shortcuts = [
 .activity-item__desc  { font-size: .75rem; color: var(--color-text); opacity: .5; }
 .activity-item__right { display: flex; flex-direction: column; align-items: flex-end; gap: .2rem; flex-shrink: 0; }
 .activity-item__date  { font-size: .68rem; color: var(--color-text); opacity: .4; }
+
+/* Pagination activités */
+.activity-pager { display: flex; align-items: center; justify-content: center; gap: .75rem; padding: .75rem; border-top: 1px solid var(--color-border); }
+.pager-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--color-border); background: transparent; font-size: .85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+.pager-btn:hover:not(:disabled) { border-color: var(--color-primary); color: var(--color-primary); }
+.pager-btn:disabled { opacity: .35; cursor: not-allowed; }
+.pager-info { font-size: .78rem; color: var(--color-text); opacity: .55; min-width: 50px; text-align: center; }
 
 /* Raccourcis */
 .shortcuts-grid { display: grid; grid-template-columns: 1fr 1fr; }
