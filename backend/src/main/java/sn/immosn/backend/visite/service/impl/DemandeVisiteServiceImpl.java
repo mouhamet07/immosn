@@ -98,7 +98,7 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
     @Override
     @Transactional(readOnly = true)
     public DemandeVisiteResponseDto getById(Long id, String userEmail, boolean isAdmin) {
-        DemandeVisite visite = visiteRepository.findByIdAndIsArchivedFalse(id)
+        DemandeVisite visite = visiteRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Demande de visite non trouvée : id=" + id));
         if (!isAdmin && !visite.getClient().getEmail().equals(userEmail)) {
             throw new EntityNotFoundException("Demande de visite non trouvée");
@@ -173,10 +173,6 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
 
         visite.setStatut(cible);
         if (dto.commentaire() != null) visite.setCommentaire(dto.commentaire());
-        // ANNULEE : archiver pour masquer des listes — identique au comportement DELETE /visites/{id}
-        if (cible == StatutDemandeVisite.ANNULEE) {
-            visite.setArchived(true);
-        }
 
         // Lead → ABANDONNE si la visite est refusée ou annulée
         if (cible == StatutDemandeVisite.REFUSEE || cible == StatutDemandeVisite.ANNULEE) {
@@ -233,7 +229,8 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
     }
 
     /**
-     * Annulation client : visite → ANNULEE + isArchived=true + lead → ABANDONNE.
+     * Annulation client : visite → ANNULEE + lead → ABANDONNE.
+     * La visite reste accessible (isArchived inchangé) pour conserver l'historique.
      */
     @Override
     @Transactional
@@ -243,8 +240,10 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
             throw new EntityNotFoundException("Demande non trouvée");
         }
         StatutDemandeVisite actuel = visite.getStatut();
+        if (actuel != StatutDemandeVisite.EN_ATTENTE && actuel != StatutDemandeVisite.ACCEPTEE) {
+            throw new IllegalStateException("Annulation impossible : la visite est déjà " + actuel + ".");
+        }
         visite.setStatut(StatutDemandeVisite.ANNULEE);
-        visite.setArchived(true);
         visiteRepository.save(visite);
         visiteHistoryService.record(visite, actuel, StatutDemandeVisite.ANNULEE,
             "ANNULATION", null, null, null);
@@ -303,7 +302,7 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
         }
     }
 
-    // ─── helpers ──────────────────────────────────────────────────────────────
+    // helpers
 
     private void abandonnerLeadsDeLaVisite(Long visiteId) {
         List<Lead> leads = leadRepository.findByVisiteId(visiteId);
