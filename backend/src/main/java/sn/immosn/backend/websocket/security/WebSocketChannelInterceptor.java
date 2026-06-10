@@ -50,7 +50,7 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
         return message;
     }
 
-    // CONNECT : extrait + valide le JWT, injecte WebSocketPrincipal
+    // CONNECT : extrait + valide le JWT, injecte WebSocketPrincipal, stocke le cursor de replay
 
     private void handleConnect(StompHeaderAccessor accessor) {
         String token = resolveToken(accessor);
@@ -66,6 +66,20 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
             .collect(Collectors.toSet());
 
         accessor.setUser(new WebSocketPrincipal(email, user.getId(), authorities));
+
+        // Stocke le cursor de replay pour WebSocketReplayListener
+        String lastSeenHeader = accessor.getFirstNativeHeader("lastSeenNotificationId");
+        if (lastSeenHeader != null && !lastSeenHeader.isBlank()) {
+            try {
+                Map<String, Object> attrs = accessor.getSessionAttributes();
+                if (attrs != null) {
+                    attrs.put("lastSeenNotificationId", Long.parseLong(lastSeenHeader));
+                }
+            } catch (NumberFormatException ignored) {
+                log.debug("[WS] lastSeenNotificationId invalide : {}", lastSeenHeader);
+            }
+        }
+
         log.info("[WS] Connexion établie : userId={} email={}", user.getId(), email);
     }
 

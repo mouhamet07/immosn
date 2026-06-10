@@ -141,6 +141,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/contrats/**").authenticated()
                 .requestMatchers("/api/v1/signalements/**").authenticated()
                 .requestMatchers("/api/v1/favoris/**").authenticated()
+                .requestMatchers("/api/v1/notifications/**").authenticated()
 
                 //  Swagger UI + OpenAPI docs 
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()

@@ -2,8 +2,8 @@ import { Client } from '@stomp/stompjs'
 
 /**
  * URL du endpoint WebSocket.
- * En développement : ws://localhost:8080/ws
- * En production    : le même domaine que la page (nginx proxy /ws → backend:8080/ws)
+ * En développement : ws://localhost:8080/ws  (VITE_WS_URL dans .env.local)
+ * En production    : même domaine que la page (nginx proxy /ws → backend:8080/ws)
  */
 function buildWsUrl() {
   const env = import.meta.env.VITE_WS_URL
@@ -12,32 +12,32 @@ function buildWsUrl() {
   return `${protocol}//${window.location.host}/ws`
 }
 
-// Map subscription-id → { unsubscribe fn }
 const subscriptions = new Map()
 
-let client = null
+let client            = null
 let reconnectAttempts = 0
-const MAX_RECONNECT = 10
-const BASE_DELAY_MS = 3000
+const MAX_RECONNECT   = 10
+const BASE_DELAY_MS   = 3000
 
 /**
- * Ouvre la connexion WebSocket STOMP avec le JWT fourni.
+ * Ouvre la connexion WebSocket STOMP.
  *
- * Le token est envoyé dans les headers du frame STOMP CONNECT
- * (Authorization: Bearer <token>) — jamais dans l'URL.
- *
- * @param {string}   token           JWT de l'utilisateur connecté
- * @param {boolean}  isAdmin         true si l'utilisateur est ADMIN/SUPER_ADMIN
- * @param {Function} onNotification  callback(NotificationPayload) appelé à chaque notification
+ * @param {string}      token                  JWT de l'utilisateur connecté
+ * @param {boolean}     isAdmin                true si ADMIN ou SUPER_ADMIN
+ * @param {Function}    onNotification         callback(NotificationPayload)
+ * @param {number|null} lastSeenNotificationId cursor pour le replay — envoyé au serveur au CONNECT
  */
-function connect(token, isAdmin, onNotification) {
+function connect(token, isAdmin, onNotification, lastSeenNotificationId = null) {
   if (client && client.connected) return
+
+  const connectHeaders = { Authorization: `Bearer ${token}` }
+  if (lastSeenNotificationId != null) {
+    connectHeaders.lastSeenNotificationId = String(lastSeenNotificationId)
+  }
 
   client = new Client({
     brokerURL: buildWsUrl(),
-    connectHeaders: {
-      Authorization: `Bearer ${token}`,
-    },
+    connectHeaders,
     heartbeatIncoming: 10000,
     heartbeatOutgoing: 10000,
     reconnectDelay: 0, // géré manuellement avec backoff exponentiel
@@ -46,10 +46,7 @@ function connect(token, isAdmin, onNotification) {
       reconnectAttempts = 0
       console.debug('[WS] Connecté')
 
-      // Toujours s'abonner aux notifications personnelles
       _subscribe('/user/queue/notifications', onNotification)
-
-      // Abonnement supplémentaire pour les admins
       if (isAdmin) {
         _subscribe('/topic/admin.notifications', onNotification)
       }
@@ -61,17 +58,17 @@ function connect(token, isAdmin, onNotification) {
 
     onStompError(frame) {
       console.error('[WS] Erreur STOMP :', frame.headers['message'])
-      _scheduleReconnect(token, isAdmin, onNotification)
+      _scheduleReconnect(token, isAdmin, onNotification, lastSeenNotificationId)
     },
 
-    onWebSocketError(event) {
+    onWebSocketError() {
       console.error('[WS] Erreur WebSocket')
-      _scheduleReconnect(token, isAdmin, onNotification)
+      _scheduleReconnect(token, isAdmin, onNotification, lastSeenNotificationId)
     },
 
     onWebSocketClose() {
       console.debug('[WS] Connexion fermée')
-      _scheduleReconnect(token, isAdmin, onNotification)
+      _scheduleReconnect(token, isAdmin, onNotification, lastSeenNotificationId)
     },
   })
 
@@ -79,10 +76,10 @@ function connect(token, isAdmin, onNotification) {
 }
 
 /**
- * Ferme proprement la connexion et nettoie toutes les souscriptions.
+ * Ferme proprement la connexion et nettoie les souscriptions.
  */
 function disconnect() {
-  subscriptions.forEach((sub) => sub.unsubscribe())
+  subscriptions.forEach(sub => sub.unsubscribe())
   subscriptions.clear()
 
   if (client) {
@@ -93,13 +90,11 @@ function disconnect() {
   console.debug('[WS] Déconnexion propre')
 }
 
-// Abonnement interne avec registre pour nettoyage
-
 function _subscribe(destination, callback) {
   if (!client || !client.connected) return
-  if (subscriptions.has(destination)) return // évite les doublons
+  if (subscriptions.has(destination)) return
 
-  const sub = client.subscribe(destination, (message) => {
+  const sub = client.subscribe(destination, message => {
     try {
       const payload = JSON.parse(message.body)
       callback(payload)
@@ -112,9 +107,7 @@ function _subscribe(destination, callback) {
   console.debug('[WS] Abonné à', destination)
 }
 
-// Reconnexion avec backoff exponentiel plafonné à 30s
-
-function _scheduleReconnect(token, isAdmin, onNotification) {
+function _scheduleReconnect(token, isAdmin, onNotification, lastSeenNotificationId) {
   if (reconnectAttempts >= MAX_RECONNECT) {
     console.warn('[WS] Nombre maximum de reconnexions atteint — abandon')
     return
@@ -129,7 +122,7 @@ function _scheduleReconnect(token, isAdmin, onNotification) {
       client.deactivate()
       client = null
     }
-    connect(token, isAdmin, onNotification)
+    connect(token, isAdmin, onNotification, lastSeenNotificationId)
   }, delay)
 }
 

@@ -1,37 +1,44 @@
 package sn.immosn.backend.visite.event;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
+import sn.immosn.backend.notification.entity.Notification;
+import sn.immosn.backend.notification.service.NotificationService;
 import sn.immosn.backend.websocket.dto.NotificationPayload;
 import sn.immosn.backend.websocket.publisher.NotificationPublisher;
 
 /**
  * Route les événements de visite vers les bons destinataires.
+ * DB persistence → WebSocket push (best-effort), exécuté après commit.
  *
- * source=CLIENT (création, annulation) → notifie les ADMIN
- * source=ADMIN  (acceptation, refus, clôture) → notifie le CLIENT concerné
+ * source=CLIENT → notifie les ADMIN
+ * source=ADMIN  → notifie le CLIENT concerné
  */
 @Component
 @RequiredArgsConstructor
 public class VisiteEventListener {
 
+    private final NotificationService notificationService;
     private final NotificationPublisher publisher;
 
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    @Transactional
     public void onVisiteStatusChanged(VisiteStatusChangedEvent event) {
         String type    = resolveType(event);
         String title   = resolveTitle(event);
         String message = resolveMessage(event);
 
-        NotificationPayload payload = NotificationPayload.of(
-            type, title, message, event.visiteId(), "VISITE"
-        );
-
         if ("CLIENT".equals(event.source())) {
-            publisher.sendToAdmins(payload);
+            notificationService.saveForAdmins(type, title, message, event.visiteId(), "VISITE");
+            publisher.sendToAdmins(NotificationPayload.of(type, title, message, event.visiteId(), "VISITE"));
         } else {
-            publisher.sendToUser(event.clientEmail(), payload);
+            Notification n = notificationService.save(
+                event.clientId(), type, title, message, event.visiteId(), "VISITE"
+            );
+            publisher.sendToUser(event.clientEmail(), n);
         }
     }
 
@@ -62,7 +69,8 @@ public class VisiteEventListener {
     }
 
     private String resolveMessage(VisiteStatusChangedEvent e) {
-        if (e.nouveauStatut() == null) return "Une nouvelle demande de visite #" + e.visiteId() + " a été soumise.";
+        if (e.nouveauStatut() == null)
+            return "Une nouvelle demande de visite #" + e.visiteId() + " a été soumise.";
         return switch (e.nouveauStatut()) {
             case EN_ATTENTE            -> "Nouvelle demande de visite #" + e.visiteId() + " reçue.";
             case ACCEPTEE              -> "Votre demande de visite #" + e.visiteId() + " a été acceptée.";

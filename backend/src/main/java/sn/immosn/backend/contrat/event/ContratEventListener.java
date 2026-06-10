@@ -1,13 +1,18 @@
 package sn.immosn.backend.contrat.event;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
+import sn.immosn.backend.notification.entity.Notification;
+import sn.immosn.backend.notification.service.NotificationService;
 import sn.immosn.backend.websocket.dto.NotificationPayload;
 import sn.immosn.backend.websocket.publisher.NotificationPublisher;
 
 /**
  * Route les événements de contrat vers les bons destinataires.
+ * DB persistence → WebSocket push (best-effort), exécuté après commit.
  *
  * source=CLIENT → notifie les ADMIN (demande résiliation/prolongation)
  * source=ADMIN  → notifie le CLIENT (décision admin)
@@ -17,22 +22,24 @@ import sn.immosn.backend.websocket.publisher.NotificationPublisher;
 @RequiredArgsConstructor
 public class ContratEventListener {
 
+    private final NotificationService notificationService;
     private final NotificationPublisher publisher;
 
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    @Transactional
     public void onContratStatusChanged(ContratStatusChangedEvent event) {
         String type    = resolveType(event);
         String title   = resolveTitle(event);
         String message = resolveMessage(event);
 
-        NotificationPayload payload = NotificationPayload.of(
-            type, title, message, event.contratId(), "CONTRAT"
-        );
-
         if ("CLIENT".equals(event.source())) {
-            publisher.sendToAdmins(payload);
+            notificationService.saveForAdmins(type, title, message, event.contratId(), "CONTRAT");
+            publisher.sendToAdmins(NotificationPayload.of(type, title, message, event.contratId(), "CONTRAT"));
         } else {
-            publisher.sendToUser(event.clientEmail(), payload);
+            Notification n = notificationService.save(
+                event.clientId(), type, title, message, event.contratId(), "CONTRAT"
+            );
+            publisher.sendToUser(event.clientEmail(), n);
         }
     }
 

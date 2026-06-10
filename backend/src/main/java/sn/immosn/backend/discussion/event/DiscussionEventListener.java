@@ -1,37 +1,46 @@
 package sn.immosn.backend.discussion.event;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
+import sn.immosn.backend.notification.entity.Notification;
+import sn.immosn.backend.notification.service.NotificationService;
 import sn.immosn.backend.websocket.dto.NotificationPayload;
 import sn.immosn.backend.websocket.publisher.NotificationPublisher;
 
 /**
  * Écoute les événements de messagerie et les route vers les bons destinataires.
  *
- * CLIENT envoie → notifie les ADMIN (broadcast admin topic)
- * ADMIN  envoie → notifie le CLIENT propriétaire de la discussion
+ * Ordre garanti : DB persistence → WebSocket push (best-effort).
+ * Exécuté APRÈS le commit de la transaction métier (@TransactionalEventListener AFTER_COMMIT).
+ *
+ * CLIENT → notifie les ADMIN (broadcast admin topic)
+ * ADMIN  → notifie le CLIENT propriétaire de la discussion
  */
 @Component
 @RequiredArgsConstructor
 public class DiscussionEventListener {
 
+    private final NotificationService notificationService;
     private final NotificationPublisher publisher;
 
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    @Transactional
     public void onMessageCreated(DiscussionMessageCreatedEvent event) {
-        NotificationPayload payload = NotificationPayload.of(
-            "NEW_MESSAGE",
-            "Nouveau message",
-            "Vous avez reçu un nouveau message dans la discussion #" + event.discussionId(),
-            event.discussionId(),
-            "DISCUSSION"
-        );
+        String type    = "NEW_MESSAGE";
+        String title   = "Nouveau message";
+        String message = "Vous avez reçu un nouveau message dans la discussion #" + event.discussionId();
 
         if ("CLIENT".equals(event.source())) {
-            publisher.sendToAdmins(payload);
+            notificationService.saveForAdmins(type, title, message, event.discussionId(), "DISCUSSION");
+            publisher.sendToAdmins(NotificationPayload.of(type, title, message, event.discussionId(), "DISCUSSION"));
         } else {
-            publisher.sendToUser(event.clientEmail(), payload);
+            Notification n = notificationService.save(
+                event.clientId(), type, title, message, event.discussionId(), "DISCUSSION"
+            );
+            publisher.sendToUser(event.clientEmail(), n);
         }
     }
 }

@@ -4,7 +4,7 @@ import router from '@/router'
 import api from '@/services/api'
 import authService from '@/services/authService'
 import { websocketService } from '@/services/websocketService'
-import { useToastStore } from '@/stores/toastStore'
+import { useNotificationStore } from '@/stores/notificationStore'
 
 // Décode le payload d'un JWT sans librairie externe
 function parseJwt(token) {
@@ -62,10 +62,10 @@ export const useAuthStore = defineStore('auth', () => {
 
   function _handleNotification(payload) {
     try {
-      const toast = useToastStore()
-      toast.info(payload.message ?? payload.title ?? 'Nouvelle notification')
+      const notifStore = useNotificationStore()
+      notifStore.handleIncoming(payload)
     } catch {
-      // toastStore peut ne pas être disponible hors composant — silencieux
+      // silencieux — ne doit jamais planter le flux principal
     }
   }
 
@@ -77,14 +77,18 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = data.accessToken
     localStorage.setItem('token', token.value)
     api.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
-    // roles est un Set<String> sérialisé en array JSON — valeurs: ADMIN, CLIENT, EMPLOYE
+    // roles est un Set<String> sérialisé en array JSON — valeurs: ADMIN, CLIENT, SUPER_ADMIN
     const roles = Array.isArray(data.roles) ? data.roles : []
     role.value = sanitizeRole(roles.length ? roles[0] : null)
     localStorage.setItem('role', role.value)
     user.value = data
 
-    // Connexion WebSocket après authentification réussie
-    websocketService.connect(token.value, isAdmin.value, _handleNotification)
+    // Initialisation du store notifications (compteur non-lus)
+    const notifStore = useNotificationStore()
+    await notifStore.init()
+
+    // Connexion WebSocket avec cursor de replay
+    websocketService.connect(token.value, isAdmin.value, _handleNotification, notifStore.maxSeenId)
 
     // Redirection : page demandée avant la connexion en priorité, sinon selon le rôle
     const redirect = localStorage.getItem('redirectAfterLogin')
@@ -105,9 +109,11 @@ export const useAuthStore = defineStore('auth', () => {
       // Ignorer les erreurs serveur
     } finally {
       websocketService.disconnect()
-      user.value = null
+      const notifStore = useNotificationStore()
+      notifStore.reset()
+      user.value  = null
       token.value = null
-      role.value = null
+      role.value  = null
       localStorage.removeItem('token')
       localStorage.removeItem('role')
       delete api.defaults.headers.common['Authorization']
@@ -134,9 +140,13 @@ export const useAuthStore = defineStore('auth', () => {
   async function init() {
     if (token.value) {
       await fetchProfile()
-      // Rétablir la connexion WebSocket après un refresh de page
       if (token.value) {
-        websocketService.connect(token.value, isAdmin.value, _handleNotification)
+        // Initialisation du compteur non-lus
+        const notifStore = useNotificationStore()
+        await notifStore.init()
+
+        // Rétablir la connexion WebSocket avec cursor de replay après refresh de page
+        websocketService.connect(token.value, isAdmin.value, _handleNotification, notifStore.maxSeenId)
       }
     }
   }

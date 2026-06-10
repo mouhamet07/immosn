@@ -1,13 +1,18 @@
 package sn.immosn.backend.signalement.event;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
+import sn.immosn.backend.notification.entity.Notification;
+import sn.immosn.backend.notification.service.NotificationService;
 import sn.immosn.backend.websocket.dto.NotificationPayload;
 import sn.immosn.backend.websocket.publisher.NotificationPublisher;
 
 /**
  * Route les événements de signalement vers les bons destinataires.
+ * DB persistence → WebSocket push (best-effort), exécuté après commit.
  *
  * SignalementCreatedEvent : client crée → notifie les ADMIN
  * SignalementUpdatedEvent : admin répond → notifie le CLIENT
@@ -16,31 +21,34 @@ import sn.immosn.backend.websocket.publisher.NotificationPublisher;
 @RequiredArgsConstructor
 public class SignalementEventListener {
 
+    private final NotificationService notificationService;
     private final NotificationPublisher publisher;
 
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    @Transactional
     public void onSignalementCreated(SignalementCreatedEvent event) {
-        NotificationPayload payload = NotificationPayload.of(
-            "SIGNALEMENT_CREATED",
-            "Nouveau signalement",
-            "Un nouveau signalement #" + event.signalementId() + " a été soumis pour le contrat #" + event.contratId() + ".",
-            event.signalementId(),
-            "SIGNALEMENT"
-        );
-        publisher.sendToAdmins(payload);
+        String type    = "SIGNALEMENT_CREATED";
+        String title   = "Nouveau signalement";
+        String message = "Un nouveau signalement #" + event.signalementId()
+            + " a été soumis pour le contrat #" + event.contratId() + ".";
+
+        notificationService.saveForAdmins(type, title, message, event.signalementId(), "SIGNALEMENT");
+        publisher.sendToAdmins(NotificationPayload.of(type, title, message, event.signalementId(), "SIGNALEMENT"));
     }
 
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    @Transactional
     public void onSignalementUpdated(SignalementUpdatedEvent event) {
-        if (!event.hasReponse()) return; // Ne notifie que quand l'admin a fourni une réponse
+        if (!event.hasReponse()) return;
 
-        NotificationPayload payload = NotificationPayload.of(
-            "SIGNALEMENT_RESPONSE",
-            "Réponse à votre signalement",
-            "Votre signalement #" + event.signalementId() + " a reçu une réponse de l'administration.",
-            event.signalementId(),
-            "SIGNALEMENT"
+        String type    = "SIGNALEMENT_RESPONSE";
+        String title   = "Réponse à votre signalement";
+        String message = "Votre signalement #" + event.signalementId()
+            + " a reçu une réponse de l'administration.";
+
+        Notification n = notificationService.save(
+            event.clientId(), type, title, message, event.signalementId(), "SIGNALEMENT"
         );
-        publisher.sendToUser(event.clientEmail(), payload);
+        publisher.sendToUser(event.clientEmail(), n);
     }
 }
