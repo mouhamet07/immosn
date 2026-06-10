@@ -21,7 +21,7 @@ const confirming  = ref(false)
 async function fetchAnnonce() {
   loading.value = true
   try {
-    const res = await annonceService.getAnnonceById(route.params.id)
+    const res = await annonceService.getAnnonceByIdAdmin(route.params.id)
     annonce.value = res.data.data
   } catch {
     error.value = 'Annonce introuvable.'

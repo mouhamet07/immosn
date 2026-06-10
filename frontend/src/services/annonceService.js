@@ -26,9 +26,14 @@ export default {
     return api.get('/annonces/admin', { params: filters })
   },
 
-  // GET /api/v1/annonces/{id}
+  // GET /api/v1/annonces/{id} — public, archived annonces return 404
   getAnnonceById(id) {
     return api.get(`/annonces/${validateId(id)}`)
+  },
+
+  // GET /api/v1/annonces/admin/{id} — admin only, includes archived annonces
+  getAnnonceByIdAdmin(id) {
+    return api.get(`/annonces/admin/${validateId(id)}`)
   },
 
   // POST /api/v1/annonces — champs exacts: libelle, description, nbrPieces, surface, prix, adresse, typeBienId, commoditeIds, images

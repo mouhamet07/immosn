@@ -1,14 +1,14 @@
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Heart, Phone, Mail, Share2, FileText, Flag } from 'lucide-vue-next'
 import ButtonPrimary from '@/components/ButtonPrimary.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import annonceService from '@/services/annonceService'
-import favorisService from '@/services/favorisService'
 import discussionService from '@/services/discussionService'
 import { useAuthStore } from '@/stores/authStore'
 import { useToastStore } from '@/stores/toastStore'
+import { useFavorisStore } from '@/stores/favorisStore'
 import placeholderImg from '@/assets/Penthouse.png'
 import LocationMap from '@/components/LocationMap.vue'
 import logoImg from '@/assets/logo nav 1 - orange 1.png'
@@ -16,13 +16,13 @@ import logoImg from '@/assets/logo nav 1 - orange 1.png'
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
-
 const toastStore = useToastStore()
+const favorisStore = useFavorisStore()
 
 const annonce = ref(null)
 const loading = ref(false)
 const error = ref('')
-const isFavori = ref(false)
+const isFavori = computed(() => favorisStore.isFavori(Number(route.params.id)))
 const imageActive = ref(0)
 
 //  Modal visite 
@@ -144,21 +144,20 @@ function closeModal() {
   discussionId.value     = null
 }
 
-// FIX 3 : toggle favori via favorisService
 const toggleFavori = async () => {
   if (!authStore.isAuthenticated) {
     localStorage.setItem('redirectAfterLogin', route.fullPath)
     router.push('/connexion')
     return
   }
-  try {
-    await favorisService.toggle(annonce.value.id)
-    isFavori.value = !isFavori.value
-    toastStore[isFavori.value ? 'success' : 'info'](
-      isFavori.value ? 'Ajouté aux favoris' : 'Retiré des favoris'
-    )
-  } catch {
+  const wasFavori = isFavori.value
+  const result = await favorisStore.toggle(annonce.value.id)
+  if (result === wasFavori) {
     toastStore.error('Erreur lors de la mise à jour des favoris')
+  } else {
+    toastStore[result ? 'success' : 'info'](
+      result ? 'Ajouté aux favoris' : 'Retiré des favoris'
+    )
   }
 }
 
@@ -169,19 +168,8 @@ onMounted(async () => {
     annonce.value = response.data.data
   } catch (e) {
     error.value = e.response?.data?.message || 'Annonce introuvable ou une erreur est survenue.'
-    return
   } finally {
     loading.value = false
-  }
-
-  if (authStore.isAuthenticated) {
-    try {
-      const res = await favorisService.checkFavoris(route.params.id)
-      isFavori.value = res.data?.data ?? false
-    } catch {
-      // Ne pas bloquer l'affichage de l'annonce si la vérification des favoris échoue.
-      isFavori.value = false
-    }
   }
 })
 

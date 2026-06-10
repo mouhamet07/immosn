@@ -135,7 +135,7 @@ public class SignalementController {
             content = @Content(mediaType = "application/json"))
     })
     @GetMapping("/admin")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<PagedResponse<SignalementResponseDto>> getAll(
             @Parameter(description = "Numéro de page", example = "0") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Taille de la page", example = "20") @RequestParam(defaultValue = "20") int size,
@@ -181,7 +181,7 @@ public class SignalementController {
             content = @Content(mediaType = "application/json"))
     })
     @PutMapping("/{id}/status")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<RestResponse<SignalementResponseDto>> updateStatut(
             @Parameter(description = "Identifiant du signalement", required = true, example = "5")
             @PathVariable Long id, @RequestBody @Valid UpdateStatutSignalementDto dto) {
@@ -215,7 +215,7 @@ public class SignalementController {
             content = @Content(mediaType = "application/json"))
     })
     @PutMapping("/{id}/read")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<RestResponse<Void>> markAsRead(
             @Parameter(description = "Identifiant du signalement à marquer lu", required = true, example = "5")
             @PathVariable Long id) {

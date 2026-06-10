@@ -45,8 +45,9 @@ export const MESSAGES = {
 }
 
 export function getErrorMessage(error) {
-  const status    = error?.response?.status
-  const serverMsg = error?.response?.data?.message
+  const status      = error?.response?.status
+  const serverMsg   = error?.response?.data?.message
+  const fieldErrors = error?.response?.data?.data
 
   if (!status)        return MESSAGES.networkError
   if (status === 401) return MESSAGES.unauthorized
@@ -54,6 +55,12 @@ export function getErrorMessage(error) {
   if (status === 404) return MESSAGES.accountNotFound
   if (status === 409) return MESSAGES.emailAlreadyExists
   if (status >= 500)  return MESSAGES.serverError
+
+  // Field-level validation errors from @Valid (MethodArgumentNotValidException)
+  if (fieldErrors && typeof fieldErrors === 'object' && !Array.isArray(fieldErrors)) {
+    const messages = Object.values(fieldErrors).filter(Boolean)
+    if (messages.length) return messages.join(' — ')
+  }
 
   return serverMsg || MESSAGES.serverError
 }

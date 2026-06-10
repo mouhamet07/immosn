@@ -91,7 +91,7 @@ public class AnnonceServiceImpl implements AnnonceService {
     public AnnonceResponseDto updateAnnonce(Long id, AnnonceUpdateRequestDto requestDto) {
         log.info("Modification annonce : id={}", id);
 
-        Annonce annonce = annonceRepository.findByIdAndIsArchivedFalse(id)
+        Annonce annonce = annonceRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée : id=" + id));
 
         if (requestDto.libelle()     != null) annonce.setLibelle(requestDto.libelle());

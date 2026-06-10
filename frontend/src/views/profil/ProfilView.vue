@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useToastStore } from '@/stores/toastStore'
 import { uploadImage } from '@/services/cloudinaryService'
 import authService from '@/services/authService'
+import { getErrorMessage } from '@/utils/messages'
 
 const authStore = useAuthStore()
 const toast = useToastStore()
@@ -109,7 +110,7 @@ async function saveInfo() {
     toast.success('Informations mises à jour avec succès.')
     successInfo.value = 'Informations mises à jour avec succès.'
   } catch (err) {
-    const msg = err.response?.data?.message || 'Erreur lors de la mise à jour.'
+    const msg = getErrorMessage(err)
     errorInfo.value = msg
     toast.error(msg)
   } finally {
@@ -141,7 +142,7 @@ async function saveSecurite() {
     successSecurite.value = 'Mot de passe mis à jour avec succès.'
     toast.success('Mot de passe mis à jour avec succès.')
   } catch (err) {
-    errorSecurite.value = err.response?.data?.message || 'Erreur lors de la mise à jour.'
+    errorSecurite.value = getErrorMessage(err)
   } finally {
     loadingSecurite.value = false
   }

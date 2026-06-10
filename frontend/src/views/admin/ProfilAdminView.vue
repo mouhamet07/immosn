@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useToastStore } from '@/stores/toastStore'
 import { uploadImage } from '@/services/cloudinaryService'
 import api from '@/services/api'
+import { getErrorMessage } from '@/utils/messages'
 
 const authStore = useAuthStore()
 const toast     = useToastStore()
@@ -85,7 +86,7 @@ async function saveInfo() {
     await authStore.fetchProfile()
     toast.success('Informations mises à jour.')
   } catch (err) {
-    toast.error(err.response?.data?.message || 'Erreur lors de la mise à jour.')
+    toast.error(getErrorMessage(err))
   } finally {
     loadingInfo.value = false
   }
@@ -118,7 +119,7 @@ async function saveSecurite() {
     formSecurite.confirmationMotDePasse = ''
     toast.success('Mot de passe mis à jour.')
   } catch (err) {
-    toast.error(err.response?.data?.message || 'Erreur lors de la mise à jour.')
+    toast.error(getErrorMessage(err))
   } finally {
     loadingSecurite.value = false
   }

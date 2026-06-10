@@ -118,7 +118,7 @@ onMounted(async () => {
   loading.value = true
   try {
     const [resAnnonce, resTypes, resCommodites, resDepts] = await Promise.all([
-      annonceService.getAnnonceById(route.params.id),
+      annonceService.getAnnonceByIdAdmin(route.params.id),
       typeBienService.getAllTypesBien(),
       commoditeService.getAllCommodites(),
       locationService.getDepartements(),
