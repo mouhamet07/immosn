@@ -116,13 +116,15 @@ public class DashboardServiceImpl implements DashboardService {
             }
         };
 
-        all.sort(PRIORITY_COMPARATOR);
+        List<RecentActivityDto> sorted = all.stream()
+            .sorted(PRIORITY_COMPARATOR)
+            .toList();
 
         long totalElements = countByType(upper);
         int  totalPages    = (int) Math.max(1, Math.ceil((double) totalElements / size));
         int  fromIdx       = page * size;
-        int  toIdx         = Math.min(fromIdx + size, all.size());
-        List<RecentActivityDto> content = fromIdx >= all.size() ? List.of() : all.subList(fromIdx, toIdx);
+        int  toIdx         = Math.min(fromIdx + size, sorted.size());
+        List<RecentActivityDto> content = fromIdx >= sorted.size() ? List.of() : sorted.subList(fromIdx, toIdx);
 
         return new PagedResponse<>(content, totalElements, totalPages, page, size,
             page == 0, page >= totalPages - 1);

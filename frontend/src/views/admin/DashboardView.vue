@@ -98,8 +98,8 @@ async function fetchActivities(page = 0, type = activityType.value) {
     activitiesPage.value     = paged.currentPage
     activitiesTotalPages.value = paged.totalPages
     activitiesTotal.value    = paged.totalElements
-  } catch {
-    // silencieux — ne casse pas le reste du dashboard
+  } catch (e) {
+    console.error('[DashboardActivities]', e)
   } finally {
     activitiesLoading.value = false
   }
@@ -136,7 +136,7 @@ onMounted(async () => {
   fetchActivities()
 })
 
-// Cards statistiques────
+// Cards statistiques
 const statCards = computed(() => {
   if (!stats.value) return []
   const s = stats.value
