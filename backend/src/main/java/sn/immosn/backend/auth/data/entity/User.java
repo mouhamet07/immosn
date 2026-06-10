@@ -48,6 +48,9 @@ public class User implements UserDetails {
     @Column(nullable = false)
     protected boolean isArchived = false;
 
+    @Column(name = "dernier_connexion")
+    protected LocalDateTime dernierConnexion;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "user_roles",

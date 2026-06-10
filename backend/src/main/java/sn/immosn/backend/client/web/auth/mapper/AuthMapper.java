@@ -22,6 +22,10 @@ public class AuthMapper {
     }
 
     public AuthResponseDto toAuthResponseDto(User user, String token) {
+        return toAuthResponseDto(user, token, 0L);
+    }
+
+    public AuthResponseDto toAuthResponseDto(User user, String token, long sessionsActives) {
         return new AuthResponseDto(
                 user.getId(),
                 user.getNomComplet(),
@@ -36,7 +40,9 @@ public class AuthMapper {
                 user.getRoles().stream()
                         .map(Role::getRole)
                         .map(Enum::name)
-                        .collect(Collectors.toSet())
+                        .collect(Collectors.toSet()),
+                user.getDernierConnexion(),
+                sessionsActives
         );
     }
 }

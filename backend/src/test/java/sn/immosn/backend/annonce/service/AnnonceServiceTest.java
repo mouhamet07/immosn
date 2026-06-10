@@ -92,7 +92,7 @@ class AnnonceServiceTest {
         );
     }
 
-    // ── getAnnonceById ──────────────────────────────────────
+    // getAnnonceById
 
     @Test
     @DisplayName("getAnnonceById — annonce active trouvée")
@@ -119,7 +119,7 @@ class AnnonceServiceTest {
             .hasMessageContaining("99");
     }
 
-    // ── getAllAnnonces ──────────────────────────────────────
+    // getAllAnnonces
 
     @Test
     @DisplayName("getAllAnnonces — retourne une page de DTOs")
@@ -272,7 +272,7 @@ class AnnonceServiceTest {
         assertThat(annonceCaptor.getValue().getAdresse()).isEqualTo("Almadies, Dakar");
     }
 
-    // ── archiveAnnonce ──────────────────────────────────────
+    // archiveAnnonce
 
     @Test
     @DisplayName("archiveAnnonce — met isArchived à true")
@@ -297,7 +297,7 @@ class AnnonceServiceTest {
             .isInstanceOf(EntityNotFoundException.class);
     }
 
-    // ── restoreAnnonce ──────────────────────────────────────
+    // restoreAnnonce
 
     @Test
     @DisplayName("restoreAnnonce — met isArchived à false")
@@ -311,7 +311,7 @@ class AnnonceServiceTest {
         assertThat(annonceActive.isArchived()).isFalse();
     }
 
-    // ── searchAnnonces ──────────────────────────────────────
+    // searchAnnonces
 
     @Test
     @DisplayName("searchAnnonces — délègue au repository avec Specification")

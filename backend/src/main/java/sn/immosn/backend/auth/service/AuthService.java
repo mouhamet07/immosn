@@ -7,18 +7,21 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 import sn.immosn.backend.auth.data.entity.BlacklistedToken;
 import sn.immosn.backend.auth.data.entity.Role;
 import sn.immosn.backend.auth.data.entity.RoleType;
 import sn.immosn.backend.auth.data.entity.User;
+import sn.immosn.backend.auth.data.entity.UserSession;
 import sn.immosn.backend.auth.data.jwt.JwtTokenProvider;
 import sn.immosn.backend.auth.data.repository.BlacklistedTokenRepository;
 import sn.immosn.backend.auth.data.repository.RoleRepository;
 import sn.immosn.backend.auth.data.repository.UserRepository;
+import sn.immosn.backend.auth.data.repository.UserSessionRepository;
 import sn.immosn.backend.client.web.auth.dto.AuthLoginRequestDto;
 import sn.immosn.backend.client.web.auth.dto.AuthRegisterRequestDto;
 import sn.immosn.backend.client.web.auth.dto.AuthResponseDto;
@@ -41,21 +44,26 @@ public class AuthService {
     private final AuthMapper                   authMapper;
     private final JwtTokenProvider             jwtTokenProvider;
     private final BlacklistedTokenRepository   blacklistedTokenRepository;
+    private final UserSessionRepository        userSessionRepository;
 
-    // ── Déconnexion ────────────────────────────────────────
+    // Déconnexion
 
     public void logout(String token) {
         try {
             var expiry = jwtTokenProvider.getExpirationDateFromToken(token);
             blacklistedTokenRepository.save(new BlacklistedToken(token, expiry));
-            log.debug("Token blacklisté lors du logout");
+            userSessionRepository.findByToken(token).ifPresent(s -> {
+                s.setActive(false);
+                userSessionRepository.save(s);
+            });
+            log.debug("Token blacklisté et session désactivée lors du logout");
         } catch (Exception e) {
             // Token invalide → on considère la déconnexion comme réussie quand même
             log.warn("Tentative de logout avec token non parseable : {}", e.getMessage());
         }
     }
 
-    // ── Inscription CLIENT ──────────────────────────────────
+    // Inscription CLIENT
 
     @Transactional
     public AuthResponseDto register(AuthRegisterRequestDto request) {
@@ -65,29 +73,41 @@ public class AuthService {
 
         User user = authMapper.toUser(request);
         user.setPassword(passwordEncoder.encode(request.getMotDePasse()));
+        user.setDernierConnexion(LocalDateTime.now());
 
         Role clientRole = loadRole(RoleType.CLIENT);
         user.getRoles().add(clientRole);
 
         User saved = authUserDetailService.save(user);
+        String jwt = jwtTokenProvider.generateToken(saved);
+        saveSession(saved, jwt);
         log.info("Nouveau CLIENT inscrit : email={}", saved.getEmail());
 
-        return authMapper.toAuthResponseDto(saved, jwtTokenProvider.generateToken(saved));
+        return authMapper.toAuthResponseDto(saved, jwt, 1L);
     }
 
-    // ── Connexion ───────────────────────────────────────────
+    // Connexion
 
+    @Transactional
     public AuthResponseDto login(AuthLoginRequestDto request) {
-        Authentication authentication = authenticationManager.authenticate(
+        authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(request.getEmail(), request.getMotDePasse())
         );
-        User user  = (User) authentication.getPrincipal();
+        // Charger l'entité managée dans la transaction courante pour persister dernierConnexion
+        User user = userRepository.findByEmail(request.getEmail())
+            .orElseThrow(() -> new EntityNotFoundException("Utilisateur introuvable"));
+        user.setDernierConnexion(LocalDateTime.now());
+        userRepository.save(user);
+
         String jwt = jwtTokenProvider.generateToken(user);
+        saveSession(user, jwt);
+        long sessions = userSessionRepository.countByUserIdAndActiveTrueAndExpiresAtAfter(user.getId(), LocalDateTime.now());
+
         log.info("Connexion réussie : email={}", user.getEmail());
-        return authMapper.toAuthResponseDto(user, jwt);
+        return authMapper.toAuthResponseDto(user, jwt, sessions);
     }
 
-    // ── Création ADMIN (réservé SUPER_ADMIN, contrôlé par SecurityConfig) ─
+    // Création ADMIN (réservé SUPER_ADMIN)
 
     @Transactional
     public AuthResponseDto registerAdmin(AuthRegisterRequestDto request) {
@@ -105,7 +125,7 @@ public class AuthService {
         return authMapper.toAuthResponseDto(saved, jwtTokenProvider.generateToken(saved));
     }
 
-    // ── Liste des admins (SUPER_ADMIN) ──────────────────────
+    // Liste des admins (SUPER_ADMIN)
 
     @Transactional(readOnly = true)
     public Page<AuthResponseDto> listAdmins(Pageable pageable) {
@@ -114,7 +134,7 @@ public class AuthService {
             .map(user -> authMapper.toAuthResponseDto(user, null));
     }
 
-    // ── Archivage admin (SUPER_ADMIN) ───────────────────────
+    // Archivage admin (SUPER_ADMIN)
 
     @Transactional
     public void archiveUser(Long id, User operator) {
@@ -130,7 +150,7 @@ public class AuthService {
             operator.getRoles().stream().map(r -> r.getRole().name()).findFirst().orElse("?"), id);
     }
 
-    // ── Restauration admin (SUPER_ADMIN) ────────────────────
+    // Restauration admin (SUPER_ADMIN)
 
     @Transactional
     public AuthResponseDto restoreAdmin(Long id, User operator) {
@@ -152,7 +172,7 @@ public class AuthService {
         return authMapper.toAuthResponseDto(saved, null);
     }
 
-    // ── Révocation admin → CLIENT (SUPER_ADMIN) ─────────────
+    // Révocation admin → CLIENT (SUPER_ADMIN)
 
     @Transactional
     public AuthResponseDto revokeAdmin(Long id, User operator) {
@@ -170,6 +190,13 @@ public class AuthService {
             java.time.LocalDateTime.now(), operator.getId(),
             operator.getRoles().stream().map(r -> r.getRole().name()).findFirst().orElse("?"), id);
         return authMapper.toAuthResponseDto(saved, null);
+    }
+
+    // Modification profil (utilisateur connecté)
+    // ── Sessions actives ────────────────────────────────────
+
+    public long countActiveSessions(Long userId) {
+        return userSessionRepository.countByUserIdAndActiveTrueAndExpiresAtAfter(userId, LocalDateTime.now());
     }
 
     // ── Modification profil (utilisateur connecté) ──────────
@@ -213,10 +240,21 @@ public class AuthService {
         log.info("[{}] USER:{} {} MODIFY_PROFILE",
             java.time.LocalDateTime.now(), user.getId(),
             user.getRoles().stream().map(r -> r.getRole().name()).findFirst().orElse("?"));
-        return authMapper.toAuthResponseDto(saved, null);
+        return authMapper.toAuthResponseDto(saved, null, countActiveSessions(saved.getId()));
     }
 
-    // ── Helpers ─────────────────────────────────────────────
+    // Helpers
+
+    private void saveSession(User user, String jwt) {
+        LocalDateTime expiresAt = jwtTokenProvider.getExpirationDateFromToken(jwt);
+        userSessionRepository.save(UserSession.builder()
+            .user(user)
+            .token(jwt)
+            .issuedAt(LocalDateTime.now())
+            .expiresAt(expiresAt)
+            .active(true)
+            .build());
+    }
 
     private Role loadRole(RoleType type) {
         return roleRepository.findByRole(type)
