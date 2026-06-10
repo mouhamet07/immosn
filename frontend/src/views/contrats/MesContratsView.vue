@@ -1,11 +1,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { FileText, Home, MapPin, Download } from 'lucide-vue-next'
 import contratService from '@/services/contratService'
 import FilterSelect from '@/components/FilterSelect.vue'
 
-const router      = useRouter()
 const contrats    = ref([])
 const loading     = ref(false)
 const error       = ref('')
@@ -21,10 +19,24 @@ const modalDate    = ref('')
 const modalMotif   = ref('')
 const submitting   = ref(false)
 
-const STATUTS = ['', 'EN_ATTENTE', 'ACTIF', 'EXPIRE', 'RESILIE']
-const STATUT_LABELS = { EN_ATTENTE: 'En attente', ACTIF: 'Actif', EXPIRE: 'Expiré', RESILIE: 'Résilié' }
+const STATUTS = ['', 'EN_ATTENTE', 'ACTIF', 'EXPIRE', 'RESILIE', 'EN_ATTENTE_RESILIATION', 'PROLONGATION_EN_ATTENTE']
+const STATUT_LABELS = {
+  EN_ATTENTE:              'En attente',
+  ACTIF:                   'Actif',
+  EXPIRE:                  'Expiré',
+  RESILIE:                 'Résilié',
+  EN_ATTENTE_RESILIATION:  'Résiliation en attente',
+  PROLONGATION_EN_ATTENTE: 'Prolongation en attente',
+}
 const filterOptions = STATUTS.map(s => ({ value: s, label: s ? STATUT_LABELS[s] : 'Tous les statuts' }))
-const STATUT_COLORS = { EN_ATTENTE: 'badge--warning', ACTIF: 'badge--success', EXPIRE: 'badge--neutral', RESILIE: 'badge--danger' }
+const STATUT_COLORS = {
+  EN_ATTENTE:              'badge--warning',
+  ACTIF:                   'badge--success',
+  EXPIRE:                  'badge--neutral',
+  RESILIE:                 'badge--danger',
+  EN_ATTENTE_RESILIATION:  'badge--warning',
+  PROLONGATION_EN_ATTENTE: 'badge--warning',
+}
 
 async function fetchContrats(page = 0) {
   loading.value = true; error.value = ''
@@ -132,9 +144,7 @@ onMounted(() => fetchContrats(0))
               <Download :size="14" /> Télécharger le contrat
             </a>
             <div class="mc-card__actions">
-              <RouterLink :to="`/contrats/${c.id}`" class="mc-card__btn mc-card__btn--outline">
-                Détails
-              </RouterLink>
+              <RouterLink :to="`/contrats/${c.id}`" class="mc-card__btn mc-card__btn--outline">Voir le détail</RouterLink>
               <button v-if="c.statut === 'ACTIF'" class="mc-card__btn mc-card__btn--primary"
                 @click="openModal('prolongation', c)">
                 Prolonger

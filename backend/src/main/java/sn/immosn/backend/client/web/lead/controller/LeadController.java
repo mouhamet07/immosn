@@ -19,6 +19,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import sn.immosn.backend.client.web.lead.dto.*;
 import sn.immosn.backend.lead.data.entity.StatutLead;
+import sn.immosn.backend.lead.service.LeadHistoryService;
 import sn.immosn.backend.lead.service.LeadService;
 import sn.immosn.backend.shared.response.PagedResponse;
 import sn.immosn.backend.shared.response.RestResponse;
@@ -31,7 +32,8 @@ import sn.immosn.backend.shared.response.RestResponse;
 @SecurityRequirement(name = "bearerAuth")
 public class LeadController {
 
-    private final LeadService service;
+    private final LeadService        service;
+    private final LeadHistoryService historyService;
 
     @Operation(
         summary = "Créer un lead",
@@ -193,5 +195,66 @@ public class LeadController {
                 .body(RestResponse.badRequest("Identifiant de lead invalide", null));
         }
         return ResponseEntity.ok(RestResponse.success(service.updateStatut(id, dto), HttpStatus.OK));
+    }
+
+    @Operation(
+        summary = "Historique d'un lead",
+        description = "Retourne l'historique complet des transitions et actions sur un lead. **Accès : ADMIN uniquement**"
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Historique du lead",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Lead non trouvé",
+            content = @Content(mediaType = "application/json"))
+    })
+    @GetMapping("/{id}/historique")
+    public ResponseEntity<PagedResponse<LeadHistoryDto>> getHistorique(
+            @Parameter(description = "Identifiant du lead", required = true) @PathVariable Long id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(PagedResponse.fromPage(historyService.getHistory(id, pageable)));
+    }
+
+    @Operation(
+        summary = "Mettre à jour la note admin d'un lead",
+        description = """
+            Met à jour uniquement la note administrative d'un lead sans modifier son statut.
+
+            La note est indépendante du statut — elle peut être modifiée à tout moment,
+            y compris sur les leads CONVERTI ou ABANDONNE.
+
+            **Accès : ADMIN uniquement**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Note mise à jour",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Note trop longue (max 2 000 caractères)",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Lead non trouvé",
+            content = @Content(mediaType = "application/json"))
+    })
+    @PutMapping("/{id}/note")
+    public ResponseEntity<RestResponse<LeadResponseDto>> updateNote(
+            @Parameter(description = "Identifiant du lead", required = true, example = "3")
+            @PathVariable Long id,
+            @RequestBody @Valid UpdateNoteLeadDto dto) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de lead invalide", null));
+        }
+        return ResponseEntity.ok(RestResponse.success(service.updateNote(id, dto), HttpStatus.OK));
     }
 }

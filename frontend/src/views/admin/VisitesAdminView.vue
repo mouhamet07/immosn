@@ -163,17 +163,19 @@ onMounted(() => fetchVisites(0))
             <td><span :class="['badge', STATUT_COLORS[v.statut] ?? 'badge--neutral']">{{ STATUT_LABELS[v.statut] ?? v.statut }}</span></td>
             <td class="va-td-comment">{{ v.commentaire || '–' }}</td>
             <td>
-              <!-- Visite EN_ATTENTE : accepter ou refuser -->
-              <div class="va-actions" v-if="v.statut === 'EN_ATTENTE'">
-                <button class="va-btn va-btn--accept" :disabled="updating === v.id"
-                  @click="changeStatut(v.id, 'ACCEPTEE')">Accepter</button>
-                <button class="va-btn va-btn--refuse" :disabled="updating === v.id"
-                  @click="changeStatut(v.id, 'REFUSEE')">Refuser</button>
+              <div class="va-actions">
+                <RouterLink :to="`/admin/visites/${v.id}`" class="va-btn va-btn--detail">Voir</RouterLink>
+                <!-- Visite EN_ATTENTE : accepter ou refuser -->
+                <template v-if="v.statut === 'EN_ATTENTE'">
+                  <button class="va-btn va-btn--accept" :disabled="updating === v.id"
+                    @click="changeStatut(v.id, 'ACCEPTEE')">Accepter</button>
+                  <button class="va-btn va-btn--refuse" :disabled="updating === v.id"
+                    @click="changeStatut(v.id, 'REFUSEE')">Refuser</button>
+                </template>
+                <!-- Visite ACCEPTEE : clôturer (ouvre modal) -->
+                <button v-else-if="v.statut === 'ACCEPTEE'" class="va-btn va-btn--cloture" :disabled="updating === v.id"
+                  @click="openCloture(v.id)">Clôturer</button>
               </div>
-              <!-- Visite ACCEPTEE : clôturer (ouvre modal) -->
-              <button v-else-if="v.statut === 'ACCEPTEE'" class="va-btn va-btn--cloture" :disabled="updating === v.id"
-                @click="openCloture(v.id)">Clôturer</button>
-              <span v-else class="va-td-sub">–</span>
             </td>
           </tr>
         </tbody>
@@ -298,8 +300,9 @@ onMounted(() => fetchVisites(0))
 .va-td-comment { font-size: .8rem; max-width: 180px; }
 .va-edit-date { font-size: .72rem; color: var(--color-primary); background: none; border: none; cursor: pointer; padding: 0; margin-top: .15rem; }
 
-.va-actions { display: flex; gap: .4rem; }
-.va-btn { padding: .3rem .7rem; border-radius: 6px; font-size: .78rem; font-weight: 600; border: none; cursor: pointer; transition: opacity .15s; }
+.va-actions { display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; }
+.va-btn { padding: .3rem .7rem; border-radius: 6px; font-size: .78rem; font-weight: 600; border: none; cursor: pointer; transition: opacity .15s; text-decoration: none; display: inline-block; }
+.va-btn--detail { background: var(--color-background); border: 1.5px solid var(--color-border); color: var(--color-text); }
 .va-btn:disabled { opacity: .4; cursor: not-allowed; }
 .va-btn--accept  { background: #d1fae5; color: #059669; }
 .va-btn--refuse  { background: #fee2e2; color: #dc2626; }

@@ -54,8 +54,6 @@ function closeVisiteModal() {
   visiteDate.value = ''; visiteComment.value = ''; visiteError.value = ''
 }
 
-// FIX 2 : wrapper avec sauvegarde de la destination pour redirect après connexion
-// eslint-disable-next-line no-unused-vars
 function handleReserverVisite() {
   if (!authStore.isAuthenticated) {
     localStorage.setItem('redirectAfterLogin', route.fullPath)
@@ -81,8 +79,6 @@ const chatMessages = ref([])
 const newMessage = ref('')
 const sendingMessage = ref(false)
 
-// FIX 2 : guard auth avec sauvegarde destination
-// eslint-disable-next-line no-unused-vars
 function handleContactAgent() {
   if (!authStore.isAuthenticated) {
     localStorage.setItem('redirectAfterLogin', route.fullPath)
@@ -348,8 +344,8 @@ function getImage(index) {
 
             <!-- FIX 2 : boutons avec guard auth -->
             <div class="detail-sidebar__actions">
-              <ButtonPrimary full-width @click="openContact">Contacter l'agent</ButtonPrimary>
-              <ButtonPrimary variant="outline" full-width @click="openVisite">Réserver une visite privée</ButtonPrimary>
+              <ButtonPrimary full-width @click="handleContactAgent">Contacter l'agent</ButtonPrimary>
+              <ButtonPrimary variant="outline" full-width @click="handleReserverVisite">Réserver une visite privée</ButtonPrimary>
             </div>
 
             <div class="detail-sidebar__links">

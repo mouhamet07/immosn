@@ -395,9 +395,10 @@ async function handleSubmit() {
 .field__input {
   padding: .7rem .9rem; border: 1.5px solid var(--color-border);
   border-radius: var(--radius-sm); font-size: .9rem; color: var(--color-text);
-  background: #fff; transition: border-color .2s; width: 100%;
+  background: var(--color-card); transition: border-color .2s; width: 100%;
 }
 .field__input:focus { border-color: var(--color-primary); outline: none; }
+select.field__input { padding-right: 2.5rem; }
 .field__textarea { resize: vertical; min-height: 100px; }
 
 /* Commodités */

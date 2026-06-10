@@ -26,6 +26,10 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+// N+1 fix: toutes les associations LAZY dans buildRecentActivities() sont chargées via JOIN FETCH
+// (visites.annonce, visites.client, contrats.annonce, contrats.client, signalements.client).
+// Les compteurs utilisent countBy...() directs (plus de Page à getTotalElements() qui tire data+count+EAGER).
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -43,22 +47,26 @@ public class DashboardServiceImpl implements DashboardService {
     public DashboardStatsDto getStats() {
         var page = PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        // ── Compteurs ──────────────────────────────────────────────────────────
+        // ── Compteurs : COUNT uniquement, aucune entité chargée ───────────────
         long totalAnnonces    = annonceRepository.count();
-        long annoncesActives  = annonceRepository.findByIsArchivedFalse(PageRequest.of(0, 1)).getTotalElements();
-        long totalClients     = userRepository.findByRoles_Role(RoleType.CLIENT, PageRequest.of(0, 1)).getTotalElements();
-        long totalAdmins      = userRepository.findByRoles_Role(RoleType.ADMIN, PageRequest.of(0, 1)).getTotalElements();
+        long annoncesActives  = annonceRepository.countByIsArchivedFalse();
+        long totalClients     = userRepository.countByRoles_Role(RoleType.CLIENT);
+        long totalAdmins      = userRepository.countByRoles_Role(RoleType.ADMIN);
         long totalContrats    = contratRepository.count();
         long contratsActifs   = contratRepository.countByStatut(StatutContrat.ACTIF);
         long totalVisites     = visiteRepository.count();
-        long visitesEnAttente = visiteRepository.findByStatutAndIsArchivedFalseOrderByCreatedAtDesc(
-            StatutDemandeVisite.EN_ATTENTE, PageRequest.of(0, 1)).getTotalElements();
+        long visitesEnAttente = visiteRepository.countByStatutAndIsArchivedFalse(StatutDemandeVisite.EN_ATTENTE);
         long visitesAujourdhui = countVisitesToday();
         long totalSig         = signalementRepository.count();
-        long sigOuverts       = signalementRepository.findByStatutOrderByCreatedAtDesc(
-            StatutSignalement.OUVERT, PageRequest.of(0, 1)).getTotalElements();
+        long sigOuverts       = signalementRepository.countByStatut(StatutSignalement.OUVERT);
         long totalLeads       = leadRepository.count();
         long leadsEnCours     = leadRepository.countByStatut(StatutLead.EN_COURS);
+        long leadsConvertis   = leadRepository.countByStatut(StatutLead.CONVERTI);
+        long leadsAbandonnes  = leadRepository.countByStatut(StatutLead.ABANDONNE);
+        long leadsTermines    = leadsConvertis + leadsAbandonnes;
+        double tauxConversionLeads = leadsTermines > 0
+            ? Math.round(leadsConvertis * 10000.0 / leadsTermines) / 100.0
+            : 0.0;
         long totalDisc        = discussionRepository.count();
 
         // ── Activités récentes (5 dernières par domaine, fusionnées et triées) ─
@@ -70,52 +78,45 @@ public class DashboardServiceImpl implements DashboardService {
             totalContrats, contratsActifs,
             totalVisites, visitesEnAttente, visitesAujourdhui,
             totalSig, sigOuverts,
-            totalLeads, leadsEnCours,
+            totalLeads, leadsEnCours, leadsConvertis, leadsAbandonnes, tauxConversionLeads,
             totalDisc,
             activites
         );
     }
 
     private long countVisitesToday() {
-        // Compter les visites dont la dateVisite est aujourd'hui
         var start = LocalDate.now().atStartOfDay();
         var end   = start.plusDays(1);
-        return visiteRepository.findByIsArchivedFalseOrderByCreatedAtDesc(
-            PageRequest.of(0, Integer.MAX_VALUE))
-            .stream()
-            .filter(v -> v.getDateVisite() != null
-                && !v.getDateVisite().isBefore(start)
-                && v.getDateVisite().isBefore(end))
-            .count();
+        return visiteRepository.countByDateVisiteBetweenAndIsArchivedFalse(start, end);
     }
 
     private List<RecentActivityDto> buildRecentActivities(PageRequest page) {
         List<RecentActivityDto> activities = new ArrayList<>();
 
-        // Dernières annonces
-        annonceRepository.findByIsArchivedFalse(page).forEach(a ->
+        // Dernières annonces — champs directs uniquement, pas de JOIN nécessaire
+        annonceRepository.findTop5ByIsArchivedFalseOrderByCreatedAtDesc().forEach(a ->
             activities.add(new RecentActivityDto(
                 "ANNONCE", a.getLibelle(), a.getAdresse(),
                 a.isArchived() ? "ARCHIVEE" : "ACTIVE", a.getCreatedAt())));
 
-        // Dernières visites
-        visiteRepository.findByIsArchivedFalseOrderByCreatedAtDesc(page).forEach(v ->
+        // Dernières visites — JOIN FETCH v.annonce + v.client : 1 query au lieu de 1+5+5+5
+        visiteRepository.findRecentForDashboard(page).forEach(v ->
             activities.add(new RecentActivityDto(
                 "VISITE",
                 "Visite : " + v.getAnnonce().getLibelle(),
                 v.getClient().getNomComplet(),
                 v.getStatut().name(), v.getCreatedAt())));
 
-        // Derniers contrats
-        contratRepository.findAllByOrderByCreatedAtDesc(page).forEach(c ->
+        // Derniers contrats — JOIN FETCH c.annonce + c.client : 1 query au lieu de 1+5+5+5
+        contratRepository.findRecentForDashboard(page).forEach(c ->
             activities.add(new RecentActivityDto(
                 "CONTRAT",
                 "Contrat : " + c.getAnnonce().getLibelle(),
                 c.getClient().getNomComplet(),
                 c.getStatut().name(), c.getCreatedAt())));
 
-        // Derniers signalements
-        signalementRepository.findAllByOrderByCreatedAtDesc(page).forEach(s ->
+        // Derniers signalements — JOIN FETCH s.client : 1 query au lieu de 1+5+5
+        signalementRepository.findRecentForDashboard(page).forEach(s ->
             activities.add(new RecentActivityDto(
                 "SIGNALEMENT",
                 "Signalement SAV",

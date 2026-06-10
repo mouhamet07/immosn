@@ -14,8 +14,10 @@ public record LeadResponseDto(
     String annonceAdresse,
     String imagePrincipale,
     Long visiteId,
+    Long contratId,
     StatutLead statut,
     String noteAdmin,
     LocalDateTime createdAt,
-    LocalDateTime updatedAt
+    LocalDateTime updatedAt,
+    LocalDateTime convertedAt
 ) {}

@@ -302,6 +302,8 @@ onMounted(async () => {
   flex: 1;
   min-width: 80px;
 }
+.filter-input:hover,
+.filter-select:hover { border-color: var(--color-border-hover); }
 .filter-input:focus,
 .filter-select:focus { border-color: var(--color-primary); outline: none; }
 

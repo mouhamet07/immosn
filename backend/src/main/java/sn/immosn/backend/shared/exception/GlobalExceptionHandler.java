@@ -2,6 +2,7 @@ package sn.immosn.backend.shared.exception;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -116,6 +117,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity
             .status(HttpStatus.BAD_REQUEST)
             .body(RestResponse.badRequest("Erreur de validation des données", errors));
+    }
+
+    // ── Connexion DB indisponible après retry (Neon cold start résiduel) ── 503
+    @ExceptionHandler(DataAccessException.class)
+    public ResponseEntity<RestResponse<Void>> handleDataAccess(DataAccessException ex) {
+        log.error("DataAccessException (connexion DB perdue) : {}", ex.getMessage());
+        return ResponseEntity
+            .status(HttpStatus.SERVICE_UNAVAILABLE)
+            .body(RestResponse.error("Service temporairement indisponible — veuillez réessayer dans quelques secondes", HttpStatus.SERVICE_UNAVAILABLE));
     }
 
     // ── Fallback générique ──────────────────────────────────────────────── 500

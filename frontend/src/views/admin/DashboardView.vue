@@ -98,7 +98,9 @@ const statCards = computed(() => {
     { icon: 'user',         label: 'Clients',              value: s.totalClients,         total: null,                   color: 'blue',    to: null },
     { icon: 'calendar',     label: 'Visites en attente',   value: s.visitesEnAttente,     total: s.totalVisites,         color: 'orange',  to: '/admin/visites' },
     { icon: 'document',     label: 'Contrats actifs',      value: s.contratsActifs,       total: s.totalContrats,        color: 'green',   to: '/admin/contrats' },
-    { icon: 'target',       label: 'Leads en cours',       value: s.leadsEnCours,         total: s.totalLeads,           color: 'purple',  to: '/admin/leads' },
+    { icon: 'target',       label: 'Leads en cours',       value: s.leadsEnCours,         total: s.totalLeads,           color: 'purple',  to: '/admin/leads?statut=EN_COURS' },
+    { icon: 'target',       label: 'Leads convertis',      value: s.leadsConvertis,       total: null,                   color: 'green',   to: '/admin/leads?statut=CONVERTI' },
+    { icon: 'target',       label: 'Leads abandonnés',     value: s.leadsAbandonnes,      total: null,                   color: 'gray',    to: '/admin/leads?statut=ABANDONNE' },
     { icon: 'alert',        label: 'Signalements ouverts', value: s.signalementsOuverts,  total: s.totalSignalements,    color: 'red',     to: '/admin/signalements' },
     { icon: 'chat', label: 'Discussions', value: s.totalDiscussions, total: null, color: 'teal', to: '/admin/messages' },
   ]
@@ -190,6 +192,25 @@ const shortcuts = [
         </component>
       </div>
 
+      <!-- Taux de conversion leads -->
+      <div v-if="stats" class="dash__conversion">
+        <div class="conv-card">
+          <div class="conv-card__left">
+            <p class="conv-card__label">Taux de conversion leads</p>
+            <p class="conv-card__sub">
+              {{ stats.leadsConvertis }} converti{{ stats.leadsConvertis !== 1 ? 's' : '' }}
+              sur {{ stats.leadsConvertis + stats.leadsAbandonnes }} terminé{{ (stats.leadsConvertis + stats.leadsAbandonnes) !== 1 ? 's' : '' }}
+            </p>
+          </div>
+          <div class="conv-card__right">
+            <span class="conv-card__pct">{{ stats.tauxConversionLeads.toFixed(1) }}&thinsp;%</span>
+          </div>
+          <div class="conv-bar">
+            <div class="conv-bar__fill" :style="{ width: stats.tauxConversionLeads + '%' }"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- Grille 2 colonnes -->
       <div class="dash__grid">
 
@@ -221,7 +242,7 @@ const shortcuts = [
         <!-- Raccourcis -->
         <div class="dash__shortcuts-col">
           <div class="section-head">
-            <h2 class="section-head__title">Accès rapides</h2>
+            <h2 class="section-head__title">Actions rapides</h2>
           </div>
           <div class="shortcuts-grid">
             <RouterLink v-for="s in shortcuts" :key="s.to" :to="s.to" class="shortcut-card">
@@ -374,6 +395,38 @@ const shortcuts = [
   background: #f3f4f6;
   color: #4b5563;
 }
+
+/* Taux de conversion */
+.conv-card {
+  position: relative;
+  background: #fff;
+  border: 1px solid #eef2f7;
+  border-radius: 16px;
+  padding: 1rem 1.25rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+}
+.conv-card__left { flex: 1; }
+.conv-card__label { font-size: .88rem; font-weight: 700; color: #374151; }
+.conv-card__sub   { font-size: .75rem; color: #9ca3af; margin-top: .15rem; }
+.conv-card__pct   { font-size: 1.8rem; font-weight: 800; color: #059669; line-height: 1; }
+.conv-bar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 5px;
+  background: #e5e7eb;
+}
+.conv-bar__fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4A7C6F, #059669);
+  border-radius: 0 3px 3px 0;
+  transition: width .4s ease;
+  min-width: 2px;
+}
+
 /* Grille 2 colonnes */
 .dash__grid { display: grid; grid-template-columns: 1fr 300px; gap: 1.5rem; align-items: start; }
 

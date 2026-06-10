@@ -56,7 +56,7 @@ const uploadAvatar = async () => {
 }
 
 const formInfo     = reactive({ nomComplet: '', email: '', telephone: '' })
-const formSecurite = reactive({ motDePasseActuel: '', nouveauMotDePasse: '', confirmationNouveauMotDePasse: '' })
+const formSecurite = reactive({ motDePasseActuel: '', nouveauMotDePasse: '', confirmationMotDePasse: '' })
 const loadingInfo      = ref(false)
 const loadingSecurite  = ref(false)
 
@@ -91,8 +91,12 @@ async function saveInfo() {
 }
 
 async function saveSecurite() {
-  if (!formSecurite.motDePasseActuel || !formSecurite.nouveauMotDePasse || !formSecurite.confirmationNouveauMotDePasse) {
-    toast.error('Veuillez remplir tous les champs du formulaire.')
+  if (!formSecurite.motDePasseActuel || !formSecurite.nouveauMotDePasse || !formSecurite.confirmationMotDePasse) {
+    toast.error('Veuillez remplir les trois champs.')
+    return
+  }
+  if (formSecurite.nouveauMotDePasse !== formSecurite.confirmationMotDePasse) {
+    toast.error('La confirmation du mot de passe ne correspond pas.')
     return
   }
 
@@ -104,12 +108,13 @@ async function saveSecurite() {
   loadingSecurite.value = true
   try {
     await api.put('/auth/profile', {
-      motDePasseActuel:  formSecurite.motDePasseActuel,
-      nouveauMotDePasse: formSecurite.nouveauMotDePasse,
+      motDePasseActuel:      formSecurite.motDePasseActuel,
+      nouveauMotDePasse:     formSecurite.nouveauMotDePasse,
+      confirmationMotDePasse: formSecurite.confirmationMotDePasse,
     })
-    formSecurite.motDePasseActuel = ''
-    formSecurite.nouveauMotDePasse = ''
-    formSecurite.confirmationNouveauMotDePasse = ''
+    formSecurite.motDePasseActuel      = ''
+    formSecurite.nouveauMotDePasse     = ''
+    formSecurite.confirmationMotDePasse = ''
     toast.success('Mot de passe mis à jour.')
   } catch (err) {
     toast.error(err.response?.data?.message || 'Erreur lors de la mise à jour.')
@@ -188,19 +193,15 @@ async function saveSecurite() {
               </div>
             </div>
             <div class="field">
-              <label class="field__label">CONFIRMATION DU NOUVEAU MOT DE PASSE</label>
+              <label class="field__label">CONFIRMER LE NOUVEAU MOT DE PASSE</label>
               <div class="pwd-field">
                 <input
                   :type="showNewPwd ? 'text' : 'password'"
-                  v-model="formSecurite.confirmationNouveauMotDePasse"
+                  v-model="formSecurite.confirmationMotDePasse"
                   class="field__input"
                   placeholder="••••••••"
                   autocomplete="new-password"
                 />
-                <button type="button" class="pwd-toggle" @click="showNewPwd = !showNewPwd">
-                  <EyeOff v-if="showNewPwd" :size="16" />
-                  <Eye v-else :size="16" />
-                </button>
               </div>
             </div>
             <button type="submit" class="btn-update" :disabled="loadingSecurite">
