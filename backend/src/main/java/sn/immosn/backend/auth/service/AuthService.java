@@ -42,7 +42,7 @@ public class AuthService {
     private final JwtTokenProvider             jwtTokenProvider;
     private final BlacklistedTokenRepository   blacklistedTokenRepository;
 
-    // Déconnexion
+    // ── Déconnexion ────────────────────────────────────────
 
     public void logout(String token) {
         try {
@@ -55,7 +55,7 @@ public class AuthService {
         }
     }
 
-    // Inscription CLIENT
+    // ── Inscription CLIENT ──────────────────────────────────
 
     @Transactional
     public AuthResponseDto register(AuthRegisterRequestDto request) {
@@ -75,7 +75,7 @@ public class AuthService {
         return authMapper.toAuthResponseDto(saved, jwtTokenProvider.generateToken(saved));
     }
 
-    // Connexion
+    // ── Connexion ───────────────────────────────────────────
 
     public AuthResponseDto login(AuthLoginRequestDto request) {
         Authentication authentication = authenticationManager.authenticate(
@@ -87,7 +87,7 @@ public class AuthService {
         return authMapper.toAuthResponseDto(user, jwt);
     }
 
-    // Création ADMIN (réservé SUPER_ADMIN)
+    // ── Création ADMIN (réservé SUPER_ADMIN, contrôlé par SecurityConfig) ─
 
     @Transactional
     public AuthResponseDto registerAdmin(AuthRegisterRequestDto request) {
@@ -105,7 +105,7 @@ public class AuthService {
         return authMapper.toAuthResponseDto(saved, jwtTokenProvider.generateToken(saved));
     }
 
-    // Liste des admins (SUPER_ADMIN)
+    // ── Liste des admins (SUPER_ADMIN) ──────────────────────
 
     @Transactional(readOnly = true)
     public Page<AuthResponseDto> listAdmins(Pageable pageable) {
@@ -114,7 +114,7 @@ public class AuthService {
             .map(user -> authMapper.toAuthResponseDto(user, null));
     }
 
-    // Archivage admin (SUPER_ADMIN)
+    // ── Archivage admin (SUPER_ADMIN) ───────────────────────
 
     @Transactional
     public void archiveUser(Long id, User operator) {
@@ -130,7 +130,7 @@ public class AuthService {
             operator.getRoles().stream().map(r -> r.getRole().name()).findFirst().orElse("?"), id);
     }
 
-    // Restauration admin (SUPER_ADMIN)
+    // ── Restauration admin (SUPER_ADMIN) ────────────────────
 
     @Transactional
     public AuthResponseDto restoreAdmin(Long id, User operator) {
@@ -152,7 +152,7 @@ public class AuthService {
         return authMapper.toAuthResponseDto(saved, null);
     }
 
-    // Révocation admin → CLIENT (SUPER_ADMIN)
+    // ── Révocation admin → CLIENT (SUPER_ADMIN) ─────────────
 
     @Transactional
     public AuthResponseDto revokeAdmin(Long id, User operator) {
@@ -172,7 +172,7 @@ public class AuthService {
         return authMapper.toAuthResponseDto(saved, null);
     }
 
-    // Modification profil (utilisateur connecté)
+    // ── Modification profil (utilisateur connecté) ──────────
 
     @Transactional
     public AuthResponseDto updateProfile(Long userId, UpdateProfileRequestDto request) {
@@ -216,7 +216,7 @@ public class AuthService {
         return authMapper.toAuthResponseDto(saved, null);
     }
 
-    // Helpers
+    // ── Helpers ─────────────────────────────────────────────
 
     private Role loadRole(RoleType type) {
         return roleRepository.findByRole(type)
