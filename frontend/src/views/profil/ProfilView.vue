@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { computed, ref, reactive, onMounted } from 'vue'
 
 // Formate le numéro en +221 XX XXX XX XX
 function formatTelephone(val) {
@@ -21,6 +21,23 @@ import authService from '@/services/authService'
 
 const authStore = useAuthStore()
 const toast = useToastStore()
+
+const lastConnexionRaw = computed(() => authStore.user?.dernierConnexion ?? authStore.user?.lastLogin)
+const sessionsActives = computed(() => authStore.user?.sessionsActives ?? authStore.user?.activeSessions ?? 0)
+
+// Formate la date/heure de connexion
+function formatLastConnexion(value) {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value)
+  return date.toLocaleString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
 
 // Avatar
 const previewUrl = ref(null)
@@ -213,16 +230,26 @@ async function saveSecurite() {
             </div>
             <p class="profil-user__email">{{ authStore.user?.email }}</p>
             <p class="profil-user__phone">{{ authStore.user?.telephone }}</p>
-            <span class="profil-user__role">{{ authStore.user?.role }}</span>
+            <span class="profil-user__role">{{ authStore.user?.roles?.[0] }}</span>
           </section>
 
-          <!-- Besoin d'aide -->
+          <!-- Activité de connexion -->
           <section class="profil-card">
-            <h2 class="profil-card__title">Besoin d'aide ?</h2>
-            <ul class="profil-help">
-              <li><a href="#" class="profil-help__link">Contacter le support</a></li>
-              <li><a href="#" class="profil-help__link">Guide d'utilisation</a></li>
-            </ul>
+            <h2 class="profil-card__title">Activité du compte</h2>
+            <div class="profil-activity">
+              <div class="profil-activity__item">
+                <span class="profil-activity__label">Dernière connexion</span>
+                <span class="profil-activity__value">
+                  {{ formatLastConnexion(lastConnexionRaw) ?? 'Non disponible' }}
+                </span>
+              </div>
+              <div class="profil-activity__item">
+                <span class="profil-activity__label">Sessions actives</span>
+                <span class="profil-activity__value">
+                  {{ sessionsActives }}
+                </span>
+              </div>
+            </div>
           </section>
         </div>
       </div>
@@ -452,6 +479,35 @@ async function saveSecurite() {
   font-size: 0.78rem;
   font-weight: 700;
   text-transform: uppercase;
+}
+
+.profil-activity {
+  display: grid;
+  gap: 1rem;
+}
+
+.profil-activity__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  background: rgba(245, 247, 249, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+}
+
+.profil-activity__label {
+  color: #4f4f4f;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.profil-activity__value {
+  color: var(--color-primary);
+  font-size: 0.95rem;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 /* Aide */

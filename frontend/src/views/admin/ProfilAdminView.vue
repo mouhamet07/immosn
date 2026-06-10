@@ -1,6 +1,6 @@
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { MessageSquare, BookOpen, Camera, Eye, EyeOff } from 'lucide-vue-next'
+import { computed, ref, reactive, onMounted } from 'vue'
+import { Camera, Eye, EyeOff } from 'lucide-vue-next'
 import PhoneInput from '@/components/PhoneInput.vue'
 import { useAuthStore } from '@/stores/authStore'
 import { useToastStore } from '@/stores/toastStore'
@@ -9,6 +9,22 @@ import api from '@/services/api'
 
 const authStore = useAuthStore()
 const toast     = useToastStore()
+
+const lastConnexionRaw = computed(() => authStore.user?.dernierConnexion ?? authStore.user?.lastLogin)
+const sessionsActives = computed(() => authStore.user?.sessionsActives ?? authStore.user?.activeSessions ?? 0)
+
+function formatLastConnexion(value) {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value)
+  return date.toLocaleString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
 
 // Avatar
 const previewUrl = ref(null)
@@ -83,6 +99,12 @@ async function saveSecurite() {
     toast.error('La confirmation du mot de passe ne correspond pas.')
     return
   }
+
+  if (formSecurite.nouveauMotDePasse !== formSecurite.confirmationNouveauMotDePasse) {
+    toast.error('Les deux nouveaux mots de passe ne correspondent pas.')
+    return
+  }
+
   loadingSecurite.value = true
   try {
     await api.put('/auth/profile', {
@@ -211,20 +233,26 @@ async function saveSecurite() {
             </div>
             <div class="avatar-info">
               <p class="avatar-name">{{ authStore.user?.nomComplet }}</p>
-              <p class="avatar-hint">JPG, PNG ou WebP — max 2 Mo</p>
+              
             </div>
           </div>
           <p class="profil-user__email">{{ authStore.user?.email }}</p>
           <p class="profil-user__phone">{{ authStore.user?.telephone }}</p>
-          <span class="profil-user__role">{{ authStore.user?.role }}</span>
+          <span class="profil-user__role">{{ authStore.user?.roles?.[0] }}</span>
         </section>
 
         <section class="profil-card">
-          <h2 class="profil-card__title">Besoin d'aide ?</h2>
-          <ul class="profil-help">
-            <li><a href="#" class="profil-help__link"><MessageSquare :size="14" /> Contacter le support</a></li>
-            <li><a href="#" class="profil-help__link"><BookOpen :size="14" /> Guide d'utilisation</a></li>
-          </ul>
+          <h2 class="profil-card__title">Activité du compte</h2>
+          <div class="profil-activity">
+            <div class="profil-activity__item">
+              <span class="profil-activity__label">Dernière connexion</span>
+              <span class="profil-activity__value">{{ formatLastConnexion(lastConnexionRaw) ?? 'Non disponible' }}</span>
+            </div>
+            <div class="profil-activity__item">
+              <span class="profil-activity__label">Sessions actives</span>
+              <span class="profil-activity__value">{{ sessionsActives }}</span>
+            </div>
+          </div>
         </section>
       </div>
     </div>
@@ -273,6 +301,11 @@ async function saveSecurite() {
 .profil-help { list-style: none; display: flex; flex-direction: column; gap: 0.75rem; }
 .profil-help__link { color: var(--color-primary); font-size: 0.88rem; font-weight: 500; display: flex; align-items: center; gap: 0.4rem; transition: opacity 0.15s; }
 .profil-help__link:hover { text-decoration: underline; }
+
+.profil-activity { display: grid; gap: 1rem; }
+.profil-activity__item { display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 1rem; background: rgba(245, 247, 249, 0.95); border: 1px solid rgba(0, 0, 0, 0.06); border-radius: 12px; }
+.profil-activity__label { color: #4f4f4f; font-size: 0.92rem; font-weight: 600; }
+.profil-activity__value { color: var(--color-primary); font-size: 0.92rem; font-weight: 700; white-space: nowrap; }
 
 @media (max-width: 900px) { .profil-grid { grid-template-columns: 1fr; } }
 </style>
