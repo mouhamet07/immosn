@@ -47,7 +47,7 @@ public class DashboardServiceImpl implements DashboardService {
     public DashboardStatsDto getStats() {
         var page = PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        // ── Compteurs : COUNT uniquement, aucune entité chargée ───────────────
+        // Compteurs : COUNT uniquement, aucune entité chargée
         long totalAnnonces    = annonceRepository.count();
         long annoncesActives  = annonceRepository.countByIsArchivedFalse();
         long totalClients     = userRepository.countByRoles_Role(RoleType.CLIENT);
