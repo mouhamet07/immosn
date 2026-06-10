@@ -61,8 +61,9 @@ const loadingInfo      = ref(false)
 const loadingSecurite  = ref(false)
 
 // Toggle visibilité mot de passe
-const showCurrentPwd = ref(false)
-const showNewPwd     = ref(false)
+const showCurrentPwd  = ref(false)
+const showNewPwd      = ref(false)
+const showConfirmPwd  = ref(false)
 
 onMounted(() => {
   if (authStore.user) {
@@ -196,12 +197,16 @@ async function saveSecurite() {
               <label class="field__label">CONFIRMER LE NOUVEAU MOT DE PASSE</label>
               <div class="pwd-field">
                 <input
-                  :type="showNewPwd ? 'text' : 'password'"
+                  :type="showConfirmPwd ? 'text' : 'password'"
                   v-model="formSecurite.confirmationMotDePasse"
                   class="field__input"
                   placeholder="••••••••"
                   autocomplete="new-password"
                 />
+                <button type="button" class="pwd-toggle" @click="showConfirmPwd = !showConfirmPwd">
+                  <EyeOff v-if="showConfirmPwd" :size="16" />
+                  <Eye v-else :size="16" />
+                </button>
               </div>
             </div>
             <button type="submit" class="btn-update" :disabled="loadingSecurite">
