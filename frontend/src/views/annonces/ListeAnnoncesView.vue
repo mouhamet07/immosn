@@ -101,15 +101,6 @@ onMounted(async () => {
   <div class="liste-page">
     <main class="liste-main">
 
-      <!-- Hero h1 -->
-      <h1 class="liste-hero__title">Explorer les Propriétés</h1>
-
-      <!-- Sous-titre page annonces -->
-      <p class="liste-hero__sub">
-        Découvrez notre sélection exclusive de biens immobiliers de luxe au Sénégal,
-        des villas côtières aux appartements contemporains.
-      </p>
-
       <!-- Filtres compacts sur une ligne -->
       <div class="liste-filters">
         <div class="filter-input-wrap">
@@ -264,7 +255,7 @@ onMounted(async () => {
   background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  padding: 0.75rem 1rem;
+  padding: 2rem 1.5rem;
   box-shadow: var(--shadow-card);
 }
 

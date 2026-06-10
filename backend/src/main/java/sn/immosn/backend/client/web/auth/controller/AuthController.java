@@ -390,8 +390,9 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(RestResponse.error("Vous devez être connecté", HttpStatus.UNAUTHORIZED));
         }
+        long sessions = authService.countActiveSessions(user.getId());
         return ResponseEntity.ok(
-            RestResponse.success(authMapper.toAuthResponseDto(user, null), HttpStatus.OK));
+            RestResponse.success(authMapper.toAuthResponseDto(user, null, sessions), HttpStatus.OK));
     }
 
     @Operation(
