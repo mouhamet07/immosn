@@ -2,6 +2,7 @@ package sn.immosn.backend.contrat.event;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -26,7 +27,7 @@ public class ContratEventListener {
     private final NotificationPublisher publisher;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onContratStatusChanged(ContratStatusChangedEvent event) {
         String type    = resolveType(event);
         String title   = resolveTitle(event);

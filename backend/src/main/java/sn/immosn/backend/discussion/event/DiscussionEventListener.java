@@ -2,6 +2,7 @@ package sn.immosn.backend.discussion.event;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -27,7 +28,7 @@ public class DiscussionEventListener {
     private final NotificationPublisher publisher;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onMessageCreated(DiscussionMessageCreatedEvent event) {
         String type    = "NEW_MESSAGE";
         String title   = "Nouveau message";
