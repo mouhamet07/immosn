@@ -118,6 +118,36 @@ function isUrgent(a) {
   return a.statut === 'EN_ATTENTE' || a.statut === 'OUVERT'
 }
 
+// Donut chart — répartition leads par statut (données déjà dans DashboardStatsDto, 0 requête ajoutée)
+const DONUT_R = 34
+const DONUT_C = 2 * Math.PI * DONUT_R  // ≈ 213.63
+
+const donutSegments = computed(() => {
+  if (!stats.value || stats.value.totalLeads === 0) return []
+  const s = stats.value
+  const total = s.totalLeads
+  // Ordre d'affichage : CONVERTI (succès) → EN_COURS (neutre) → ABANDONNE (échec)
+  const data = [
+    { key: 'conv',  label: 'Convertis',  count: s.leadsConvertis,  color: '#059669' },
+    { key: 'cours', label: 'En cours',   count: s.leadsEnCours,    color: '#7c3aed' },
+    { key: 'aband', label: 'Abandonnés', count: s.leadsAbandonnes, color: '#d1d5db' },
+  ]
+  const GAP = 1.5  // px de séparation entre segments
+  let cumulative = 0
+  return data.map(seg => {
+    const raw = (seg.count / total) * DONUT_C
+    const length = Math.max(0, raw - GAP)
+    const result = {
+      ...seg,
+      dasharray:   `${length.toFixed(3)} ${(DONUT_C - length).toFixed(3)}`,
+      dashoffset:  (-cumulative).toFixed(3),
+      pct: total > 0 ? ((seg.count / total) * 100).toFixed(0) : '0',
+    }
+    cumulative += raw  // offset utilise raw pour aligner les gaps correctement
+    return result
+  })
+})
+
 // Date du jour en français
 const dateAujourdhui = new Date().toLocaleDateString('fr-FR', {
   weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
@@ -237,22 +267,71 @@ const shortcuts = [
         </component>
       </div>
 
-      <!-- Taux de conversion leads -->
+      <!-- Répartition leads -->
       <div v-if="stats" class="dash__conversion">
         <div class="conv-card">
-          <div class="conv-card__left">
-            <p class="conv-card__label">Taux de conversion leads</p>
-            <p class="conv-card__sub">
-              {{ stats.leadsConvertis }} converti{{ stats.leadsConvertis !== 1 ? 's' : '' }}
-              sur {{ stats.leadsConvertis + stats.leadsAbandonnes }} terminé{{ (stats.leadsConvertis + stats.leadsAbandonnes) !== 1 ? 's' : '' }}
+
+          <!-- Donut SVG -->
+          <div class="conv-donut" aria-hidden="true">
+            <svg viewBox="0 0 100 100" class="donut-svg">
+              <!-- Piste de fond -->
+              <circle cx="50" cy="50" :r="DONUT_R" fill="none" stroke="#f3f4f6" stroke-width="13" />
+              <!-- Segments de données -->
+              <circle
+                v-for="seg in donutSegments"
+                :key="seg.key"
+                cx="50" cy="50"
+                :r="DONUT_R"
+                fill="none"
+                :stroke="seg.color"
+                stroke-width="13"
+                stroke-linecap="butt"
+                :stroke-dasharray="seg.dasharray"
+                :stroke-dashoffset="seg.dashoffset"
+                transform="rotate(-90 50 50)"
+              />
+              <!-- État vide -->
+              <circle v-if="!donutSegments.length" cx="50" cy="50" :r="DONUT_R" fill="none" stroke="#e5e7eb" stroke-width="13" />
+              <!-- Taux au centre -->
+              <text x="50" y="47" text-anchor="middle" class="donut-big">
+                {{ stats.tauxConversionLeads.toFixed(0) }}
+              </text>
+              <text x="50" y="60" text-anchor="middle" class="donut-small">% conv.</text>
+            </svg>
+          </div>
+
+          <!-- Légende -->
+          <div class="conv-legend">
+            <p class="conv-legend__title">Leads — répartition</p>
+            <div class="conv-legend__rows">
+              <div class="conv-legend__row">
+                <span class="conv-legend__dot" style="background:#059669"></span>
+                <span class="conv-legend__lbl">Convertis</span>
+                <span class="conv-legend__val">{{ stats.leadsConvertis }}</span>
+              </div>
+              <div class="conv-legend__row">
+                <span class="conv-legend__dot" style="background:#7c3aed"></span>
+                <span class="conv-legend__lbl">En cours</span>
+                <span class="conv-legend__val">{{ stats.leadsEnCours }}</span>
+              </div>
+              <div class="conv-legend__row">
+                <span class="conv-legend__dot" style="background:#d1d5db"></span>
+                <span class="conv-legend__lbl">Abandonnés</span>
+                <span class="conv-legend__val">{{ stats.leadsAbandonnes }}</span>
+              </div>
+            </div>
+            <p class="conv-legend__sub">
+              {{ stats.leadsConvertis }} sur {{ stats.leadsConvertis + stats.leadsAbandonnes }} terminés
+              — taux : <strong>{{ stats.tauxConversionLeads.toFixed(1) }}&thinsp;%</strong>
             </p>
           </div>
-          <div class="conv-card__right">
-            <span class="conv-card__pct">{{ stats.tauxConversionLeads.toFixed(1) }}&thinsp;%</span>
+
+          <!-- Total leads -->
+          <div class="conv-total">
+            <span class="conv-total__val">{{ stats.totalLeads }}</span>
+            <span class="conv-total__lbl">leads total</span>
           </div>
-          <div class="conv-bar">
-            <div class="conv-bar__fill" :style="{ width: stats.tauxConversionLeads + '%' }"></div>
-          </div>
+
         </div>
       </div>
 
@@ -482,36 +561,39 @@ const shortcuts = [
   color: #4b5563;
 }
 
-/* Taux de conversion */
+/* Répartition leads — carte donut */
 .conv-card {
-  position: relative;
   background: #fff;
   border: 1px solid #eef2f7;
   border-radius: 16px;
-  padding: 1rem 1.25rem 1.5rem;
+  padding: 1rem 1.5rem;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.5rem;
   box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
-  overflow: hidden;
 }
-.conv-card__left { flex: 1; }
-.conv-card__label { font-size: .88rem; font-weight: 700; color: #374151; }
-.conv-card__sub   { font-size: .75rem; color: #9ca3af; margin-top: .15rem; }
-.conv-card__pct   { font-size: 1.8rem; font-weight: 800; color: #059669; line-height: 1; }
-.conv-bar {
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  height: 5px;
-  background: #e5e7eb;
-}
-.conv-bar__fill {
-  height: 100%;
-  background: linear-gradient(90deg, #4A7C6F, #059669);
-  border-radius: 0 3px 3px 0;
-  transition: width .4s ease;
-  min-width: 2px;
-}
+
+/* Donut SVG */
+.conv-donut { flex-shrink: 0; }
+.donut-svg  { width: 96px; height: 96px; display: block; }
+.donut-big  { font-size: 22px; font-weight: 800; fill: #111827; }
+.donut-small { font-size: 10px; fill: #6b7280; }
+
+/* Légende */
+.conv-legend { flex: 1; min-width: 0; }
+.conv-legend__title { font-size: .8rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: .05em; margin-bottom: .55rem; }
+.conv-legend__rows  { display: flex; flex-direction: column; gap: .3rem; }
+.conv-legend__row   { display: flex; align-items: center; gap: .5rem; }
+.conv-legend__dot   { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.conv-legend__lbl   { font-size: .78rem; color: #374151; flex: 1; }
+.conv-legend__val   { font-size: .82rem; font-weight: 700; color: #111827; }
+.conv-legend__sub   { font-size: .72rem; color: #9ca3af; margin-top: .55rem; }
+.conv-legend__sub strong { color: #059669; }
+
+/* Total à droite */
+.conv-total      { flex-shrink: 0; text-align: center; padding-left: 1rem; border-left: 1px solid #f3f4f6; }
+.conv-total__val { display: block; font-size: 1.8rem; font-weight: 800; color: #111827; line-height: 1; }
+.conv-total__lbl { display: block; font-size: .72rem; color: #9ca3af; margin-top: .2rem; white-space: nowrap; }
 
 /* Grille 2 colonnes */
 .dash__grid { display: grid; grid-template-columns: 1fr 300px; gap: 1.5rem; align-items: start; }
@@ -584,4 +666,5 @@ const shortcuts = [
 
 @media (max-width: 900px)  { .dash__stats { grid-template-columns: repeat(2, 1fr); } .dash__grid { grid-template-columns: 1fr; } }
 @media (max-width: 560px)  { .dash__stats { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px)  { .conv-card { gap: 1rem; } .donut-svg { width: 76px; height: 76px; } .conv-total { display: none; } }
 </style>
