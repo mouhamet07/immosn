@@ -84,15 +84,17 @@ public class FavorisController {
 
             Chaque favori inclut le résumé de l'annonce (libellé, prix, adresse, image).
 
+            Les annonces archivées sont automatiquement exclues de cette liste.
+
             **Accès : CLIENT uniquement**
             """
     )
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Liste paginée des favoris",
+        @ApiResponse(responseCode = "200", description = "Liste paginée des favoris (annonces archivées exclues)",
             content = @Content(mediaType = "application/json",
                 examples = @ExampleObject(value = """
                     {
-                      "content": [
+                      "data": [
                         {
                           "annonceId": 15,
                           "libelle": "Villa F5 - Almadies",
@@ -105,7 +107,7 @@ public class FavorisController {
                           "addedAt": "2024-01-15T12:00:00"
                         }
                       ],
-                      "page": 0, "size": 12, "totalElements": 5, "totalPages": 1, "last": true
+                      "totalElements": 5, "totalPages": 1, "currentPage": 0, "pageSize": 12, "isFirst": true, "isLast": true
                     }"""))),
         @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
             content = @Content(mediaType = "application/json")),
@@ -131,6 +133,9 @@ public class FavorisController {
             Utilisé par le store Pinia du frontend pour maintenir l'état local du bouton ❤️ :
             à l'initialisation, le frontend charge ces IDs et les stocke en mémoire pour
             afficher instantanément le statut favori sur chaque carte d'annonce.
+
+            Les annonces archivées sont automatiquement exclues : un client ne verra jamais
+            le cœur actif sur une annonce archivée.
 
             **Accès : CLIENT uniquement**
             """

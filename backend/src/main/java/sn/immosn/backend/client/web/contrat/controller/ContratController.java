@@ -44,9 +44,14 @@ public class ContratController {
             Le contrat est créé avec le statut **EN_ATTENTE** par défaut.
             Il peut optionnellement être lié à un lead et/ou une demande de visite.
 
+            **Chemin canonique :** dans le flux normal, un contrat est créé automatiquement
+            via la clôture d'une visite avec `type=AVEC_CONTRAT`
+            (`PUT /api/v1/visites/{id}/cloture`). Ce endpoint permet la création manuelle
+            par l'administrateur en dehors du flux visite.
+
             Statuts possibles : `EN_ATTENTE` → `ACTIF` → `EXPIRE` / `RESILIE`
 
-            **Accès : ADMIN uniquement**
+            **Accès : ADMIN ou SUPER_ADMIN**
             """
     )
     @ApiResponses({
@@ -70,7 +75,7 @@ public class ContratController {
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
             content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "404", description = "Client, annonce ou lead non trouvé",
             content = @Content(mediaType = "application/json"))
@@ -122,7 +127,7 @@ public class ContratController {
 
             Peut être filtrée par statut pour faciliter le suivi.
 
-            **Accès : ADMIN uniquement**
+            **Accès : ADMIN ou SUPER_ADMIN**
             """
     )
     @ApiResponses({
@@ -130,7 +135,7 @@ public class ContratController {
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
             content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
             content = @Content(mediaType = "application/json"))
     })
     @GetMapping("/admin")
@@ -210,7 +215,7 @@ public class ContratController {
             Permet notamment de changer le statut, ajuster les dates, le montant
             ou associer un document contractuel.
 
-            **Accès : ADMIN uniquement**
+            **Accès : ADMIN ou SUPER_ADMIN**
             """
     )
     @ApiResponses({
@@ -220,7 +225,7 @@ public class ContratController {
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
             content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "404", description = "Contrat non trouvé",
             content = @Content(mediaType = "application/json"))
@@ -452,7 +457,7 @@ public class ContratController {
         return ResponseEntity.ok(RestResponse.success(service.refuserProlongation(id, dto), HttpStatus.OK));
     }
 
-    @Operation(summary = "Historique d'un contrat", description = "Retourne l'historique complet des transitions et actions sur un contrat. **Accès : ADMIN uniquement**")
+    @Operation(summary = "Historique d'un contrat", description = "Retourne l'historique complet des transitions et actions sur un contrat. **Accès : ADMIN ou SUPER_ADMIN**")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Historique du contrat",
             content = @Content(mediaType = "application/json")),
@@ -460,7 +465,7 @@ public class ContratController {
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
             content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "404", description = "Contrat non trouvé",
             content = @Content(mediaType = "application/json"))

@@ -123,7 +123,7 @@ public class SignalementController {
             Peut être filtrée par statut. Les signalements non lus (`isRead: false`)
             doivent être traités en priorité.
 
-            **Accès : ADMIN uniquement**
+            **Accès : ADMIN ou SUPER_ADMIN**
             """
     )
     @ApiResponses({
@@ -131,7 +131,7 @@ public class SignalementController {
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
             content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
             content = @Content(mediaType = "application/json"))
     })
     @GetMapping("/admin")
@@ -155,7 +155,7 @@ public class SignalementController {
             - `EN_COURS` → `RESOLU` (problème résolu, réponse fournie)
             - `EN_COURS` → `FERME` (signalement non fondé)
 
-            **Accès : ADMIN uniquement**
+            **Accès : ADMIN ou SUPER_ADMIN**
             """
     )
     @ApiResponses({
@@ -175,7 +175,7 @@ public class SignalementController {
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
             content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "404", description = "Signalement non trouvé",
             content = @Content(mediaType = "application/json"))
@@ -200,7 +200,7 @@ public class SignalementController {
             Appelé automatiquement quand l'admin ouvre un signalement dans le tableau de bord.
             Permet de réduire le compteur de signalements non lus.
 
-            **Accès : ADMIN uniquement**
+            **Accès : ADMIN ou SUPER_ADMIN**
             """
     )
     @ApiResponses({
@@ -209,7 +209,7 @@ public class SignalementController {
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
             content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "404", description = "Signalement non trouvé",
             content = @Content(mediaType = "application/json"))
