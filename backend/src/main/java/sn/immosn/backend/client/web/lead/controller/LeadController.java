@@ -172,12 +172,14 @@ public class LeadController {
             Change le statut d'un lead dans le pipeline commercial.
 
             **Règles métier :**
-            - `EN_COURS` → `ABANDONNE` : abandon manuel d'un lead (toujours autorisé).
-            - `EN_COURS` → `CONVERTI` : **uniquement si le lead n'a PAS de visite liée**.
-              Si le lead est lié à une visite, la conversion doit obligatoirement passer
-              par la clôture de la visite avec contrat (`PUT /api/v1/visites/{id}/cloture`
-              avec `type=AVEC_CONTRAT`). Toute tentative de conversion directe d'un lead
-              lié à une visite retourne HTTP 400.
+            - Un lead **sans visite associée** peut être manuellement passé à `CONVERTI` ou `ABANDONNE`.
+            - Un lead **avec visite associée** est en **lecture seule** pour cet endpoint.
+              Les transitions de statut sont déclenchées automatiquement par la visite :
+              - `CONVERTI` ← `PUT /api/v1/visites/{id}/cloture` avec `type=AVEC_CONTRAT`
+              - `ABANDONNE` ← `PUT /api/v1/visites/{id}/cloture` avec `type=SANS_SUITE`
+              - `ABANDONNE` ← `PUT /api/v1/visites/{id}/status` (REFUSEE ou ANNULEE)
+
+            Toute tentative de modification de statut sur un lead lié à une visite retourne **HTTP 422**.
 
             Une note admin peut être mise à jour en même temps pour documenter la décision.
 
@@ -189,13 +191,15 @@ public class LeadController {
             content = @Content(mediaType = "application/json",
                 examples = @ExampleObject(value = """
                     {"success":true,"status":200,"data":{"id":3,"statut":"CONVERTI","noteAdmin":"Contrat signé le 25/01/2024"}}"""))),
-        @ApiResponse(responseCode = "400", description = "Identifiant invalide",
+        @ApiResponse(responseCode = "400", description = "Identifiant invalide ou transition de statut non autorisée",
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "404", description = "Lead non trouvé",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "422", description = "Règle métier violée — le lead est lié à une visite et ne peut être modifié que depuis celle-ci",
             content = @Content(mediaType = "application/json"))
     })
     @PutMapping("/{id}/status")

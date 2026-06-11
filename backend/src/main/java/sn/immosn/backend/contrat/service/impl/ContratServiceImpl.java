@@ -105,6 +105,18 @@ public class ContratServiceImpl implements ContratService {
         if (request.leadId() != null) {
             var lead = leadRepository.findById(request.leadId())
                 .orElseThrow(() -> new EntityNotFoundException("Lead non trouvé : id=" + request.leadId()));
+
+            // INVARIANT : si le lead a une visite associée, la création du contrat doit obligatoirement
+            // passer par cloturerVisite(AVEC_CONTRAT) qui garantit la cohérence visite→lead→contrat
+            // dans une seule transaction avec enregistrement complet des historiques.
+            if (lead.getVisite() != null) {
+                throw new IllegalStateException(
+                    "Le lead #" + lead.getId() + " est lié à la visite #" + lead.getVisite().getId()
+                    + ". La création d'un contrat doit passer par la clôture de la visite"
+                    + " (PUT /api/v1/visites/" + lead.getVisite().getId() + "/cloture avec type=AVEC_CONTRAT)"
+                    + " afin de garantir la cohérence visite → lead → contrat.");
+            }
+
             builder.lead(lead);
             StatutLead ancienStatutLead = lead.getStatut();
             lead.setStatut(StatutLead.CONVERTI);

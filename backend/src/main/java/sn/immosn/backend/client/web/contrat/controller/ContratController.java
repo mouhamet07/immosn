@@ -78,6 +78,8 @@ public class ContratController {
         @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "404", description = "Client, annonce ou lead non trouvé",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "422", description = "Règle métier violée — le lead spécifié est lié à une visite : utiliser PUT /visites/{id}/cloture avec type=AVEC_CONTRAT",
             content = @Content(mediaType = "application/json"))
     })
     @PostMapping

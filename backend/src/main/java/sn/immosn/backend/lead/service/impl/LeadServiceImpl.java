@@ -98,13 +98,16 @@ public class LeadServiceImpl implements LeadService {
         StatutLead ancienStatut = lead.getStatut();
         validateTransition(ancienStatut, dto.statut());
 
-        // INVARIANT : un lead lié à une visite ne peut pas être converti manuellement.
-        // La conversion doit passer par la clôture de la visite avec contrat (PUT /visites/{id}/cloture).
-        if (dto.statut() == StatutLead.CONVERTI && lead.getVisite() != null) {
+        // INVARIANT : un lead lié à une visite est en lecture seule pour les transitions manuelles.
+        // CONVERTI → déclenché par cloturerVisite(AVEC_CONTRAT).
+        // ABANDONNE → déclenché par cloturerVisite(SANS_SUITE) ou updateStatut(REFUSEE/ANNULEE).
+        if (lead.getVisite() != null) {
             throw new IllegalStateException(
                 "Ce lead est lié à la visite #" + lead.getVisite().getId()
-                + ". La conversion doit être effectuée via la clôture de la visite avec contrat."
-                + " Utilisez PUT /api/v1/visites/" + lead.getVisite().getId() + "/cloture avec type=AVEC_CONTRAT.");
+                + ". Il est en lecture seule : les transitions de statut sont déclenchées automatiquement"
+                + " depuis la visite. Utilisez PUT /api/v1/visites/" + lead.getVisite().getId()
+                + "/cloture (type=AVEC_CONTRAT → CONVERTI, type=SANS_SUITE → ABANDONNE)"
+                + " ou PUT /api/v1/visites/" + lead.getVisite().getId() + "/status (REFUSEE/ANNULEE → ABANDONNE).");
         }
 
         lead.setStatut(dto.statut());
