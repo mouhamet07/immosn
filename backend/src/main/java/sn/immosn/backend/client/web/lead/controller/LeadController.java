@@ -163,8 +163,13 @@ public class LeadController {
         description = """
             Change le statut d'un lead dans le pipeline commercial.
 
-            - `EN_COURS` → `CONVERTI` : lead transformé en contrat
-            - `EN_COURS` → `ABANDONNE` : prospect non concluant
+            **Règles métier :**
+            - `EN_COURS` → `ABANDONNE` : abandon manuel d'un lead (toujours autorisé).
+            - `EN_COURS` → `CONVERTI` : **uniquement si le lead n'a PAS de visite liée**.
+              Si le lead est lié à une visite, la conversion doit obligatoirement passer
+              par la clôture de la visite avec contrat (`PUT /api/v1/visites/{id}/cloture`
+              avec `type=AVEC_CONTRAT`). Toute tentative de conversion directe d'un lead
+              lié à une visite retourne HTTP 400.
 
             Une note admin peut être mise à jour en même temps pour documenter la décision.
 

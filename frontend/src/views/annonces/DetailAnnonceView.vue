@@ -206,8 +206,8 @@ function getImage(index) {
         <!-- Image principale -->
         <div class="detail-gallery__main">
           <img :src="getImage(imageActive)" :alt="annonce.libelle" class="detail-gallery__img" />
-          <!-- FIX 3 : Heart Lucide avec état favori réel -->
           <button
+            v-if="authStore.isAuthenticated && authStore.role === 'CLIENT'"
             class="detail-gallery__fav"
             :class="{ 'detail-gallery__fav--active': isFavori }"
             @click="toggleFavori"

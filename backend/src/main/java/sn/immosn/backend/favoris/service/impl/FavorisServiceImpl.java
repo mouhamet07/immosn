@@ -59,7 +59,7 @@ public class FavorisServiceImpl implements FavorisService {
             .orElseThrow(() -> new EntityNotFoundException("Utilisateur non trouvé"));
 
         return favorisRepository
-            .findByClientIdOrderByCreatedAtDesc(client.getId(), pageable)
+            .findActiveByClientId(client.getId(), pageable)
             .map(fav -> {
                 var a = fav.getAnnonce();
                 String image = (a.getImages() != null && !a.getImages().isEmpty())
@@ -98,7 +98,7 @@ public class FavorisServiceImpl implements FavorisService {
             .orElseThrow(() -> new EntityNotFoundException("Utilisateur non trouvé"));
 
         return favorisRepository
-            .findAllByClientId(client.getId())
+            .findAllActiveByClientId(client.getId())
             .stream()
             .map(fav -> fav.getAnnonce().getId())
             .toList();

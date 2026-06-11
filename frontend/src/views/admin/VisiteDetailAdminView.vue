@@ -114,14 +114,19 @@ async function submitCloture() {
   }
   cloturing.value = true
   try {
-    await visiteService.cloturerVisite(visite.value.id, {
+    const res = await visiteService.cloturerVisite(visite.value.id, {
       type:              clotureType.value,
       typeContrat:       clotureType.value === 'AVEC_CONTRAT' ? clotureContratType.value : null,
       dureeLocationMois: clotureType.value === 'AVEC_CONTRAT' && clotureContratType.value === 'LOCATION'
                            ? Number(clotureDuree.value) : null,
     })
     showCloture.value = false
-    await fetchVisite()
+    const contratId = res?.data?.data?.id
+    if (clotureType.value === 'AVEC_CONTRAT' && contratId) {
+      router.push(`/admin/contrats/${contratId}`)
+    } else {
+      await fetchVisite()
+    }
   } catch (e) {
     alert(e.response?.data?.message || 'Erreur lors de la clôture.')
   } finally {

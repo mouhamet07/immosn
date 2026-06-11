@@ -2,6 +2,9 @@
 import { ref, onMounted } from 'vue'
 import signalementService from '@/services/signalementService'
 import FilterSelect from '@/components/FilterSelect.vue'
+import { useToastStore } from '@/stores/toastStore'
+
+const toast = useToastStore()
 
 const signalements = ref([])
 const loading      = ref(false)
@@ -31,8 +34,11 @@ async function fetchSignalements(page = 0) {
     currentPage.value  = res.data.currentPage
     totalPages.value   = res.data.totalPages
     totalItems.value   = res.data.totalElements
-  } catch { signalements.value = [] }
-  finally { loading.value = false }
+  } catch (err) {
+    console.error('[Signalements] fetchSignalements error:', err?.response?.status, err?.message)
+    toast.error('Impossible de charger les signalements. Vérifiez votre connexion ou contactez le support.')
+    signalements.value = []
+  } finally { loading.value = false }
 }
 
 function openReply(s) {

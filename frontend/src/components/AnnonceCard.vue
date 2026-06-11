@@ -25,7 +25,7 @@ const authStore    = useAuthStore()
 
 const normalizedId = computed(() => Number(props.id))
 const isFavori      = computed(() => favorisStore.isFavori(normalizedId.value))
-const showFavBtn    = computed(() => authStore.isAuthenticated)
+const showFavBtn    = computed(() => authStore.isAuthenticated && authStore.role === 'CLIENT')
 
 function formatPrix(prix) {
   return new Intl.NumberFormat('fr-SN').format(prix) + ' FCFA'

@@ -101,6 +101,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").permitAll()
                 .requestMatchers(HttpMethod.GET,  "/api/v1/annonces").permitAll()
+                .requestMatchers(HttpMethod.GET,  "/api/v1/annonces/admin").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.GET,  "/api/v1/annonces/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers(HttpMethod.GET,  "/api/v1/annonces/{id}").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/annonces/search").permitAll()
                 .requestMatchers(HttpMethod.GET,  "/api/v1/commodites").permitAll()

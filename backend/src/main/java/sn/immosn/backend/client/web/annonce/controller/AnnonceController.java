@@ -403,6 +403,7 @@ public class AnnonceController {
             content = @Content(mediaType = "application/json"))
     })
     @GetMapping("/admin")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<PagedResponse<AnnonceListDto>> getAllAdmin(
         @Parameter(description = "Numéro de page (commence à 0)", example = "0")
         @RequestParam(defaultValue = "0") int page,

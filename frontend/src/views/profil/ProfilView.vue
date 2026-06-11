@@ -123,6 +123,10 @@ async function saveSecurite() {
     errorSecurite.value = 'Veuillez remplir les trois champs.'
     return
   }
+  if (formSecurite.nouveauMotDePasse.length < 8) {
+    errorSecurite.value = 'Le nouveau mot de passe doit contenir au moins 8 caractères.'
+    return
+  }
   if (formSecurite.nouveauMotDePasse !== formSecurite.confirmationMotDePasse) {
     errorSecurite.value = 'La confirmation du mot de passe ne correspond pas.'
     return
