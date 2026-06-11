@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, defineComponent, h } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
 import dashboardService from '@/services/dashboardService'
+import StatusBadge from '@/components/StatusBadge.vue'
 
 const authStore = useAuthStore()
 
@@ -189,11 +190,11 @@ const statCards = computed(() => {
 })
 
 const ACTIVITY_ICONS  = { BIEN: 'building', ANNONCE: 'building', VISITE: 'calendar', CONTRAT: 'document', SIGNALEMENT: 'alert', MESSAGE: 'chat', CLIENT: 'user' }
-const STATUT_COLORS   = {
-  ACTIVE: 'badge--success', EN_ATTENTE: 'badge--warning', ACCEPTEE: 'badge--success',
-  REFUSEE: 'badge--danger', ACTIF: 'badge--success', RESILIE: 'badge--danger',
-  EXPIRE: 'badge--neutral', OUVERT: 'badge--warning', EN_COURS: 'badge--info',
-  RESOLU: 'badge--success', FERME: 'badge--neutral',
+const STATUT_VARIANTS = {
+  ACTIVE: 'success', EN_ATTENTE: 'warning', ACCEPTEE: 'success',
+  REFUSEE: 'danger', ACTIF: 'success', RESILIE: 'danger',
+  EXPIRE: 'neutral', OUVERT: 'warning', EN_COURS: 'info',
+  RESOLU: 'success', FERME: 'neutral',
 }
 const STATUT_LABELS   = {
   ACTIVE: 'Actif', EN_ATTENTE: 'En attente', ACCEPTEE: 'Acceptée',
@@ -380,9 +381,7 @@ const shortcuts = [
                 <p class="activity-item__desc">{{ a.description }}</p>
               </div>
               <div class="activity-item__right">
-                <span :class="['badge', STATUT_COLORS[a.statut] ?? 'badge--neutral']">
-                  {{ STATUT_LABELS[a.statut] ?? a.statut }}
-                </span>
+                <StatusBadge :label="STATUT_LABELS[a.statut] ?? a.statut" :variant="STATUT_VARIANTS[a.statut] ?? 'neutral'" />
                 <span class="activity-item__date">{{ formatDate(a.createdAt) }}</span>
               </div>
             </li>
@@ -653,13 +652,6 @@ const shortcuts = [
 .shortcut-card__icon svg { width: 1.25rem; height: 1.25rem; }
 .shortcut-card__label { font-size: .75rem; font-weight: 600; color: var(--color-text); text-align: center; line-height: 1.3; }
 
-/* Badges */
-.badge { padding: .2rem .5rem; border-radius: 10px; font-size: .68rem; font-weight: 700; }
-.badge--success { background: #d1fae5; color: #059669; }
-.badge--warning { background: #fef3c7; color: #d97706; }
-.badge--danger  { background: #fee2e2; color: #dc2626; }
-.badge--info    { background: #dbeafe; color: #2563eb; }
-.badge--neutral { background: #f3f4f6; color: #6b7280; }
 
 .spinner { width: 36px; height: 36px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }

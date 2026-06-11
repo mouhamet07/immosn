@@ -3,7 +3,8 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Edit, Archive, RotateCcw, MapPin, Bed, Maximize, CheckCircle } from 'lucide-vue-next'
 import annonceService from '@/services/annonceService'
-import placeholderImg from '@/assets/Penthouse.png'
+import StatusBadge from '@/components/StatusBadge.vue'
+const placeholderImg = 'data:image/svg+xml,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 width%3D%22400%22 height%3D%22300%22%3E%3Crect width%3D%22400%22 height%3D%22300%22 fill%3D%22%23e5e7eb%22%2F%3E%3C%2Fsvg%3E'
 import LocationMap from '@/components/LocationMap.vue'
 
 const route  = useRoute()
@@ -76,9 +77,7 @@ onMounted(fetchAnnonce)
         <div>
           <button class="daa-back" @click="router.push('/admin/annonces')">← Retour aux annonces</button>
           <h1 class="daa-header__title">{{ annonce.libelle }}</h1>
-          <span class="badge" :class="annonce.archived ? 'badge--neutral' : 'badge--success'">
-            {{ annonce.archived ? 'Archivée' : 'Active' }}
-          </span>
+          <StatusBadge :label="annonce.archived ? 'Archivée' : 'Active'" :variant="annonce.archived ? 'neutral' : 'success'" />
         </div>
         <!-- Actions admin -->
         <div class="daa-actions">
@@ -164,9 +163,7 @@ onMounted(fetchAnnonce)
             <div class="daa-info-row"><span>ID</span><span>#{{ annonce.id }}</span></div>
             <div class="daa-info-row"><span>Type</span><span>{{ annonce.typeBien?.libelle || '–' }}</span></div>
             <div class="daa-info-row"><span>Statut</span>
-              <span class="badge" :class="annonce.archived ? 'badge--neutral' : 'badge--success'">
-                {{ annonce.archived ? 'Archivée' : 'Active' }}
-              </span>
+              <StatusBadge :label="annonce.archived ? 'Archivée' : 'Active'" :variant="annonce.archived ? 'neutral' : 'success'" />
             </div>
             <div class="daa-info-row"><span>Créée le</span><span>{{ new Date(annonce.createdAt).toLocaleDateString('fr-FR') }}</span></div>
           </div>
@@ -249,10 +246,6 @@ onMounted(fetchAnnonce)
 .daa-info-row span:first-child { color: var(--color-text-muted); }
 .daa-info-row span:last-child { font-weight: 600; color: var(--color-text); }
 
-/* Badges */
-.badge { padding: .2rem .6rem; border-radius: 12px; font-size: .75rem; font-weight: 700; }
-.badge--success { background: #d1fae5; color: #059669; }
-.badge--neutral { background: #f3f4f6; color: #6b7280; }
 
 /* Modal */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1rem; }

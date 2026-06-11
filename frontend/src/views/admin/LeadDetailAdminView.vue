@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, FileText, Edit3 } from 'lucide-vue-next'
 import leadService from '@/services/leadService'
+import StatusBadge from '@/components/StatusBadge.vue'
 import { useToastStore } from '@/stores/toastStore'
 import historyService from '@/services/historyService'
 
@@ -18,7 +19,7 @@ const noteValue     = ref('')
 const savingNote    = ref(false)
 
 const STATUT_LABELS = { EN_COURS: 'En cours', CONVERTI: 'Converti', ABANDONNE: 'Abandonné' }
-const STATUT_COLORS = { EN_COURS: 'badge--info', CONVERTI: 'badge--success', ABANDONNE: 'badge--neutral' }
+const STATUT_VARIANTS = { EN_COURS: 'info', CONVERTI: 'success', ABANDONNE: 'neutral' }
 
 async function fetchLead() {
   loading.value = true
@@ -124,7 +125,7 @@ onMounted(fetchLead)
       <div class="ld-header">
         <div class="ld-header__left">
           <span class="ld-header__id">Lead #{{ lead.id }}</span>
-          <span :class="['badge', STATUT_COLORS[lead.statut]]">{{ STATUT_LABELS[lead.statut] }}</span>
+          <StatusBadge :label="STATUT_LABELS[lead.statut]" :variant="STATUT_VARIANTS[lead.statut]" />
         </div>
         <div class="ld-header__actions">
           <button
@@ -397,11 +398,6 @@ onMounted(fetchLead)
 .btn--ghost   { background: transparent; color: var(--color-text); border: 1.5px solid var(--color-border); }
 .btn:not(:disabled):hover { opacity: .82; }
 
-/* Badges */
-.badge { padding: .3rem .8rem; border-radius: 12px; font-size: .82rem; font-weight: 700; }
-.badge--info    { background: #dbeafe; color: #2563eb; }
-.badge--success { background: #d1fae5; color: #059669; }
-.badge--neutral { background: #f3f4f6; color: #6b7280; }
 
 /* Modal */
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem; }

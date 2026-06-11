@@ -3,6 +3,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Home, MapPin } from 'lucide-vue-next'
 import visiteService from '@/services/visiteService'
+import StatusBadge from '@/components/StatusBadge.vue'
 
 const route  = useRoute()
 const router = useRouter()
@@ -26,14 +27,14 @@ const STATUT_LABELS = {
   CLOTUREE_AVEC_CONTRAT: 'Clôturée avec contrat',
   TERMINEE:              'Terminée',
 }
-const STATUT_COLORS = {
-  EN_ATTENTE:            'badge--warning',
-  ACCEPTEE:              'badge--success',
-  REFUSEE:               'badge--danger',
-  ANNULEE:               'badge--neutral',
-  CLOTUREE_SANS_SUITE:   'badge--neutral',
-  CLOTUREE_AVEC_CONTRAT: 'badge--info',
-  TERMINEE:              'badge--info',
+const STATUT_VARIANTS = {
+  EN_ATTENTE:            'warning',
+  ACCEPTEE:              'success',
+  REFUSEE:               'danger',
+  ANNULEE:               'neutral',
+  CLOTUREE_SANS_SUITE:   'neutral',
+  CLOTUREE_AVEC_CONTRAT: 'info',
+  TERMINEE:              'info',
 }
 
 async function fetchVisite() {
@@ -111,7 +112,7 @@ onMounted(() => fetchVisite())
         <!-- En-tête -->
         <div class="vd-header">
           <div>
-            <span :class="['badge', STATUT_COLORS[visite.statut]]">{{ STATUT_LABELS[visite.statut] }}</span>
+            <StatusBadge :label="STATUT_LABELS[visite.statut]" :variant="STATUT_VARIANTS[visite.statut]" />
             <h1 class="vd-header__title">Demande de visite #{{ visite.id }}</h1>
           </div>
         </div>
@@ -311,12 +312,6 @@ onMounted(() => fetchVisite())
 .vd-modif-textarea { resize: vertical; }
 .vd-modif-error { font-size: .85rem; color: var(--color-accent); margin: 0; font-weight: 600; }
 
-.badge { padding: .25rem .65rem; border-radius: 12px; font-size: .75rem; font-weight: 700; display: inline-block; }
-.badge--warning { background: rgba(212, 113, 74, 0.12); color: #c0613a; }
-.badge--success { background: rgba(74, 124, 111, 0.12); color: #3a6b5e; }
-.badge--neutral { background: rgba(107, 114, 128, 0.10); color: #6b7280; }
-.badge--danger  { background: rgba(229, 62, 62, 0.10);  color: #c0392b; }
-.badge--info    { background: rgba(74, 124, 111, 0.08); color: var(--color-primary); }
 
 .spinner { width: 36px; height: 36px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }

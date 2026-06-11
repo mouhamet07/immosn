@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import signalementService from '@/services/signalementService'
 import FilterSelect from '@/components/FilterSelect.vue'
+import StatusBadge from '@/components/StatusBadge.vue'
 import { useToastStore } from '@/stores/toastStore'
 
 const toast = useToastStore()
@@ -22,7 +23,7 @@ const replying    = ref(false)
 
 const STATUTS       = ['', 'OUVERT', 'EN_COURS', 'RESOLU', 'FERME']
 const STATUT_LABELS = { OUVERT: 'Ouvert', EN_COURS: 'En cours', RESOLU: 'Résolu', FERME: 'Fermé' }
-const STATUT_COLORS = { OUVERT: 'badge--warning', EN_COURS: 'badge--info', RESOLU: 'badge--success', FERME: 'badge--neutral' }
+const STATUT_VARIANTS = { OUVERT: 'warning', EN_COURS: 'info', RESOLU: 'success', FERME: 'neutral' }
 const NEXT_STATUTS  = ['OUVERT', 'EN_COURS', 'RESOLU', 'FERME']
 const filterOptions = STATUTS.map(s => ({ value: s, label: s ? STATUT_LABELS[s] : 'Tous les signalements' }))
 
@@ -89,7 +90,7 @@ onMounted(() => fetchSignalements(0))
         :class="{ '--unread': !s.isRead }">
         <div class="sa-card__header">
           <div class="sa-card__meta">
-            <span :class="['badge', STATUT_COLORS[s.statut]]">{{ STATUT_LABELS[s.statut] }}</span>
+            <StatusBadge :label="STATUT_LABELS[s.statut]" :variant="STATUT_VARIANTS[s.statut]" />
             <span v-if="!s.isRead" class="sa-card__new">Nouveau</span>
             <span class="sa-card__date">{{ formatDate(s.createdAt) }}</span>
           </div>
@@ -171,11 +172,6 @@ onMounted(() => fetchSignalements(0))
 .sa-pager { display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1.25rem; font-size: .88rem; }
 .sa-pager button { padding: .4rem .9rem; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-card); cursor: pointer; }
 .sa-pager button:disabled { opacity: .4; cursor: not-allowed; }
-.badge { padding: .25rem .65rem; border-radius: 12px; font-size: .75rem; font-weight: 700; }
-.badge--warning { background: #fef3c7; color: #d97706; }
-.badge--info    { background: #dbeafe; color: #2563eb; }
-.badge--success { background: #d1fae5; color: #059669; }
-.badge--neutral { background: #f3f4f6; color: #6b7280; }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1rem; }
 .modal-box { background: var(--color-card); border-radius: var(--radius); padding: 1.75rem; width: 100%; max-width: 460px; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
 .modal-box__title { font-size: 1rem; font-weight: 700; color: var(--color-text); margin-bottom: 1.25rem; }

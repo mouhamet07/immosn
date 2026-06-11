@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import authService from '@/services/authService'
+import StatusBadge from '@/components/StatusBadge.vue'
 import StatsCard from '@/components/admin/StatsCard.vue'
 import ConfirmModal from '@/components/admin/ConfirmModal.vue'
 import ToastNotification from '@/components/admin/ToastNotification.vue'
@@ -144,18 +145,12 @@ async function restoreAccess(id) {
               </div>
             </td>
             <td class="td-email">{{ admin.email }}</td>
-            <td class="td-date">{{ formatDate(admin.creationDate) }}</td>
+            <td class="table-date">{{ formatDate(admin.creationDate) }}</td>
             <td>
-              <span
-                class="badge"
-                :class="{
-                  'badge--active':  admin.statut === 'ACTIF',
-                  'badge--neutral': admin.statut === 'INACTIF',
-                  'badge--pending': admin.statut === 'EN_ATTENTE',
-                }"
-              >
-                {{ admin.statut === 'EN_ATTENTE' ? 'En attente' : admin.statut === 'ACTIF' ? 'Actif' : 'Inactif' }}
-              </span>
+              <StatusBadge
+                :label="admin.statut === 'EN_ATTENTE' ? 'En attente' : admin.statut === 'ACTIF' ? 'Actif' : 'Inactif'"
+                :variant="admin.statut === 'ACTIF' ? 'success' : admin.statut === 'EN_ATTENTE' ? 'warning' : 'neutral'"
+              />
             </td>
             <td>
               <div class="td-actions">
@@ -165,7 +160,7 @@ async function restoreAccess(id) {
                 <button v-if="admin.statut === 'INACTIF'" class="action-btn" title="Restaurer l'accès" @click="restoreAccess(admin.id)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
                 </button>
-                <button v-else class="action-btn action-btn--danger" title="Révoquer l'accès" @click="confirmId = admin.id">
+                <button v-else class="action-btn danger" title="Révoquer l'accès" @click="confirmId = admin.id">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
                 </button>
               </div>
@@ -309,7 +304,6 @@ async function restoreAccess(id) {
 }
 
 .td-email { color: var(--color-text-muted); font-size: 0.85rem; }
-.td-date  { color: var(--color-text-muted); font-size: 0.85rem; }
 
 /* Identité admin */
 .admin-identity {
@@ -343,42 +337,7 @@ async function restoreAccess(id) {
 .admin-name { font-weight: 600; font-size: 0.88rem; }
 .admin-role { font-size: 0.78rem; color: var(--color-text-muted); }
 
-/* Badges */
-.badge {
-  display: inline-block;
-  padding: 0.25rem 0.65rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
 
-.badge--active  { background: var(--badge-active-bg);  color: var(--badge-active-color); }
-.badge--neutral { background: var(--badge-neutral-bg); color: var(--badge-neutral-color); }
-.badge--pending { background: var(--badge-pending-bg); color: var(--badge-pending-color); }
-
-/* Actions */
-.td-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.action-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  border: 1px solid var(--color-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.action-btn svg { width: 15px; height: 15px; stroke: var(--color-text-muted); }
-.action-btn:hover { background: var(--color-hover-row); border-color: var(--color-border-solid); }
-
-.action-btn--danger:hover { background: #FDECEA; border-color: var(--color-accent); }
-.action-btn--danger:hover svg { stroke: var(--color-accent); }
 
 /* État vide */
 .empty-state { text-align: center; padding: 3rem !important; }

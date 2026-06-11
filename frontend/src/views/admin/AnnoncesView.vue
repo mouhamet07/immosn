@@ -6,6 +6,7 @@ import ToastNotification from '@/components/admin/ToastNotification.vue'
 import { usePagination } from '@/composables/usePagination'
 import annonceService from '@/services/annonceService'
 import typeBienService from '@/services/typeBienService'
+import StatusBadge from '@/components/StatusBadge.vue'
 
 const router = useRouter()
 const toast = ref(null)
@@ -242,45 +243,27 @@ async function restaurer(id) {
         </thead>
         <tbody>
           <tr v-for="a in paginated" :key="a.id" class="data-table__row">
-            <td class="td-title">{{ a.libelle }}</td>
+            <td class="table-annonce-title">{{ a.libelle }}</td>
             <td class="td-muted">{{ a.adresse }}</td>
             <td class="td-muted">{{ a.typeBien?.libelle || '–' }}</td>
-            <td class="td-muted">{{ formatPrix(a.prix) }}</td>
-            <td class="td-muted">{{ formatDate(a.createdAt) }}</td>
+            <td class="table-price">{{ formatPrix(a.prix) }}</td>
+            <td class="table-date">{{ formatDate(a.createdAt) }}</td>
             <td>
-              <span class="badge" :class="a.archived ? 'badge--neutral' : 'badge--active'">
-                {{ a.archived ? 'Archivé' : 'Actif' }}
-              </span>
+              <StatusBadge :label="a.archived ? 'Archivé' : 'Actif'" :variant="a.archived ? 'neutral' : 'success'" />
             </td>
             <td>
               <div class="td-actions">
                 <button class="action-btn" title="Voir détail" @click="router.push(`/admin/annonces/${a.id}`)">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                    <circle cx="12" cy="12" r="3"/>
-                  </svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                 </button>
-                <!-- Modifier — redirige vers ModifierAnnonceView -->
-                <button class="action-btn action-btn--edit" title="Modifier" @click="router.push(`/admin/annonces/${a.id}/modifier`)">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                  </svg>
+                <button class="action-btn" title="Modifier" @click="router.push(`/admin/annonces/${a.id}/modifier`)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 </button>
-                <!-- Restaurer (si archivée) -->
-                <button v-if="a.archived" class="action-btn action-btn--restore" title="Restaurer" @click="restaurer(a.id)">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="1 4 1 10 7 10"/>
-                    <path d="M3.51 15a9 9 0 1 0 .49-4.5"/>
-                  </svg>
+                <button v-if="a.archived" class="action-btn" title="Restaurer" @click="restaurer(a.id)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
                 </button>
-                <!-- Archiver (si active) -->
-                <button v-else class="action-btn" title="Archiver" @click="confirmId = a.id">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="21 8 21 21 3 21 3 8"/>
-                    <rect x="1" y="3" width="22" height="5"/>
-                    <line x1="10" y1="12" x2="14" y2="12"/>
-                  </svg>
+                <button v-else class="action-btn danger" title="Archiver" @click="confirmId = a.id">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
                 </button>
               </div>
             </td>
@@ -488,38 +471,7 @@ async function restaurer(id) {
 .data-table__row:hover { background: var(--color-background); }
 .data-table__row:last-child { border-bottom: none; }
 .data-table td { padding: 0.9rem 1rem; vertical-align: middle; }
-.td-title { font-weight: 600; color: var(--color-text); }
 .td-muted { color: var(--color-text); opacity: 0.6; font-size: 0.85rem; }
-
-.badge {
-  display: inline-block;
-  padding: 0.25rem 0.65rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-.badge--active  { background: rgba(74, 124, 111, 0.12); color: var(--color-primary); }
-.badge--neutral { background: rgba(45, 55, 72, 0.1); color: var(--color-text); }
-
-.td-actions { display: flex; gap: 0.5rem; }
-
-.action-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  border: 1px solid var(--color-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.15s;
-}
-.action-btn svg { width: 15px; height: 15px; stroke: var(--color-text); opacity: 0.6; }
-.action-btn:hover { background: var(--color-background); }
-.action-btn--edit:hover { border-color: var(--color-primary); }
-.action-btn--edit:hover svg { stroke: var(--color-primary); opacity: 1; }
-.action-btn--restore:hover { border-color: var(--color-accent); }
-.action-btn--restore:hover svg { stroke: var(--color-accent); opacity: 1; }
 
 .empty-state { text-align: center; padding: 3rem !important; }
 .empty-state__content { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; color: var(--color-text); opacity: 0.5; font-size: 1.5rem; }

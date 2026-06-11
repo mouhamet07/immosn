@@ -9,9 +9,9 @@ import discussionService from '@/services/discussionService'
 import { useAuthStore } from '@/stores/authStore'
 import { useToastStore } from '@/stores/toastStore'
 import { useFavorisStore } from '@/stores/favorisStore'
-import placeholderImg from '@/assets/Penthouse.png'
+const placeholderImg = 'data:image/svg+xml,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 width%3D%22400%22 height%3D%22300%22%3E%3Crect width%3D%22400%22 height%3D%22300%22 fill%3D%22%23e5e7eb%22%2F%3E%3C%2Fsvg%3E'
 import LocationMap from '@/components/LocationMap.vue'
-import logoImg from '@/assets/logo nav 1 - orange 1.png'
+import logoImg from '@/assets/logo nav 1 - orange.svg'
 
 const route = useRoute()
 const router = useRouter()
@@ -25,7 +25,7 @@ const error = ref('')
 const isFavori = computed(() => favorisStore.isFavori(Number(route.params.id)))
 const imageActive = ref(0)
 
-//  Modal visite 
+//  Modal visite
 import visiteService from '@/services/visiteService'
 const showVisiteModal  = ref(false)
 const visiteDate       = ref('')
@@ -65,7 +65,7 @@ function handleReserverVisite() {
   visiteSuccess.value = false
 }
 
-//  Modal contact 
+//  Modal contact
 const showContactModal = ref(false)
 const contactMessage = ref('')
 const contactSending = ref(false)
@@ -341,19 +341,6 @@ function getImage(index) {
               <button class="detail-sidebar__link"><FileText :size="13" /> Brochure</button>
               <button class="detail-sidebar__link"><Flag :size="13" /> Signaler</button>
             </div>
-          </div>
-
-          <!-- Aperçu du marché -->
-          <div class="detail-sidebar__market">
-            <div class="detail-sidebar__market-header">
-              <SvgIcon name="maximize" :size="16" />
-              <span>Aperçu du marché</span>
-            </div>
-            <p class="detail-sidebar__market-text">
-              Les biens similaires dans ce quartier sont estimés entre
-              <strong>{{ formatPrix(annonce.prix * 0.85) }}</strong> et
-              <strong>{{ formatPrix(annonce.prix * 1.15) }}</strong>.
-            </p>
           </div>
         </aside>
       </div>

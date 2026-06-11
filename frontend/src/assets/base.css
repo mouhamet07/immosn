@@ -157,3 +157,46 @@ select:focus {
   background: rgba(74, 124, 111, 0.18);
   color: var(--color-text);
 }
+
+/* ── Utilitaires layout ───────────────────────────────────── */
+.buttons-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ── Utilitaires typographie table ───────────────────────── */
+.table-annonce-title { font-weight: 600; color: var(--color-text); }
+.table-price         { color: var(--color-accent); font-weight: 600; }
+.table-client        { font-weight: 500; color: var(--color-text); }
+.table-date          { color: var(--color-text-secondary); font-size: 12px; }
+
+/* ── Action buttons — tables admin (centralisé) ───────────── */
+.action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 150ms ease;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.action-btn svg { width: 15px; height: 15px; }
+.action-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: #E8F2EF;
+}
+.action-btn.danger:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: #FEF3EE;
+}
+
+.td-actions { display: flex; gap: 0.5rem; align-items: center; }

@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Home, MapPin } from 'lucide-vue-next'
 import visiteService from '@/services/visiteService'
 import historyService from '@/services/historyService'
+import StatusBadge from '@/components/StatusBadge.vue'
 
 const route  = useRoute()
 const router = useRouter()
@@ -34,14 +35,14 @@ const STATUT_LABELS = {
   CLOTUREE_AVEC_CONTRAT: 'Clôturée avec contrat',
   TERMINEE:              'Terminée',
 }
-const STATUT_COLORS = {
-  EN_ATTENTE:            'badge--warning',
-  ACCEPTEE:              'badge--success',
-  REFUSEE:               'badge--danger',
-  ANNULEE:               'badge--neutral',
-  CLOTUREE_SANS_SUITE:   'badge--neutral',
-  CLOTUREE_AVEC_CONTRAT: 'badge--info',
-  TERMINEE:              'badge--info',
+const STATUT_VARIANTS = {
+  EN_ATTENTE:            'warning',
+  ACCEPTEE:              'success',
+  REFUSEE:               'danger',
+  ANNULEE:               'neutral',
+  CLOTUREE_SANS_SUITE:   'neutral',
+  CLOTUREE_AVEC_CONTRAT: 'info',
+  TERMINEE:              'info',
 }
 
 async function fetchVisite() {
@@ -190,7 +191,7 @@ onMounted(() => fetchVisite())
         <!-- En-tête -->
         <div class="vda-header">
           <div>
-            <span :class="['badge', STATUT_COLORS[visite.statut]]">{{ STATUT_LABELS[visite.statut] }}</span>
+            <StatusBadge :label="STATUT_LABELS[visite.statut]" :variant="STATUT_VARIANTS[visite.statut]" />
             <h1 class="vda-header__title">Demande de visite #{{ visite.id }}</h1>
             <p class="vda-header__sub">{{ visite.clientNom }}</p>
           </div>
@@ -451,18 +452,11 @@ onMounted(() => fetchVisite())
   font-weight: 600; cursor: pointer; border: none; transition: opacity .15s;
 }
 .vda-btn:disabled { opacity: .4; cursor: not-allowed; }
-.vda-btn--accept  { background: #d1fae5; color: #059669; }
-.vda-btn--refuse  { background: #fee2e2; color: #dc2626; }
-.vda-btn--cloture { background: #ede9fe; color: #7c3aed; }
+.vda-btn--accept  { background: var(--color-primary); color: #fff; }
+.vda-btn--refuse  { background: var(--color-accent);  color: #fff; }
+.vda-btn--cloture { background: var(--color-primary); color: #fff; }
 .vda-btn--outline { background: none; border: 1.5px solid var(--color-border); color: var(--color-text); }
 .vda-btn--outline:hover { border-color: var(--color-primary); color: var(--color-primary); }
-
-.badge { padding: .25rem .65rem; border-radius: 12px; font-size: .75rem; font-weight: 700; display: inline-block; }
-.badge--warning { background: #fef3c7; color: #d97706; }
-.badge--success { background: #d1fae5; color: #059669; }
-.badge--neutral { background: #f3f4f6; color: #6b7280; }
-.badge--danger  { background: #fee2e2; color: #dc2626; }
-.badge--info    { background: #dbeafe; color: #2563eb; }
 
 /* Modal */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1rem; }

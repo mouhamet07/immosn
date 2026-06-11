@@ -100,7 +100,7 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.removeItem('role')
       delete api.defaults.headers.common['Authorization']
       useFavorisStore().reset()
-      router.push('/connexion')
+      router.push('/annonces')
     }
   }
 

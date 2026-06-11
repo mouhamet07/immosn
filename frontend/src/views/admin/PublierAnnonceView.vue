@@ -246,18 +246,18 @@ async function submit() {
           </div>
           <div class="field">
             <label class="field__label">PRIX (FCFA) <span class="req">*</span></label>
-            <input v-model="form.prix" type="number" class="field__input" placeholder="ex. 150000000" />
+            <input v-model.number="form.prix" type="number" min="0" step="1" class="field__input" placeholder="ex. 150000000" @input="form.prix = Math.max(0, form.prix)" />
           </div>
         </div>
 
         <div class="field-row">
           <div class="field">
             <label class="field__label">NOMBRE DE PIÈCES <span class="req">*</span></label>
-            <input v-model="form.nbrPieces" type="number" class="field__input" placeholder="ex. 4" />
+            <input v-model.number="form.nbrPieces" type="number" min="0" step="1" class="field__input" placeholder="ex. 4" @input="form.nbrPieces = Math.max(0, form.nbrPieces)" />
           </div>
           <div class="field">
             <label class="field__label">SURFACE (m²) <span class="req">*</span></label>
-            <input v-model="form.surface" type="number" class="field__input" placeholder="ex. 150" />
+            <input v-model.number="form.surface" type="number" min="0" step="0.01" class="field__input" placeholder="ex. 150" @input="form.surface = Math.max(0, form.surface)" />
           </div>
         </div>
 
