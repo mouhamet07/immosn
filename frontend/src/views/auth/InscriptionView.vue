@@ -50,6 +50,7 @@ async function handleSubmit() {
     router.push({ name: 'connexion' })
   } catch (err) {
     errorMessage.value = getErrorMessage(err)
+    toastStore.error(getErrorMessage(err))
   } finally {
     loading.value = false
   }
