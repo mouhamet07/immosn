@@ -97,13 +97,12 @@ async function saveSecurite() {
     toast.error('Veuillez remplir les trois champs.')
     return
   }
-  if (formSecurite.nouveauMotDePasse !== formSecurite.confirmationMotDePasse) {
-    toast.error('La confirmation du mot de passe ne correspond pas.')
+  if (formSecurite.nouveauMotDePasse.length < 8) {
+    toast.error('Le nouveau mot de passe doit contenir au moins 8 caractères.')
     return
   }
-
-  if (formSecurite.nouveauMotDePasse !== formSecurite.confirmationNouveauMotDePasse) {
-    toast.error('Les deux nouveaux mots de passe ne correspondent pas.')
+  if (formSecurite.nouveauMotDePasse !== formSecurite.confirmationMotDePasse) {
+    toast.error('La confirmation du mot de passe ne correspond pas.')
     return
   }
 

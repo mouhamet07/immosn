@@ -33,5 +33,9 @@ public interface AnnonceFavorisRepository extends JpaRepository<AnnonceFavoris, 
 
     boolean existsByClientIdAndAnnonceId(Long clientId, Long annonceId);
 
+    /** Vérifie si une annonce NON ARCHIVÉE est en favori — utilisé par checkFavoris() */
+    @Query("SELECT COUNT(f) > 0 FROM AnnonceFavoris f WHERE f.client.id = :clientId AND f.annonce.id = :annonceId AND f.annonce.isArchived = false")
+    boolean existsActiveByClientIdAndAnnonceId(@Param("clientId") Long clientId, @Param("annonceId") Long annonceId);
+
     void deleteByClientIdAndAnnonceId(Long clientId, Long annonceId);
 }

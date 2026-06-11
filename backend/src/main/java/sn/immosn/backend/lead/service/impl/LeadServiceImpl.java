@@ -9,6 +9,7 @@ import sn.immosn.backend.annonce.data.repository.AnnonceRepository;
 import sn.immosn.backend.auth.data.repository.UserRepository;
 import sn.immosn.backend.client.web.lead.dto.*;
 import sn.immosn.backend.client.web.lead.mapper.LeadMapper;
+import sn.immosn.backend.contrat.data.repository.ContratRepository;
 import sn.immosn.backend.lead.data.entity.Lead;
 import sn.immosn.backend.lead.data.entity.StatutLead;
 import sn.immosn.backend.lead.data.repository.LeadRepository;
@@ -18,8 +19,10 @@ import sn.immosn.backend.shared.exception.EntityNotFoundException;
 import sn.immosn.backend.visite.data.repository.DemandeVisiteRepository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -41,6 +44,7 @@ public class LeadServiceImpl implements LeadService {
     private final UserRepository          userRepository;
     private final AnnonceRepository       annonceRepository;
     private final DemandeVisiteRepository visiteRepository;
+    private final ContratRepository       contratRepository;
     private final LeadMapper              mapper;
     private final LeadHistoryService      leadHistoryService;
 
@@ -80,7 +84,15 @@ public class LeadServiceImpl implements LeadService {
         Page<Lead> page = statut != null
             ? leadRepository.findByStatutOrderByCreatedAtDesc(statut, pageable)
             : leadRepository.findAllByOrderByCreatedAtDesc(pageable);
-        return page.map(mapper::toDto);
+
+        // Batch-load contrat IDs pour tous les leads de la page (1 requête au lieu de N)
+        List<Long> leadIds = page.getContent().stream().map(Lead::getId).toList();
+        Map<Long, Long> contratIdByLeadId = leadIds.isEmpty() ? Map.of()
+            : contratRepository.findByLeadIdIn(leadIds).stream()
+                .filter(c -> c.getLead() != null)
+                .collect(Collectors.toMap(c -> c.getLead().getId(), c -> c.getId()));
+
+        return page.map(lead -> mapper.toDto(lead, contratIdByLeadId.get(lead.getId())));
     }
 
     @Override

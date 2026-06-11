@@ -147,6 +147,7 @@ async function saveSecurite() {
     toast.success('Mot de passe mis à jour avec succès.')
   } catch (err) {
     errorSecurite.value = getErrorMessage(err)
+    toast.error(getErrorMessage(err))
   } finally {
     loadingSecurite.value = false
   }

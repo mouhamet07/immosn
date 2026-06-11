@@ -83,7 +83,9 @@ public class FavorisServiceImpl implements FavorisService {
     public FavorisStatusDto checkFavoris(Long annonceId, String clientEmail) {
         var client = userRepository.findByEmail(clientEmail)
             .orElseThrow(() -> new EntityNotFoundException("Utilisateur non trouvé"));
-        boolean isFav = favorisRepository.existsByClientIdAndAnnonceId(client.getId(), annonceId);
+        // Utilise existsActiveByClientIdAndAnnonceId pour exclure les annonces archivées
+        // cohérence avec getAllFavorisIds() et getClientFavoris() qui filtrent déjà isArchived=false
+        boolean isFav = favorisRepository.existsActiveByClientIdAndAnnonceId(client.getId(), annonceId);
         return new FavorisStatusDto(annonceId, isFav);
     }
 
