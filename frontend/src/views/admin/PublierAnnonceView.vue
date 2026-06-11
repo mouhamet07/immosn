@@ -20,19 +20,20 @@ const currentStep = ref(0)
 const progress = computed(() => Math.round((currentStep.value / (STEPS.length - 1)) * 100))
 
 const form = reactive({
-  libelle:      '',
-  description:  '',
-  typeBienId:   null,
-  nbrPieces:    '',
-  surface:      '',
-  prix:         '',
-  adresse:      '',
-  departement:  '',
-  quartier:     '',
-  latitude:     null,
-  longitude:    null,
-  commoditeIds: [],
-  images:       [],
+  libelle:       '',
+  description:   '',
+  typeBienId:    null,
+  nbrPieces:     '',
+  surface:       '',
+  prix:          '',
+  adresse:       '',
+  departement:   '',
+  quartier:      '',
+  latitude:      null,
+  longitude:     null,
+  commoditeIds:  [],
+  images:        [],
+  isExclusivite: false,
 })
 
 const commodites       = ref([])
@@ -173,17 +174,18 @@ async function submit() {
       imageUrls.push(...subUrls)
     }
     await annonceService.createAnnonce({
-      libelle:      form.libelle,
-      description:  form.description,
-      nbrPieces:    parseInt(form.nbrPieces),
-      surface:      parseFloat(form.surface),
-      prix:         parseFloat(form.prix),
-      adresse:      form.adresse || null,
-      departement:  form.departement,
-      quartier:     form.quartier,
-      typeBienId:   form.typeBienId,
-      commoditeIds: form.commoditeIds,
-      images:       imageUrls,
+      libelle:       form.libelle,
+      description:   form.description,
+      nbrPieces:     parseInt(form.nbrPieces),
+      surface:       parseFloat(form.surface),
+      prix:          parseFloat(form.prix),
+      adresse:       form.adresse || null,
+      departement:   form.departement,
+      quartier:      form.quartier,
+      typeBienId:    form.typeBienId,
+      commoditeIds:  form.commoditeIds,
+      images:        imageUrls,
+      isExclusivite: form.isExclusivite,
     })
     toast.value.show('Annonce publiée avec succès', 'success')
     setTimeout(() => router.push('/admin/annonces'), 1200)
@@ -256,6 +258,20 @@ async function submit() {
           <div class="field">
             <label class="field__label">SURFACE (m²) <span class="req">*</span></label>
             <input v-model="form.surface" type="number" class="field__input" placeholder="ex. 150" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field__label">EXCLUSIVITÉ</label>
+          <div class="equipements-grid">
+            <button
+              type="button"
+              class="equip-card"
+              :class="{ 'equip-card--selected': form.isExclusivite }"
+              @click="form.isExclusivite = !form.isExclusivite"
+            >
+              <span class="equip-card__label">Exclusivité</span>
+            </button>
           </div>
         </div>
       </section>

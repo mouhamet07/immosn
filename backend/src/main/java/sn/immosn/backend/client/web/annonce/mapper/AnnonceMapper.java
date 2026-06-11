@@ -1,5 +1,6 @@
 package sn.immosn.backend.client.web.annonce.mapper;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -42,6 +43,8 @@ public class AnnonceMapper {
                 .collect(Collectors.toList()),
             a.getImages() != null ? new ArrayList<>(a.getImages()) : new ArrayList<>(),
             a.isArchived(),
+            a.getCreatedAt() != null && a.getCreatedAt().isAfter(LocalDateTime.now().minusDays(30)),
+            a.isExclusivite(),
             a.getCreatedAt(),
             a.getUpdatedAt()
         );
@@ -64,7 +67,9 @@ public class AnnonceMapper {
             a.getSurface(),
             firstImage,
             a.getCreatedAt(),
-            a.isArchived()
+            a.isArchived(),
+            a.getCreatedAt() != null && a.getCreatedAt().isAfter(LocalDateTime.now().minusDays(30)),
+            a.isExclusivite()
         );
     }
 
@@ -80,6 +85,7 @@ public class AnnonceMapper {
             .quartier(dto.quartier())
             .typeBien(typeBien)
             .images(dto.images())
+            .isExclusivite(dto.isExclusivite() != null && dto.isExclusivite())
             .isArchived(false)
             .build();
 

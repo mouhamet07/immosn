@@ -13,8 +13,6 @@ const toast  = useToastStore()
 const lead      = ref(null)
 const loading   = ref(false)
 const error     = ref('')
-const pending   = ref(false)
-
 const showNoteModal = ref(false)
 const noteValue     = ref('')
 const savingNote    = ref(false)
@@ -34,20 +32,6 @@ async function fetchLead() {
       : 'Impossible de charger ce lead.'
   } finally {
     loading.value = false
-  }
-}
-
-async function updateStatut(statut) {
-  if (pending.value) return
-  pending.value = true
-  try {
-    await leadService.updateStatut(lead.value.id, statut)
-    toast.success(statut === 'CONVERTI' ? 'Lead converti avec succès.' : 'Lead abandonné.')
-    await fetchLead()
-  } catch (err) {
-    toast.error(err?.response?.data?.message || 'Erreur lors de la mise à jour du statut.')
-  } finally {
-    pending.value = false
   }
 }
 
@@ -143,14 +127,13 @@ onMounted(fetchLead)
           <span :class="['badge', STATUT_COLORS[lead.statut]]">{{ STATUT_LABELS[lead.statut] }}</span>
         </div>
         <div class="ld-header__actions">
-          <template v-if="lead.statut === 'EN_COURS'">
-            <button class="btn btn--success" :disabled="pending" @click="updateStatut('CONVERTI')">
-              Convertir
-            </button>
-            <button class="btn btn--neutral" :disabled="pending" @click="updateStatut('ABANDONNE')">
-              Abandonner
-            </button>
-          </template>
+          <button
+            class="btn btn--primary"
+            :disabled="!lead.visiteId"
+            @click="lead.visiteId && router.push(`/admin/visites/${lead.visiteId}`)"
+          >
+            Voir la visite associée
+          </button>
           <button class="btn btn--ghost" @click="openNoteModal">
             <Edit3 :size="14" /> Modifier la note
           </button>

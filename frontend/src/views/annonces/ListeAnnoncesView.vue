@@ -165,7 +165,7 @@ onMounted(async () => {
       <!-- Grille -->
       <div v-else-if="annonces.length" class="liste-grid">
         <AnnonceCard
-          v-for="(annonce, i) in annonces"
+          v-for="annonce in annonces"
           :key="annonce.id"
           :id="annonce.id"
           :title="annonce.libelle"
@@ -175,8 +175,8 @@ onMounted(async () => {
           :nbrSallesBain="0"
           :surface="annonce.surface"
           :adresse="annonce.adresse"
-          :badge="annonce.typeBien?.libelle || ''"
-          :isNew="i % 2 === 0"
+          :badge="annonce.isExclusivite ? 'exclusif' : ''"
+          :isNew="!!annonce.isNew"
         />
       </div>
 

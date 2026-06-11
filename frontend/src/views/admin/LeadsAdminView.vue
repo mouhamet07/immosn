@@ -13,8 +13,6 @@ const currentPage  = ref(0)
 const totalPages   = ref(1)
 const totalItems   = ref(0)
 const filtreStatut = ref('')
-const pending      = ref({})
-
 const showNoteModal = ref(false)
 const modalLead     = ref(null)
 const noteValue     = ref('')
@@ -38,22 +36,6 @@ async function fetchLeads(page = 0) {
     leads.value = []
   } finally {
     loading.value = false
-  }
-}
-
-async function updateStatut(lead, statut) {
-  if (pending.value[lead.id]) return
-  pending.value = { ...pending.value, [lead.id]: true }
-  try {
-    await leadService.updateStatut(lead.id, statut)
-    toast.success(statut === 'CONVERTI' ? 'Lead converti avec succès.' : 'Lead abandonné.')
-    await fetchLeads(currentPage.value)
-  } catch (err) {
-    toast.error(err?.response?.data?.message || 'Erreur lors de la mise à jour du statut.')
-  } finally {
-    const next = { ...pending.value }
-    delete next[lead.id]
-    pending.value = next
   }
 }
 
@@ -171,18 +153,6 @@ onMounted(() => fetchLeads(0))
 
         <!-- Actions -->
         <div class="la-card__actions">
-          <template v-if="lead.statut === 'EN_COURS'">
-            <button
-              class="btn btn--success btn--sm"
-              :disabled="!!pending[lead.id]"
-              @click="updateStatut(lead, 'CONVERTI')"
-            >Convertir</button>
-            <button
-              class="btn btn--neutral btn--sm"
-              :disabled="!!pending[lead.id]"
-              @click="updateStatut(lead, 'ABANDONNE')"
-            >Abandonner</button>
-          </template>
           <button class="btn btn--ghost btn--sm" @click="openNoteModal(lead)">
             <Edit3 :size="12" /> Note
           </button>

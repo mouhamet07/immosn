@@ -30,18 +30,19 @@ const newPhotoFiles    = ref([])
 const newPhotoPreviews = ref([])
 
 const form = reactive({
-  libelle:      '',
-  description:  '',
-  typeBienId:   null,
-  nbrPieces:    '',
-  surface:      '',
-  prix:         '',
-  adresse:      '',
-  departement:  '',
-  quartier:     '',
-  latitude:     null,
-  longitude:    null,
-  commoditeIds: [],
+  libelle:        '',
+  description:    '',
+  typeBienId:     null,
+  nbrPieces:      '',
+  surface:        '',
+  prix:           '',
+  adresse:        '',
+  departement:    '',
+  quartier:       '',
+  latitude:       null,
+  longitude:      null,
+  commoditeIds:   [],
+  isExclusivite:  false,
 })
 
 function toggleCommodite(id) {
@@ -136,7 +137,8 @@ onMounted(async () => {
     form.quartier     = a.quartier     || ''
     form.latitude     = a.latitude     ?? null
     form.longitude    = a.longitude    ?? null
-    form.commoditeIds = a.commodites?.map(c => c.id) || []
+    form.commoditeIds   = a.commodites?.map(c => c.id) || []
+    form.isExclusivite  = !!a.isExclusivite
     existingImages.value = a.images ? [...a.images] : []
 
     typesBien.value    = resTypes.data.data       || []
@@ -175,17 +177,18 @@ async function handleSubmit() {
     const finalImages = [...existingImages.value, ...newUrls]
 
     await annonceService.updateAnnonce(route.params.id, {
-      libelle:      form.libelle,
-      description:  form.description,
-      nbrPieces:    parseInt(form.nbrPieces),
-      surface:      parseFloat(form.surface),
-      prix:         parseFloat(form.prix),
-      adresse:      form.adresse || null,
-      departement:  form.departement,
-      quartier:     form.quartier,
-      typeBienId:   form.typeBienId,
-      commoditeIds: form.commoditeIds,
-      images:       finalImages,
+      libelle:       form.libelle,
+      description:   form.description,
+      nbrPieces:     parseInt(form.nbrPieces),
+      surface:       parseFloat(form.surface),
+      prix:          parseFloat(form.prix),
+      adresse:       form.adresse || null,
+      departement:   form.departement,
+      quartier:      form.quartier,
+      typeBienId:    form.typeBienId,
+      commoditeIds:  form.commoditeIds,
+      images:        finalImages,
+      isExclusivite: form.isExclusivite,
     })
 
     toast.value?.show('Annonce modifiée avec succès ✓', 'success')
@@ -224,6 +227,20 @@ async function handleSubmit() {
         <div class="field">
           <label class="field__label">DESCRIPTION</label>
           <textarea v-model="form.description" class="field__input field__textarea" rows="4" placeholder="Décrivez le bien..."></textarea>
+        </div>
+
+        <div class="field">
+          <label class="field__label">EXCLUSIVITÉ</label>
+          <div class="ma-commodites">
+            <button
+              type="button"
+              class="ma-commodite"
+              :class="{ 'ma-commodite--selected': form.isExclusivite }"
+              @click="form.isExclusivite = !form.isExclusivite"
+            >
+              Exclusivité
+            </button>
+          </div>
         </div>
 
         <div class="field-row">

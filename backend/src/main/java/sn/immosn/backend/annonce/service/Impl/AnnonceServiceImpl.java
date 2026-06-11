@@ -94,12 +94,13 @@ public class AnnonceServiceImpl implements AnnonceService {
         Annonce annonce = annonceRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée : id=" + id));
 
-        if (requestDto.libelle()     != null) annonce.setLibelle(requestDto.libelle());
-        if (requestDto.description() != null) annonce.setDescription(requestDto.description());
-        if (requestDto.nbrPieces()   != null) annonce.setNbrPieces(requestDto.nbrPieces());
-        if (requestDto.surface()     != null) annonce.setSurface(requestDto.surface());
-        if (requestDto.prix()        != null) annonce.setPrix(requestDto.prix());
-        if (requestDto.images()      != null) annonce.setImages(requestDto.images());
+        if (requestDto.libelle()       != null) annonce.setLibelle(requestDto.libelle());
+        if (requestDto.description()   != null) annonce.setDescription(requestDto.description());
+        if (requestDto.nbrPieces()     != null) annonce.setNbrPieces(requestDto.nbrPieces());
+        if (requestDto.surface()       != null) annonce.setSurface(requestDto.surface());
+        if (requestDto.prix()          != null) annonce.setPrix(requestDto.prix());
+        if (requestDto.images()        != null) annonce.setImages(requestDto.images());
+        if (requestDto.isExclusivite() != null) annonce.setExclusivite(requestDto.isExclusivite());
 
         boolean locationChanged = requestDto.adresseExacte() != null
             || requestDto.departement() != null

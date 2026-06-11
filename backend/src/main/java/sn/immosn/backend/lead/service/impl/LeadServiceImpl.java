@@ -15,7 +15,10 @@ import sn.immosn.backend.lead.data.repository.LeadRepository;
 import sn.immosn.backend.lead.service.LeadHistoryService;
 import sn.immosn.backend.lead.service.LeadService;
 import sn.immosn.backend.shared.exception.EntityNotFoundException;
+import sn.immosn.backend.visite.data.entity.DemandeVisite;
+import sn.immosn.backend.visite.data.entity.StatutDemandeVisite;
 import sn.immosn.backend.visite.data.repository.DemandeVisiteRepository;
+import sn.immosn.backend.visite.service.VisiteHistoryService;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -43,6 +46,7 @@ public class LeadServiceImpl implements LeadService {
     private final DemandeVisiteRepository visiteRepository;
     private final LeadMapper              mapper;
     private final LeadHistoryService      leadHistoryService;
+    private final VisiteHistoryService    visiteHistoryService;
 
     @Override
     @Transactional
@@ -105,6 +109,23 @@ public class LeadServiceImpl implements LeadService {
         Lead saved = leadRepository.save(lead);
         String action = dto.statut() == StatutLead.CONVERTI ? "CONVERSION" : "ABANDON";
         leadHistoryService.record(saved, ancienStatut, dto.statut(), action, dto.noteAdmin());
+
+        // Conversion manuelle : fermer la visite liée si elle est encore ouverte.
+        // Aucun contrat n'est créé (deal conclu hors système) — CLOTUREE_SANS_SUITE.
+        if (dto.statut() == StatutLead.CONVERTI && lead.getVisite() != null) {
+            visiteRepository.findById(lead.getVisite().getId()).ifPresent(visite -> {
+                StatutDemandeVisite sv = visite.getStatut();
+                if (sv == StatutDemandeVisite.EN_ATTENTE || sv == StatutDemandeVisite.ACCEPTEE) {
+                    visite.setStatut(StatutDemandeVisite.CLOTUREE_SANS_SUITE);
+                    visiteRepository.save(visite);
+                    visiteHistoryService.record(visite, sv, StatutDemandeVisite.CLOTUREE_SANS_SUITE,
+                        "CLOTURE_MANUELLE_LEAD",
+                        "Clôture automatique — lead #" + saved.getId() + " converti manuellement",
+                        null, null);
+                }
+            });
+        }
+
         return mapper.toDto(saved);
     }
 
