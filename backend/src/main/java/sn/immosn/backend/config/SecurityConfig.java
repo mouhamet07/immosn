@@ -95,6 +95,7 @@ public class SecurityConfig {
 
                 //  Actuator health : sans auth (Docker healthcheck) 
                 .requestMatchers("/actuator/health").permitAll()
+                .requestMatchers("/actuator/prometheus").permitAll()
 
                 //  Public
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
