@@ -1,194 +1,228 @@
-<script setup>
-import placeholderImg from '@/assets/Penthouse.png'
-import { computed } from 'vue'
-import { useRouter } from 'vue-router'
-import SvgIcon from './SvgIcon.vue'
-import { useFavorisStore } from '@/stores/favorisStore'
-import { useAuthStore }   from '@/stores/authStore'
-
-const props = defineProps({
-  id:           { type: [Number, String], required: true },
-  title:        { type: String, required: true },
-  prix:         { type: Number, required: true },
-  images:       { type: Array,  default: () => [] },
-  nbrChambres:  { type: Number, default: 0 },
-  nbrSallesBain:{ type: Number, default: 0 },
-  surface:      { type: Number, default: 0 },
-  badge:        { type: String, default: '' },
-  adresse:      { type: String, default: '' },
-  isNew:        { type: Boolean, default: false },
-})
-
-const router       = useRouter()
-const favorisStore = useFavorisStore()
-const authStore    = useAuthStore()
-
-const normalizedId = computed(() => Number(props.id))
-const isFavori      = computed(() => favorisStore.isFavori(normalizedId.value))
-const showFavBtn    = computed(() => authStore.isAuthenticated)
-
-function formatPrix(prix) {
-  return new Intl.NumberFormat('fr-SN').format(prix) + ' FCFA'
-}
-
-async function toggleFavoris(e) {
-  e.stopPropagation()
-  if (!showFavBtn.value) return
-  await favorisStore.toggle(normalizedId.value)
-}
-
-function goToDetail() {
-  router.push({ name: 'detail-annonce', params: { id: String(normalizedId.value) } })
-}
-</script>
-
 <template>
-  <article class="card" @click="goToDetail">
-    <div class="card__image-wrapper">
-      <img :src="images[0] || placeholderImg" :alt="title" class="card__image" />
+  <div class="annonce-card" @click="goToDetail">
 
-      <!-- Badge overlay -->
-      <span v-if="isNew" class="card__badge card__badge--new">Nouveau</span>
-      <span v-else-if="badge" class="card__badge card__badge--exclusif">Exclusivité</span>
-
-      <!-- Bouton favori -->
+    <!-- Image -->
+    <div class="card-image-wrapper">
+      <img
+        :src="photos?.[0]?.url || null"
+        :alt="libelle"
+        class="card-image"
+      />
+      <div v-if="badge" class="card-badge"
+        :style="{
+          background: badge.bg,
+          color: badge.color
+        }">
+        {{ badge.label }}
+      </div>
       <button
-        class="card__favoris"
-        :class="{ 'card__favoris--active': isFavori }"
-        :title="isFavori ? 'Retirer des favoris' : 'Ajouter aux favoris'"
-        @click="toggleFavoris"
+        class="card-favori"
+        @click.stop="$emit('toggle-favori', id)"
       >
-        <SvgIcon :name="isFavori ? 'heart-filled' : 'heart'" :size="16" />
+        <Heart :size="16"
+          :fill="isFavori ? 'var(--color-accent)' : 'none'"
+          :color="isFavori
+            ? 'var(--color-accent)'
+            : 'white'" />
       </button>
     </div>
 
-    <div class="card__body">
-      <h3 class="card__title">{{ title }}</h3>
-      <p class="card__prix">{{ formatPrix(prix) }}</p>
-
-      <div class="card__stats">
-        <span class="card__stat">
-          <SvgIcon name="bed" :size="14" />
-          {{ nbrChambres }} Chambres
+    <!-- Body -->
+    <div class="card-body">
+      <p class="card-title">{{ libelle }}</p>
+      <p class="card-price">
+        {{ formatPrice(prix) }} FCFA
+      </p>
+      <div class="card-location">
+        <MapPin :size="12" />
+        <span>{{ adresse }}</span>
+      </div>
+      <div class="card-meta">
+        <span class="meta-item">
+          <Bed :size="13" /> {{ nbreDePieces }} pièces
         </span>
-        <span class="card__stat">
-          <SvgIcon name="droplet" :size="14" />
-          {{ nbrSallesBain }} Bains
+        <span class="meta-item">
+          <Maximize2 :size="13" /> {{ surface }} m²
         </span>
-        <span class="card__stat">
-          <SvgIcon name="maximize" :size="14" />
-          {{ surface }}m²
+        <span class="meta-item">
+          <Home :size="13" /> {{ typeBien?.libelle }}
         </span>
       </div>
     </div>
-  </article>
+
+  </div>
 </template>
 
-<style scoped>
-.card {
-  background: var(--color-card);
-  border-radius: var(--radius);
-  overflow: hidden;
-  border: 1px solid rgba(30, 37, 50, 0.08);
-  box-shadow: 0 4px 20px rgba(45, 55, 72, 0.05);
-  cursor: pointer;
-  transition: box-shadow 0.25s;
-}
-.card:hover {
-  box-shadow: 0 8px 32px rgba(45, 55, 72, 0.12);
+<script setup>
+import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+import {
+  Heart, MapPin, Bed, Maximize2, Home
+} from 'lucide-vue-next'
+
+const props = defineProps({
+  id: [Number, String],
+  libelle: String,
+  prix: Number,
+  adresse: String,
+  surface: Number,
+  nbreDePieces: Number,
+  typeBien: Object,
+  photos: Array,
+  createdAt: String,
+  isExclusif: Boolean,
+  isFavori: { type: Boolean, default: false },
+})
+defineEmits(['toggle-favori'])
+
+const router = useRouter()
+
+const goToDetail = () => {
+  router.push('/annonces/' + props.id)
 }
 
-/* Image aspect-ratio 3/2 comme Figma */
-.card__image-wrapper {
-  position: relative;
-  aspect-ratio: 3 / 2;
-  overflow: hidden;
+const formatPrice = (val) => {
+  if (!val) return '—'
+  return new Intl.NumberFormat('fr-SN')
+    .format(val)
 }
-.card__image {
+
+const badge = computed(() => {
+  if (props.isExclusif) return {
+    label: 'Exclusivité',
+    bg: 'var(--color-accent)',
+    color: 'white'
+  }
+  const days = Math.floor(
+    (Date.now() - new Date(props.createdAt))
+    / (1000 * 60 * 60 * 24)
+  )
+  if (days < 7) return {
+    label: 'Nouveau',
+    bg: 'var(--color-primary)',
+    color: 'white'
+  }
+  return null
+})
+</script>
+
+<style scoped>
+.annonce-card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+
+.annonce-card:hover {
+  box-shadow: 0 4px 20px rgba(45,55,72,0.12);
+  transform: translateY(-2px);
+}
+
+.card-image-wrapper {
+  position: relative;
+  height: 200px;
+  overflow: hidden;
+  background: var(--color-border);
+}
+
+.card-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.5s;
-}
-.card:hover .card__image {
-  transform: scale(1.06);
+  transition: transform 300ms ease;
 }
 
-/* Badges overlay */
-.card__badge {
-  position: absolute;
-  top: 0.75rem;
-  left: 0.75rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-}
-.card__badge--new {
-  background: var(--color-primary);
-  color: #fff;
-}
-.card__badge--exclusif {
-  background: var(--color-accent);
-  color: #fff;
+.annonce-card:hover .card-image {
+  transform: scale(1.03);
 }
 
-/* Bouton favori */
-.card__favoris {
+.card-badge {
   position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  width: 36px;
-  height: 36px;
+  top: 10px;
+  left: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+  z-index: 2;
+}
+
+.card-favori {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(255,255,255,0.9);
+  border: none;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(8px);
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-muted);
-  transition: background var(--transition), color var(--transition);
+  cursor: pointer;
+  z-index: 2;
+  transition: transform 150ms ease;
 }
-.card__favoris:hover {
-  background: #fff;
-  color: var(--color-accent);
-}
-.card__favoris--active { color: var(--color-danger); }
-.card__favoris--active:hover { color: var(--color-danger); }
 
-/* Corps */
-.card__body {
-  padding: 1rem;
+.card-favori:hover { transform: scale(1.15); }
+
+.card-body {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
-.card__title {
-  font-family: var(--font-serif);
-  font-size: 1rem;
+
+.card-title {
+  font-size: 14px;
   font-weight: 600;
   color: var(--color-text);
-  line-height: 1.3;
-  margin-bottom: 0.35rem;
-}
-.card__prix {
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: var(--color-accent);
-  margin-bottom: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
 }
 
-/* Stats */
-.card__stats {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--color-border);
+.card-price {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-accent);
+  margin: 0;
 }
-.card__stat {
+
+.card-location {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.card-location span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+  margin-top: 2px;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
 }
 </style>

@@ -1,9 +1,8 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Edit, Archive, RotateCcw, MapPin, Bed, Maximize, CheckCircle } from 'lucide-vue-next'
+import { Edit, Archive, RotateCcw, MapPin, Bed, Maximize, CheckCircle, ChevronLeft, ChevronRight, ImageOff } from 'lucide-vue-next'
 import annonceService from '@/services/annonceService'
-import placeholderImg from '@/assets/Penthouse.png'
 import LocationMap from '@/components/LocationMap.vue'
 
 const route  = useRoute()
@@ -12,7 +11,29 @@ const router = useRouter()
 const annonce  = ref(null)
 const loading  = ref(false)
 const error    = ref('')
-const imageActive = ref(0)
+
+// Gallery Fix 4
+const allPhotos = computed(() => {
+  if (!annonce.value?.images?.length) return []
+  const main = [{ url: annonce.value.images[0], isPrincipal: true, id: 'main' }]
+  const subs = annonce.value.images.slice(1).map((url, i) => ({ url, isPrincipal: false, id: `sub-${i}` }))
+  return [...main, ...subs]
+})
+
+const activeIndex = ref(0)
+const currentPhoto = computed(() => allPhotos.value[activeIndex.value]?.url || '')
+
+const prev = () => {
+  activeIndex.value = activeIndex.value === 0 ? allPhotos.value.length - 1 : activeIndex.value - 1
+}
+
+const next = () => {
+  activeIndex.value = activeIndex.value === allPhotos.value.length - 1 ? 0 : activeIndex.value + 1
+}
+
+watch(() => annonce.value?.id, () => {
+  activeIndex.value = 0
+})
 
 // Confirmation archivage
 const showConfirm = ref(false)
@@ -50,10 +71,6 @@ async function handleRestore() {
   } catch (err) {
     error.value = err.response?.data?.message || 'Erreur lors de la restauration.'
   }
-}
-
-function getImage(index) {
-  return annonce.value?.images?.[index] || placeholderImg
 }
 
 function formatPrix(prix) {
@@ -95,13 +112,51 @@ onMounted(fetchAnnonce)
       </div>
 
       <!-- Galerie -->
-      <div class="daa-gallery">
-        <div class="daa-gallery__main">
-          <img :src="getImage(imageActive)" :alt="annonce.libelle" />
+      <div class="gallery-container">
+        <!-- Main display -->
+        <div class="gallery-main" v-if="allPhotos.length > 0">
+          <img
+            :src="currentPhoto"
+            :alt="annonce.libelle"
+            class="gallery-main-img"
+          />
+
+          <button
+            v-if="allPhotos.length > 1"
+            class="gallery-nav left"
+            @click="prev"
+          >
+            <ChevronLeft :size="20" />
+          </button>
+          <button
+            v-if="allPhotos.length > 1"
+            class="gallery-nav right"
+            @click="next"
+          >
+            <ChevronRight :size="20" />
+          </button>
+
+          <div class="gallery-counter">
+            {{ activeIndex + 1 }} / {{ allPhotos.length }}
+          </div>
         </div>
-        <div class="daa-gallery__side">
-          <div v-for="i in 2" :key="i" class="daa-gallery__thumb" @click="imageActive = i">
-            <img :src="getImage(i)" :alt="`Photo ${i+1}`" />
+
+        <!-- No photo state -->
+        <div v-else class="gallery-empty">
+          <ImageOff :size="40" color="var(--color-border)" />
+          <p>Aucune photo disponible</p>
+        </div>
+
+        <!-- Thumbnails -->
+        <div v-if="allPhotos.length > 1" class="gallery-thumbs">
+          <div
+            v-for="(photo, index) in allPhotos"
+            :key="photo.id || index"
+            :class="['thumb', { active: activeIndex === index }]"
+            @click="activeIndex = index"
+          >
+            <img :src="photo.url" :alt="'Photo ' + (index + 1)" />
+            <span v-if="photo.isPrincipal" class="thumb-main-dot"></span>
           </div>
         </div>
       </div>
@@ -215,13 +270,21 @@ onMounted(fetchAnnonce)
 .daa-btn--restore { background: #e8f2ef; color: var(--color-primary); border: 1px solid var(--color-primary); }
 .daa-btn:hover { opacity: .85; }
 
-/* Galerie */
-.daa-gallery { display: grid; grid-template-columns: 2fr 1fr; gap: .5rem; height: 400px; border-radius: var(--radius); overflow: hidden; margin-bottom: 2rem; }
-.daa-gallery__main img { width: 100%; height: 100%; object-fit: cover; }
-.daa-gallery__side { display: grid; grid-template-rows: 1fr 1fr; gap: .5rem; }
-.daa-gallery__thumb { overflow: hidden; cursor: pointer; }
-.daa-gallery__thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform .3s; }
-.daa-gallery__thumb:hover img { transform: scale(1.05); }
+.gallery-container { display: flex; flex-direction: column; gap: 10px; margin-bottom: 2rem; }
+.gallery-main { position: relative; border-radius: 12px; overflow: hidden; height: 400px; background: var(--color-border); }
+.gallery-main-img { width: 100%; height: 100%; object-fit: cover; }
+.gallery-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.92); border: none; border-radius: 50%; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 150ms ease; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+.gallery-nav.left { left: 12px; }
+.gallery-nav.right { right: 12px; }
+.gallery-nav:hover { background: var(--color-primary); color: white; }
+.gallery-counter { position: absolute; bottom: 10px; right: 12px; background: rgba(0,0,0,0.55); color: white; font-size: 12px; padding: 3px 8px; border-radius: 10px; }
+.gallery-empty { height: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: var(--color-background); border: 1px dashed var(--color-border); border-radius: 12px; color: var(--color-text-secondary); font-size: 13px; }
+.gallery-thumbs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; scrollbar-color: var(--color-border) transparent; }
+.thumb { position: relative; width: 68px; height: 52px; border-radius: 6px; overflow: hidden; flex-shrink: 0; cursor: pointer; border: 2px solid transparent; opacity: 0.65; transition: all 150ms ease; }
+.thumb:hover { opacity: 0.9; }
+.thumb.active { border-color: var(--color-primary); opacity: 1; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; }
+.thumb-main-dot { position: absolute; bottom: 4px; right: 4px; width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent); }
 
 /* Corps */
 .daa-body { display: grid; grid-template-columns: 1fr 280px; gap: 2rem; align-items: start; }

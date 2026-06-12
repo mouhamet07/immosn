@@ -105,6 +105,12 @@ async function geocodeLocation() {
 }
 
 function nextStep() {
+  if (currentStep.value === 0) {
+    if (!form.libelle || !form.description || !form.typeBienId || !form.prix || !form.nbrPieces || !form.surface) {
+      toast.value?.show('Veuillez remplir tous les champs obligatoires de cette étape.', 'error')
+      return
+    }
+  }
   if (currentStep.value === 1 && (!form.departement || !form.quartier)) {
     toast.value?.show('Veuillez sélectionner un département et un quartier.', 'error')
     return
@@ -121,7 +127,6 @@ const uploadProgress   = ref({ done: 0, total: 0 })
 const handleMainPhoto = (event) => {
   const file = event.target.files[0]
   if (!file) return
-  if (file.size > 5 * 1024 * 1024) { toast.value?.show('Photo trop lourde — max 5 Mo', 'error'); return }
   mainPhoto.value = file
   mainPhotoPreview.value = URL.createObjectURL(file)
 }
@@ -132,9 +137,7 @@ const handleMainDrop = (event) => {
 const removeMainPhoto = () => { mainPhoto.value = null; mainPhotoPreview.value = null }
 
 const handleSubPhotos = (event) => {
-  const remaining = 2 - subPhotos.value.length
-  Array.from(event.target.files).slice(0, remaining).forEach(file => {
-    if (file.size > 5 * 1024 * 1024) { toast.value?.show(`${file.name} trop lourd — ignoré`, 'error'); return }
+  Array.from(event.target.files).forEach(file => {
     subPhotos.value.push({ file, preview: URL.createObjectURL(file) })
   })
 }
@@ -343,7 +346,7 @@ async function submit() {
           >
             <ImagePlus :size="32" color="var(--color-primary)" />
             <p>Cliquez ou glissez votre photo principale</p>
-            <span class="upload-hint">JPG, PNG — max 5 Mo</span>
+            <span class="upload-hint">JPG, PNG, WebP</span>
             <input ref="mainInput" type="file" accept="image/jpeg,image/png,image/webp" @change="handleMainPhoto" hidden />
           </div>
           <div v-else class="main-preview">
@@ -360,19 +363,19 @@ async function submit() {
             Photos supplémentaires
             <span class="optional-badge">Optionnel</span>
           </h4>
-          <p class="photo-hint">Ajoutez jusqu'à 2 photos supplémentaires pour mieux présenter le bien.</p>
+          <p class="photo-hint">Ajoutez d'autres photos pour mieux présenter le bien.</p>
           <div class="sub-photos-grid">
             <div v-for="(photo, i) in subPhotos" :key="i" class="sub-photo-item">
               <img :src="photo.preview" alt="photo" />
               <button class="remove-photo" @click="removeSubPhoto(i)"><X :size="14" /></button>
             </div>
-            <div v-if="subPhotos.length < 2" class="upload-zone sub-zone" @click="$refs.subInput.click()">
+            <div class="upload-zone sub-zone" @click="$refs.subInput.click()">
               <Plus :size="24" color="var(--color-primary)" />
               <span>Ajouter</span>
               <input ref="subInput" type="file" accept="image/jpeg,image/png,image/webp" multiple @change="handleSubPhotos" hidden />
             </div>
           </div>
-          <p class="photos-count">{{ subPhotos.length }} / 2 photos supplémentaires</p>
+          <p class="photos-count">{{ subPhotos.length }} photos supplémentaires</p>
         </div>
       </section>
 

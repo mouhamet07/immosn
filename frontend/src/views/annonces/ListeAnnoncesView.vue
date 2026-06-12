@@ -22,51 +22,63 @@ const pageNumbers = computed(() =>
   Array.from({ length: totalPages.value }, (_, i) => i + 1)
 )
 
-const filtres = reactive({
+const filters = reactive({
   typeBienId:    null,
   prixMin:       null,
   prixMax:       null,
   adresse:       '',
-  chambresRange: '',
+  nbreChambres:  '',
   sortBy:        'createdAt',
   sortDir:       'DESC',
 })
 
-
-// Convertit la tranche de chambres en nbrPieces pour l'API (champ exact SearchAnnonceRequestDto)
-function parseChambresFilter(range) {
-  if (!range) return {}
-  if (range === '1-3')  return { nbrPieces: 1 }
-  if (range === '4-6')  return { nbrPieces: 4 }
-  if (range === '7-10') return { nbrPieces: 7 }
-  if (range === '10+')  return { nbrPieces: 10 }
-  return {}
-}
-
 function resetFiltres() {
-  filtres.typeBienId    = null
-  filtres.prixMin       = null
-  filtres.prixMax       = null
-  filtres.adresse       = ''
-  filtres.chambresRange = ''
+  filters.typeBienId    = null
+  filters.prixMin       = null
+  filters.prixMax       = null
+  filters.adresse       = ''
+  filters.nbreChambres  = ''
   selectedCommoditeIds.value = []
   fetchAnnonces(0)
+}
+
+// Convert value before sending to API:
+const buildFilterParams = (page) => {
+  const params = { page, size: PAGE_SIZE, sortBy: filters.sortBy, sortDir: filters.sortDir }
+
+  if (filters.nbreChambres) {
+    if (filters.nbreChambres === '6+') {
+      params.nbreMin = 6
+    } else {
+      params.nbreDePieces = parseInt(filters.nbreChambres)
+    }
+  }
+
+  if (filters.typeBienId)
+    params.typeBienId = filters.typeBienId
+
+  if (filters.prixMin)
+    params.prixMin = filters.prixMin
+
+  if (filters.prixMax)
+    params.prixMax = filters.prixMax
+
+  if (filters.adresse?.trim())
+    params.adresse = filters.adresse.trim()
+
+  if (selectedCommoditeIds.value.length > 0)
+    params.commoditeIds = selectedCommoditeIds.value
+
+  return params
 }
 
 async function fetchAnnonces(page = 0) {
   loading.value = true
   error.value   = ''
   try {
-    // Corps exact selon SearchAnnonceRequestDto du backend
-    const body = { page, size: PAGE_SIZE, sortBy: filtres.sortBy, sortDir: filtres.sortDir }
-    if (filtres.typeBienId)              body.typeBienId   = filtres.typeBienId
-    if (filtres.adresse?.trim())         body.adresse      = filtres.adresse.trim()
-    if (filtres.prixMin)                 body.prixMin      = filtres.prixMin
-    if (filtres.prixMax)                 body.prixMax      = filtres.prixMax
-    if (filtres.chambresRange)           Object.assign(body, parseChambresFilter(filtres.chambresRange))
-    if (selectedCommoditeIds.value.length > 0) body.commoditeIds = selectedCommoditeIds.value
+    const params = buildFilterParams(page)
 
-    const response = await annonceService.searchAnnonces(body)
+    const response = await annonceService.searchAnnonces(params)
     const paged    = response.data
     annonces.value    = paged.data
     totalPages.value  = paged.totalPages
@@ -114,28 +126,30 @@ onMounted(async () => {
       <div class="liste-filters">
         <div class="filter-input-wrap">
           <SvgIcon name="map-pin" :size="14" class="filter-icon" />
-          <input v-model="filtres.adresse" type="text" class="filter-input" placeholder="Quartier..." />
+          <input v-model="filters.adresse" type="text" class="filter-input" placeholder="Quartier..." />
         </div>
 
         <div class="filter-input-wrap">
           <SvgIcon name="home" :size="14" class="filter-icon" />
-          <select v-model="filtres.typeBienId" class="filter-select">
+          <select v-model="filters.typeBienId" class="filter-select">
             <option :value="null">Type de bien</option>
             <option v-for="t in typesBien" :key="t.id" :value="t.id">{{ t.libelle }}</option>
           </select>
         </div>
 
-        <input v-model.number="filtres.prixMin" type="number" class="filter-input filter-input--noicon" placeholder="Prix min" min="0" step="50000" />
-        <input v-model.number="filtres.prixMax" type="number" class="filter-input filter-input--noicon" placeholder="Prix max" min="0" step="50000" />
+        <input v-model.number="filters.prixMin" type="number" class="filter-input filter-input--noicon" placeholder="Prix min" min="0" step="50000" />
+        <input v-model.number="filters.prixMax" type="number" class="filter-input filter-input--noicon" placeholder="Prix max" min="0" step="50000" />
 
         <div class="filter-input-wrap">
           <SvgIcon name="bed" :size="14" class="filter-icon" />
-          <select v-model="filtres.chambresRange" class="filter-select">
-            <option value="">Pièces</option>
-            <option value="1-3">1 — 3 pièces</option>
-            <option value="4-6">4 — 6 pièces</option>
-            <option value="7-10">7 — 10 pièces</option>
-            <option value="10+">10+ pièces</option>
+          <select v-model="filters.nbreChambres" class="filter-select">
+            <option value="">Toutes les pièces</option>
+            <option value="1">Studio — 1 pièce</option>
+            <option value="2">2 pièces</option>
+            <option value="3">3 pièces</option>
+            <option value="4">4 pièces</option>
+            <option value="5">5 pièces</option>
+            <option value="6+">6 pièces et plus</option>
           </select>
         </div>
 
@@ -144,7 +158,7 @@ onMounted(async () => {
           Rechercher
         </button>
 
-        <button v-if="filtres.adresse || filtres.typeBienId || filtres.prixMin || filtres.prixMax || filtres.chambresRange || selectedCommoditeIds.length" class="filters-reset" @click="resetFiltres">
+        <button v-if="filters.adresse || filters.typeBienId || filters.prixMin || filters.prixMax || filters.nbreChambres || selectedCommoditeIds.length" class="filters-reset" @click="resetFiltres">
           <SvgIcon name="x" :size="14" />
         </button>
       </div>
@@ -177,13 +191,14 @@ onMounted(async () => {
           v-for="(annonce, i) in annonces"
           :key="annonce.id"
           :id="annonce.id"
-          :title="annonce.libelle"
+          :libelle="annonce.libelle"
           :prix="annonce.prix"
-          :images="annonce.imagePrincipale ? [annonce.imagePrincipale] : []"
-          :nbrChambres="annonce.nbrPieces"
-          :nbrSallesBain="0"
+          :photos="annonce.imagePrincipale ? [{ url: annonce.imagePrincipale }] : []"
+          :nbreDePieces="annonce.nbrPieces"
           :surface="annonce.surface"
           :adresse="annonce.adresse"
+          :typeBien="annonce.typeBien"
+          :createdAt="annonce.createdAt"
           :badge="annonce.typeBien?.libelle || ''"
           :isNew="i % 2 === 0"
         />

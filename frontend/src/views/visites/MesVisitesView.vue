@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { Home, MapPin, Calendar, Search, AlertCircle, RefreshCw } from 'lucide-vue-next'
+import { Home, MapPin, Calendar, Search, AlertCircle, RefreshCw, Clock, Info } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import visiteService from '@/services/visiteService'
 import FilterSelect from '@/components/FilterSelect.vue'
@@ -72,6 +72,22 @@ function formatDate(dt) {
   })
 }
 
+function formatJustDate(dt) {
+  if (!dt) return '—'
+  return new Date(dt).toLocaleDateString('fr-SN', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  })
+}
+
+function formatTime(dt) {
+  if (!dt) return '—'
+  return new Date(dt).toLocaleTimeString('fr-SN', {
+    hour: '2-digit', minute: '2-digit'
+  })
+}
+
 onMounted(() => fetchVisites(0))
 </script>
 
@@ -129,15 +145,41 @@ onMounted(() => fetchVisites(0))
             <span v-else class="mv-card__thumb-ph"><Home :size="28" /></span>
           </div>
           <div class="mv-card__body">
-            <div class="mv-card__top">
-              <span :class="['badge', STATUT_COLORS[v.statut]]">{{ STATUT_LABELS[v.statut] }}</span>
-              <span class="mv-card__date">Demandé le {{ formatDate(v.createdAt) }}</span>
-            </div>
-            <RouterLink :to="`/annonces/${v.annonceId}`" class="mv-card__title">{{ v.annonceLibelle }}</RouterLink>
-            <p class="mv-card__addr"><MapPin :size="12" /> {{ v.annonceAdresse }}</p>
-            <div class="mv-card__visite">
-              <span class="mv-card__visite-label">Date souhaitée :</span>
-              <span class="mv-card__visite-val">{{ formatDate(v.dateVisite) }}</span>
+            <div class="visite-details">
+              <div class="detail-row">
+                <span class="detail-label">
+                  <Calendar :size="13" />
+                  Date
+                </span>
+                <span class="detail-value">
+                  {{ formatJustDate(v.dateVisite) }}
+                </span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">
+                  <Clock :size="13" />
+                  Heure
+                </span>
+                <span class="detail-value">
+                  {{ formatTime(v.dateVisite) }}
+                </span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">
+                  <MapPin :size="13" />
+                  Bien
+                </span>
+                <span class="detail-value">
+                  {{ v.annonceLibelle }}
+                </span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">
+                  <Info :size="13" />
+                  Statut
+                </span>
+                <span :class="['badge', STATUT_COLORS[v.statut]]">{{ STATUT_LABELS[v.statut] }}</span>
+              </div>
             </div>
             <p v-if="v.commentaire" class="mv-card__comment">{{ v.commentaire }}</p>
           </div>
@@ -235,9 +277,45 @@ onMounted(() => fetchVisites(0))
 }
 .mv-card__title:hover { color: var(--color-primary); }
 .mv-card__addr { font-size: .8rem; color: var(--color-text); opacity: .55; margin: .25rem 0; display: flex; align-items: center; gap: .3rem; }
-.mv-card__visite { display: flex; gap: .5rem; font-size: .85rem; margin-top: .4rem; }
-.mv-card__visite-label { font-weight: 600; color: var(--color-text); opacity: .7; }
-.mv-card__visite-val { color: var(--color-primary); font-weight: 600; }
+.visite-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 0.5rem;
+}
+
+.detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+  gap: 12px;
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  min-width: 100px;
+  flex-shrink: 0;
+}
+
+.detail-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+  text-align: right;
+}
 .mv-card__comment {
   font-size: .82rem; color: var(--color-text); opacity: .6;
   font-style: italic; margin-top: .4rem;

@@ -1,15 +1,15 @@
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Heart, Phone, Mail, Share2, FileText, Flag } from 'lucide-vue-next'
+import { Heart, Phone, Mail, Share2, FileText, Flag, ChevronLeft, ChevronRight, ImageOff } from 'lucide-vue-next'
 import ButtonPrimary from '@/components/ButtonPrimary.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import annonceService from '@/services/annonceService'
 import favorisService from '@/services/favorisService'
+import visiteService from '@/services/visiteService'
 import discussionService from '@/services/discussionService'
 import { useAuthStore } from '@/stores/authStore'
 import { useToastStore } from '@/stores/toastStore'
-import placeholderImg from '@/assets/Penthouse.png'
 import LocationMap from '@/components/LocationMap.vue'
 import logoImg from '@/assets/logo nav 1 - orange 1.png'
 
@@ -23,10 +23,36 @@ const annonce = ref(null)
 const loading = ref(false)
 const error = ref('')
 const isFavori = ref(false)
-const imageActive = ref(0)
+
+// Gallery Fix 4
+const allPhotos = computed(() => {
+  if (!annonce.value?.images?.length) return []
+  const main = [{ url: annonce.value.images[0], isPrincipal: true, id: 'main' }]
+  const subs = annonce.value.images.slice(1).map((url, i) => ({ url, isPrincipal: false, id: `sub-${i}` }))
+  return [...main, ...subs]
+})
+
+const activeIndex = ref(0)
+const currentPhoto = computed(() => allPhotos.value[activeIndex.value]?.url || '')
+
+const prev = () => {
+  activeIndex.value = activeIndex.value === 0
+    ? allPhotos.value.length - 1
+    : activeIndex.value - 1
+}
+
+const next = () => {
+  activeIndex.value =
+    activeIndex.value === allPhotos.value.length - 1
+      ? 0
+      : activeIndex.value + 1
+}
+
+watch(() => annonce.value?.id, () => {
+  activeIndex.value = 0
+})
 
 //  Modal visite 
-import visiteService from '@/services/visiteService'
 const showVisiteModal  = ref(false)
 const visiteDate       = ref('')
 const visiteComment    = ref('')
@@ -196,11 +222,6 @@ function formatPrix(prix) {
 function toUSD(prix) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(prix / 600)
 }
-
-// Retourner placeholder si pas d'image (dév)
-function getImage(index) {
-  return annonce.value?.images?.[index] || placeholderImg
-}
 </script>
 
 <template>
@@ -218,11 +239,16 @@ function getImage(index) {
     <main v-else-if="annonce" class="detail-main">
 
       <!-- Galerie Figma : 2/3 gauche + 1/3 droite -->
-      <section class="detail-gallery">
-        <!-- Image principale -->
-        <div class="detail-gallery__main">
-          <img :src="getImage(imageActive)" :alt="annonce.libelle" class="detail-gallery__img" />
-          <!-- FIX 3 : Heart Lucide avec état favori réel -->
+      <section class="gallery-container">
+        <!-- Main display -->
+        <div class="gallery-main" v-if="allPhotos.length > 0">
+          <img
+            :src="currentPhoto"
+            :alt="annonce.libelle"
+            class="gallery-main-img"
+          />
+
+          <!-- Bouton favori integré -->
           <button
             class="detail-gallery__fav"
             :class="{ 'detail-gallery__fav--active': isFavori }"
@@ -235,15 +261,43 @@ function getImage(index) {
               :color="isFavori ? 'var(--color-accent)' : 'currentColor'"
             />
           </button>
-        </div>
-        <!-- Miniatures empilées -->
-        <div class="detail-gallery__side">
-          <div class="detail-gallery__thumb" @click="imageActive = 1">
-            <img :src="getImage(1)" alt="Photo 2" />
+
+          <button
+            v-if="allPhotos.length > 1"
+            class="gallery-nav left"
+            @click="prev"
+          >
+            <ChevronLeft :size="20" />
+          </button>
+          <button
+            v-if="allPhotos.length > 1"
+            class="gallery-nav right"
+            @click="next"
+          >
+            <ChevronRight :size="20" />
+          </button>
+
+          <div class="gallery-counter">
+            {{ activeIndex + 1 }} / {{ allPhotos.length }}
           </div>
-          <div class="detail-gallery__thumb detail-gallery__thumb--more" @click="imageActive = 2">
-            <img :src="getImage(2)" alt="Photo 3" />
-            <div v-if="annonce.images?.length > 3" class="detail-gallery__overlay">+{{ annonce.images.length - 3 }} Plus</div>
+        </div>
+
+        <!-- No photo state -->
+        <div v-else class="gallery-empty">
+          <ImageOff :size="40" color="var(--color-border)" />
+          <p>Aucune photo disponible</p>
+        </div>
+
+        <!-- Thumbnails -->
+        <div v-if="allPhotos.length > 1" class="gallery-thumbs">
+          <div
+            v-for="(photo, index) in allPhotos"
+            :key="photo.id || index"
+            :class="['thumb', { active: activeIndex === index }]"
+            @click="activeIndex = index"
+          >
+            <img :src="photo.url" :alt="'Photo ' + (index + 1)" />
+            <span v-if="photo.isPrincipal" class="thumb-main-dot"></span>
           </div>
         </div>
       </section>
@@ -271,7 +325,7 @@ function getImage(index) {
           <div class="detail-bento">
             <div class="detail-bento__item">
               <SvgIcon name="bed" :size="28" class="detail-bento__icon" />
-              <span class="detail-bento__label">{{ annonce.nbrPieces }} Chambres</span>
+              <span class="detail-bento__label">{{ annonce.nbrPieces }} pièces</span>
             </div>
             <div class="detail-bento__item">
               <SvgIcon name="droplet" :size="28" class="detail-bento__icon" />
@@ -325,13 +379,18 @@ function getImage(index) {
         <!-- Sidebar agent — FIX 1 : branding ImmoSN -->
         <aside class="detail-sidebar">
           <div class="detail-sidebar__card">
-            <div class="detail-agent">
+            <div class="agent-identity">
               <div class="agent-logo-wrapper">
-                <img :src="logoImg" alt="ImmoSN" class="agent-logo" />
+                <img
+                  :src="logoImg"
+                  alt="2S Immo"
+                  class="agent-logo"
+                />
               </div>
-              <div>
-                <p class="agent-name">ImmoSN</p>
-                <p class="agent-title">Agence Immobilière Sénégalaise</p>
+              <div class="agent-info">
+                <h3 class="agent-name">2S Immo</h3>
+                <p class="agent-role">
+                </p>
               </div>
             </div>
 
@@ -348,8 +407,8 @@ function getImage(index) {
 
             <!-- FIX 2 : boutons avec guard auth -->
             <div class="detail-sidebar__actions">
-              <ButtonPrimary full-width @click="openContact">Contacter l'agent</ButtonPrimary>
-              <ButtonPrimary variant="outline" full-width @click="openVisite">Réserver une visite privée</ButtonPrimary>
+              <ButtonPrimary full-width @click="handleContactAgent">Contacter l'agent</ButtonPrimary>
+              <ButtonPrimary variant="outline" full-width @click="handleReserverVisite">Réserver une visite privée</ButtonPrimary>
             </div>
 
             <div class="detail-sidebar__links">
@@ -840,4 +899,28 @@ function getImage(index) {
   .detail-gallery { height: 220px; }
   .detail-header__title { font-size: 1.4rem; }
 }
+
+
+.agent-identity { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid var(--color-border); }
+.agent-logo-wrapper { width: 50px; height: 50px; border-radius: 50%; overflow: hidden; border: 2px solid var(--color-border); background: var(--color-card); display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 4px; }
+.agent-logo { width: 100%; height: 100%; object-fit: contain; }
+.agent-name { font-size: 15px; font-weight: 700; color: var(--color-text); margin: 0; }
+.agent-role { font-size: 11px; font-weight: 500; color: var(--color-primary); text-transform: uppercase; letter-spacing: 0.05em; margin: 3px 0 0; }
+
+.gallery-container { display: flex; flex-direction: column; gap: 10px; }
+.gallery-main { position: relative; border-radius: 12px; overflow: hidden; height: 400px; background: var(--color-border); }
+.gallery-main-img { width: 100%; height: 100%; object-fit: cover; }
+.gallery-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.92); border: none; border-radius: 50%; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 150ms ease; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+.gallery-nav.left { left: 12px; }
+.gallery-nav.right { right: 12px; }
+.gallery-nav:hover { background: var(--color-primary); color: white; }
+.gallery-counter { position: absolute; bottom: 10px; right: 12px; background: rgba(0,0,0,0.55); color: white; font-size: 12px; padding: 3px 8px; border-radius: 10px; }
+.gallery-empty { height: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: var(--color-background); border: 1px dashed var(--color-border); border-radius: 12px; color: var(--color-text-secondary); font-size: 13px; }
+.gallery-thumbs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; scrollbar-color: var(--color-border) transparent; }
+.thumb { position: relative; width: 68px; height: 52px; border-radius: 6px; overflow: hidden; flex-shrink: 0; cursor: pointer; border: 2px solid transparent; opacity: 0.65; transition: all 150ms ease; }
+.thumb:hover { opacity: 0.9; }
+.thumb.active { border-color: var(--color-primary); opacity: 1; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; }
+.thumb-main-dot { position: absolute; bottom: 4px; right: 4px; width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent); }
+
 </style>

@@ -52,12 +52,22 @@ const router = createRouter({
         { path: 'profil',              name: 'admin-profil',         component: () => import('@/views/admin/ProfilAdminView.vue') },
       ],
     },
+
+    // Catch all
+    { path: '/:pathMatch(.*)*', redirect: '/annonces' },
   ],
 })
 
 // Guard de navigation
 router.beforeEach((to) => {
   const authStore = useAuthStore()
+  const role = authStore.role
+  const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN'
+
+  // Si l'utilisateur est connecté et essaie d'aller sur connexion/inscription
+  if (authStore.isAuthenticated && (to.path === '/connexion' || to.path === '/inscription')) {
+    return isAdmin ? { path: '/admin/dashboard' } : { path: '/annonces' }
+  }
 
   if (!to.meta.requiresAuth) return true
 
@@ -66,12 +76,12 @@ router.beforeEach((to) => {
   }
 
   // Bloquer les admins sur les routes réservées aux clients
-  if (to.meta.role === 'CLIENT' && (authStore.role === 'ADMIN' || authStore.role === 'SUPER_ADMIN')) {
+  if (to.meta.role === 'CLIENT' && isAdmin) {
     return { path: '/admin/dashboard' }
   }
 
-  if (to.meta.role === 'ADMIN' && authStore.role !== 'ADMIN' && authStore.role !== 'SUPER_ADMIN') {
-    return { name: 'annonces' }
+  if (to.meta.role === 'ADMIN' && !isAdmin) {
+    return { path: '/annonces' }
   }
 
   return true

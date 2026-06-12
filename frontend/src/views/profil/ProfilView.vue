@@ -1,18 +1,9 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 
-// Formate le numéro en +221 XX XXX XX XX
-function formatTelephone(val) {
-  const digits = val.replace(/\D/g, '')
-  const local = digits.startsWith('221') ? digits.slice(3) : digits
-  const d = local.slice(0, 9)
-  if (d.length <= 2) return '+221 ' + d
-  if (d.length <= 5) return '+221 ' + d.slice(0,2) + ' ' + d.slice(2)
-  if (d.length <= 7) return '+221 ' + d.slice(0,2) + ' ' + d.slice(2,5) + ' ' + d.slice(5)
-  return '+221 ' + d.slice(0,2) + ' ' + d.slice(2,5) + ' ' + d.slice(5,7) + ' ' + d.slice(7,9)
-}
-import { Camera } from 'lucide-vue-next'
+import { Camera, Eye, EyeOff } from 'lucide-vue-next'
 import InputField from '@/components/InputField.vue'
+import PhoneInput from '@/components/PhoneInput.vue'
 import ButtonPrimary from '@/components/ButtonPrimary.vue'
 import { useAuthStore } from '@/stores/authStore'
 import { useToastStore } from '@/stores/toastStore'
@@ -76,12 +67,16 @@ const successSecurite = ref('')
 const errorInfo = ref('')
 const errorSecurite = ref('')
 
+// Toggle visibilité mot de passe
+const showCurrentPwd = ref(false)
+const showNewPwd = ref(false)
+
 // Pré-remplir depuis le store
 onMounted(() => {
   if (authStore.user) {
     formInfo.nomComplet = authStore.user.nomComplet || ''
     formInfo.email      = authStore.user.email      || ''
-    formInfo.telephone  = formatTelephone(authStore.user.telephone || '')
+    formInfo.telephone  = authStore.user.telephone  || ''
   }
 })
 
@@ -151,7 +146,11 @@ async function saveSecurite() {
             <form class="profil-card__form" @submit.prevent="saveInfo">
               <InputField v-model="formInfo.nomComplet" label="Nom complet" placeholder="Abdoulaye Diop" required />
               <InputField v-model="formInfo.email" label="Adresse e-mail" type="email" required />
-              <InputField v-model="formInfo.telephone" label="Numéro de téléphone" placeholder="+221 77 000 00 00" />
+              
+              <div class="profil-field">
+                <label class="profil-field__label">Numéro de téléphone</label>
+                <PhoneInput v-model="formInfo.telephone" />
+              </div>
 
               <div v-if="successInfo" class="profil-alert profil-alert--success">{{ successInfo }}</div>
               <div v-if="errorInfo" class="profil-alert profil-alert--error">{{ errorInfo }}</div>
@@ -164,8 +163,49 @@ async function saveSecurite() {
           <section class="profil-card">
             <h2 class="profil-card__title">Sécurité du compte</h2>
             <form class="profil-card__form" @submit.prevent="saveSecurite">
-              <InputField v-model="formSecurite.motDePasseActuel" label="Mot de passe actuel" type="password" />
-              <InputField v-model="formSecurite.nouveauMotDePasse" label="Nouveau mot de passe" type="password" />
+              <div class="profil-field">
+                <label class="profil-field__label">Mot de passe actuel</label>
+                <div class="pwd-field">
+                  <input
+                    :type="showCurrentPwd ? 'text' : 'password'"
+                    v-model="formSecurite.motDePasseActuel"
+                    placeholder="Mot de passe actuel"
+                    class="profil-pwd-input"
+                    autocomplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    class="pwd-toggle"
+                    @click="showCurrentPwd = !showCurrentPwd"
+                    :aria-label="showCurrentPwd ? 'Masquer' : 'Afficher'"
+                  >
+                    <EyeOff v-if="showCurrentPwd" :size="16" />
+                    <Eye v-else :size="16" />
+                  </button>
+                </div>
+              </div>
+
+              <div class="profil-field">
+                <label class="profil-field__label">Nouveau mot de passe</label>
+                <div class="pwd-field">
+                  <input
+                    :type="showNewPwd ? 'text' : 'password'"
+                    v-model="formSecurite.nouveauMotDePasse"
+                    placeholder="Nouveau mot de passe"
+                    class="profil-pwd-input"
+                    autocomplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    class="pwd-toggle"
+                    @click="showNewPwd = !showNewPwd"
+                    :aria-label="showNewPwd ? 'Masquer' : 'Afficher'"
+                  >
+                    <EyeOff v-if="showNewPwd" :size="16" />
+                    <Eye v-else :size="16" />
+                  </button>
+                </div>
+              </div>
 
               <div v-if="successSecurite" class="profil-alert profil-alert--success">{{ successSecurite }}</div>
               <div v-if="errorSecurite" class="profil-alert profil-alert--error">{{ errorSecurite }}</div>

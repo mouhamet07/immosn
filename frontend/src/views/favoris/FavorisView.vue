@@ -79,14 +79,13 @@ onMounted(() => fetchFavoris(0))
           <div v-for="f in favoris" :key="f.annonceId" class="fav-item">
             <AnnonceCard
               :id="f.annonceId"
-              :title="f.libelle"
+              :libelle="f.libelle"
               :prix="f.prix"
-              :images="f.imagePrincipale ? [f.imagePrincipale] : []"
-              :nbrChambres="f.nbrPieces"
-              :nbrSallesBain="0"
+              :photos="f.imagePrincipale ? [{ url: f.imagePrincipale }] : []"
+              :nbreDePieces="f.nbrPieces"
               :surface="f.surface"
               :adresse="f.adresse"
-              :badge="f.typeBien || ''"
+              :typeBien="f.typeBien || {}"
             />
             <button class="fav-item__remove" @click="removeFavori(f.annonceId)" title="Retirer des favoris">
               Retirer
