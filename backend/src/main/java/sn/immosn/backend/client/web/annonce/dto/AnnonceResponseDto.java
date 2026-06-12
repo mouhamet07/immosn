@@ -9,6 +9,7 @@ public record AnnonceResponseDto(
     String libelle,
     String description,
     Integer nbrPieces,
+    Integer nbrSallesBain,
     Double surface,
     BigDecimal prix,
     String adresse,

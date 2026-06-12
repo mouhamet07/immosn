@@ -34,6 +34,7 @@ const form = reactive({
   description:    '',
   typeBienId:     null,
   nbrPieces:      '',
+  nbrSallesBain:  '',
   surface:        '',
   prix:           '',
   adresse:        '',
@@ -130,6 +131,7 @@ onMounted(async () => {
     form.description  = a.description  || ''
     form.typeBienId   = a.typeBien?.id || null
     form.nbrPieces    = a.nbrPieces    || ''
+    form.nbrSallesBain = a.nbrSallesBain || ''
     form.surface      = a.surface      || ''
     form.prix         = a.prix         || ''
     form.adresse      = a.adresse      || ''
@@ -180,6 +182,7 @@ async function handleSubmit() {
       libelle:       form.libelle,
       description:   form.description,
       nbrPieces:     parseInt(form.nbrPieces),
+      nbrSallesBain: form.nbrSallesBain ? parseInt(form.nbrSallesBain) : null,
       surface:       parseFloat(form.surface),
       prix:          parseFloat(form.prix),
       adresse:       form.adresse || null,
@@ -261,6 +264,10 @@ async function handleSubmit() {
           <div class="field">
             <label class="field__label">NOMBRE DE PIÈCES <span class="req">*</span></label>
             <input v-model.number="form.nbrPieces" type="number" min="0" step="1" class="field__input" placeholder="ex. 4" @input="form.nbrPieces = Math.max(0, form.nbrPieces)" />
+          </div>
+          <div class="field">
+            <label class="field__label">SALLES DE BAINS <span class="req">*</span></label>
+            <input v-model.number="form.nbrSallesBain" type="number" min="1" step="1" class="field__input" placeholder="ex. 2" @input="form.nbrSallesBain = Math.max(1, form.nbrSallesBain)" />
           </div>
           <div class="field">
             <label class="field__label">SURFACE (m²) <span class="req">*</span></label>

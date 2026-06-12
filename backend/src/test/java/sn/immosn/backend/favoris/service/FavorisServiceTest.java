@@ -123,7 +123,7 @@ class FavorisServiceTest {
     @DisplayName("checkFavoris — retourne true si présent")
     void checkFavoris_returnsTrue() {
         when(userRepository.findByEmail("client@test.sn")).thenReturn(Optional.of(client));
-        when(favorisRepository.existsByClientIdAndAnnonceId(1L, 2L)).thenReturn(true);
+        when(favorisRepository.existsActiveByClientIdAndAnnonceId(1L, 2L)).thenReturn(true);
 
         FavorisStatusDto result = favorisService.checkFavoris(2L, "client@test.sn");
 
@@ -134,7 +134,7 @@ class FavorisServiceTest {
     @DisplayName("checkFavoris — retourne false si absent")
     void checkFavoris_returnsFalse() {
         when(userRepository.findByEmail("client@test.sn")).thenReturn(Optional.of(client));
-        when(favorisRepository.existsByClientIdAndAnnonceId(1L, 2L)).thenReturn(false);
+        when(favorisRepository.existsActiveByClientIdAndAnnonceId(1L, 2L)).thenReturn(false);
 
         FavorisStatusDto result = favorisService.checkFavoris(2L, "client@test.sn");
 
@@ -158,7 +158,7 @@ class FavorisServiceTest {
         } catch (Exception ignored) {}
 
         when(userRepository.findByEmail("client@test.sn")).thenReturn(Optional.of(client));
-        when(favorisRepository.findByClientIdOrderByCreatedAtDesc(eq(1L), any()))
+        when(favorisRepository.findActiveByClientId(eq(1L), any()))
             .thenReturn(new PageImpl<>(List.of(fav)));
 
         Page<FavorisResponseDto> result = favorisService.getClientFavoris(

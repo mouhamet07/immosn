@@ -176,9 +176,14 @@ onMounted(() => fetchVisite())
           <template v-if="visite.statut === 'EN_ATTENTE'">
             <p class="vd-info">Votre demande est en attente de validation par l'administration.</p>
 
-            <button class="vd-btn vd-btn--primary" @click="showModif = !showModif">
-              {{ showModif ? 'Annuler la modification' : 'Modifier la demande' }}
-            </button>
+            <div class="vd-btn-row">
+              <button class="vd-btn vd-btn--primary" @click="showModif = !showModif">
+                {{ showModif ? 'Annuler la modification' : 'Modifier la demande' }}
+              </button>
+              <button class="vd-btn vd-btn--danger" :disabled="cancelling" @click="annuler">
+                {{ cancelling ? '…' : 'Annuler la demande' }}
+              </button>
+            </div>
 
             <div v-if="showModif" class="vd-modif-form">
               <label class="vd-modif-label">Nouvelle date souhaitée</label>
@@ -199,10 +204,6 @@ onMounted(() => fetchVisite())
                 {{ modifLoading ? '…' : 'Enregistrer les modifications' }}
               </button>
             </div>
-
-            <button class="vd-btn vd-btn--danger" :disabled="cancelling" @click="annuler">
-              {{ cancelling ? '…' : 'Annuler la demande' }}
-            </button>
           </template>
 
           <!-- ACCEPTEE : annuler reste possible -->
@@ -277,6 +278,7 @@ onMounted(() => fetchVisite())
 .vd-link:hover { text-decoration: underline; }
 
 .vd-actions { display: flex; flex-direction: column; gap: .75rem; }
+.vd-btn-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .vd-info {
   font-size: .88rem; color: var(--color-text); opacity: .7; padding: .75rem 1rem;
   background: var(--color-card); border-radius: var(--radius-sm);

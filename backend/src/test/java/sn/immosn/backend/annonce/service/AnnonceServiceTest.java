@@ -78,7 +78,7 @@ class AnnonceServiceTest {
         } catch (Exception ignored) {}
 
         responseDto = new AnnonceResponseDto(
-            1L, "Villa Almadies", "Magnifique villa", 5, 250.0,
+            1L, "Villa Almadies", "Magnifique villa", 5, 2, 250.0,
             BigDecimal.valueOf(150_000_000), "Almadies, Dakar",
             null, null, null, null, null,
             null, List.of(), List.of(), false,
@@ -89,7 +89,7 @@ class AnnonceServiceTest {
         listDto = new AnnonceListDto(
             "1", "Villa Almadies", BigDecimal.valueOf(150_000_000),
             "Almadies, Dakar", null, null, null, null,
-            null, 5, 250.0, null, LocalDateTime.now(), false,
+            null, 5, 2, 250.0, null, null, LocalDateTime.now(), false,
             null, null
         );
     }
@@ -99,7 +99,7 @@ class AnnonceServiceTest {
     @Test
     @DisplayName("getAnnonceById — annonce active trouvée")
     void getAnnonceById_found() {
-        when(annonceRepository.findByIdAndIsArchivedFalse(1L))
+        when(annonceRepository.findAnnonceByIdWithImages(1L))
             .thenReturn(Optional.of(annonceActive));
         when(annonceMapper.toResponse(annonceActive)).thenReturn(responseDto);
 
@@ -107,13 +107,13 @@ class AnnonceServiceTest {
 
         assertThat(result).isNotNull();
         assertThat(result.libelle()).isEqualTo("Villa Almadies");
-        verify(annonceRepository).findByIdAndIsArchivedFalse(1L);
+        verify(annonceRepository).findAnnonceByIdWithImages(1L);
     }
 
     @Test
     @DisplayName("getAnnonceById — annonce non trouvée → EntityNotFoundException")
     void getAnnonceById_notFound() {
-        when(annonceRepository.findByIdAndIsArchivedFalse(99L))
+        when(annonceRepository.findAnnonceByIdWithImages(99L))
             .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> annonceService.getAnnonceById(99L))
@@ -143,6 +143,7 @@ class AnnonceServiceTest {
             "Villa Almadies",
             "Magnifique villa",
             5,
+            2,
             250.0,
             BigDecimal.valueOf(150_000_000),
             "Route des Almadies",
@@ -158,7 +159,6 @@ class AnnonceServiceTest {
         TypeBienAnnonce typeBien = new TypeBienAnnonce();
         typeBien.setId(1L);
         when(typeBienAnnonceRepository.findByIdAndIsArchivedFalse(1L)).thenReturn(Optional.of(typeBien));
-        when(commoditeRepository.findByIdInAndIsArchivedFalse(any())).thenReturn(List.of());
 
         Annonce incoming = Annonce.builder()
             .libelle(request.libelle())
@@ -191,6 +191,7 @@ class AnnonceServiceTest {
             "Villa Almadies",
             "Magnifique villa",
             5,
+            2,
             250.0,
             BigDecimal.valueOf(150_000_000),
             null,
@@ -206,7 +207,6 @@ class AnnonceServiceTest {
         TypeBienAnnonce typeBien = new TypeBienAnnonce();
         typeBien.setId(1L);
         when(typeBienAnnonceRepository.findByIdAndIsArchivedFalse(1L)).thenReturn(Optional.of(typeBien));
-        when(commoditeRepository.findByIdInAndIsArchivedFalse(any())).thenReturn(List.of());
 
         Annonce incoming = Annonce.builder()
             .libelle(request.libelle())
@@ -250,12 +250,13 @@ class AnnonceServiceTest {
             .isArchived(false)
             .build();
 
-        when(annonceRepository.findByIdAndIsArchivedFalse(1L)).thenReturn(Optional.of(existing));
+        when(annonceRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(annonceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(annonceMapper.toResponse(any())).thenReturn(responseDto);
         when(geoCodingService.geocode("Almadies", "Dakar", null)).thenReturn(Optional.of(new double[]{14.0, -17.0}));
 
         AnnonceUpdateRequestDto request = new AnnonceUpdateRequestDto(
+            null,
             null,
             null,
             null,
@@ -322,7 +323,7 @@ class AnnonceServiceTest {
     @DisplayName("searchAnnonces — délègue au repository avec Specification")
     void searchAnnonces_delegatesToRepo() {
         SearchAnnonceRequestDto req = new SearchAnnonceRequestDto(
-            null, null, null, "Almadies", null, null, 0, 9, "createdAt", "DESC"
+            null, null, null, "Almadies", null, null, null, null, 0, 9, "createdAt", "DESC"
         );
         Page<Annonce> page = new PageImpl<>(List.of(annonceActive));
         // Utiliser ArgumentMatchers.<Type>any() pour éviter les unchecked cast warnings

@@ -318,7 +318,8 @@ onMounted(() => fetchContrat())
 }
 
 
-.badge-type { display: inline-flex; align-items: center; gap: .3rem; padding: .2rem .6rem; border-radius: 10px; font-size: .75rem; font-weight: 700; }
+/* Exception métier (Vente/Location) — aligné sur StatusBadge : padding .25/.65, radius 12px, .75rem/700 */
+.badge-type { display: inline-flex; align-items: center; gap: .3rem; padding: .25rem .65rem; border-radius: 12px; font-size: .75rem; font-weight: 700; white-space: nowrap; }
 .badge-type--vente { background: #fef9c3; color: #a16207; }
 .badge-type--location { background: #ede9fe; color: #7c3aed; }
 

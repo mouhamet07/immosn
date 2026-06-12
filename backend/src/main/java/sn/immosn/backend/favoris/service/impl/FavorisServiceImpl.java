@@ -71,6 +71,7 @@ public class FavorisServiceImpl implements FavorisService {
                     a.getAdresse(),
                     a.getTypeBien() != null ? a.getTypeBien().getLibelle() : null,
                     a.getNbrPieces(),
+                    a.getNbrSallesBain(),
                     a.getSurface(),
                     image,
                     fav.getCreatedAt()

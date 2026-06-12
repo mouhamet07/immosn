@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Edit, Archive, RotateCcw, MapPin, Bed, Maximize, CheckCircle } from 'lucide-vue-next'
+import { Edit, Archive, RotateCcw, MapPin, Bed, Droplet, Maximize, CheckCircle } from 'lucide-vue-next'
 import annonceService from '@/services/annonceService'
 import StatusBadge from '@/components/StatusBadge.vue'
 import ImageGallery from '@/components/ImageGallery.vue'
@@ -106,6 +106,7 @@ onMounted(fetchAnnonce)
           <!-- Stats -->
           <div class="daa-stats">
             <div class="daa-stat"><Bed :size="20" /><span>{{ annonce.nbrPieces }} pièces</span></div>
+            <div class="daa-stat"><Droplet :size="20" /><span>{{ annonce.nbrSallesBain >= 1 ? `${annonce.nbrSallesBain} salle(s) de bains` : 'SDB : non renseigné' }}</span></div>
             <div class="daa-stat"><Maximize :size="20" /><span>{{ annonce.surface }} m²</span></div>
             <div class="daa-stat"><CheckCircle :size="20" /><span>{{ annonce.typeBien?.libelle }}</span></div>
           </div>

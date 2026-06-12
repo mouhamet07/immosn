@@ -43,6 +43,14 @@ public class AnnonceSpecification {
                 predicates.add(cb.equal(root.get("nbrPieces"), req.nbrPieces()));
             }
 
+            if (req.piecesMin() != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("nbrPieces"), req.piecesMin()));
+            }
+
+            if (req.piecesMax() != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("nbrPieces"), req.piecesMax()));
+            }
+
             // Filtre commodités : l'annonce doit posséder TOUTES les commodités demandées
             // AnnonceCommodite utilise @IdClass avec champs annonce/commodite (pas d'embedded id)
             if (req.commoditeIds() != null && !req.commoditeIds().isEmpty()) {
