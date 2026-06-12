@@ -30,6 +30,15 @@ export default {
     return api.put(`/contrats/${id}`, data)
   },
 
+  // POST /api/v1/contrats/{id}/document — ADMIN (multipart)
+  uploadDocument(id, file) {
+    const form = new FormData()
+    form.append('file', file)
+    return api.post(`/contrats/${id}/document`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+
   // PUT /api/v1/contrats/{id}/resiliation — CLIENT
   demanderResiliation(id, motif) {
     return api.put(`/contrats/${id}/resiliation`, { motif })

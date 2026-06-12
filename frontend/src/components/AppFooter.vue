@@ -6,7 +6,7 @@ const year = new Date().getFullYear()
   <footer class="app-footer">
     <div class="footer-inner">
       <div class="footer-brand">
-        <img src="@/assets/logo nav 1 - orange 1.png" alt="ImmoSN" class="footer-logo" />
+        <img src="@/assets/logo nav 1 - orange.svg" alt="ImmoSN" class="footer-logo" />
         <span class="footer-tagline">© {{ year }} ImmoSN. Immobilier Sénégalais Haut de Gamme.</span>
       </div>
       <nav class="footer-links">

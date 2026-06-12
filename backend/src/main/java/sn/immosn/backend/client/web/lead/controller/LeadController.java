@@ -39,14 +39,22 @@ public class LeadController {
         summary = "Créer un lead",
         description = """
             Crée un lead (prospect qualifié) pour un client qui a montré un intérêt sérieux
-            pour une annonce, généralement après une visite.
+            pour une annonce.
+
+            **Note :** dans le flux normal, les leads sont créés automatiquement dès qu'un
+            client soumet une demande de visite — il n'est pas nécessaire de les créer
+            manuellement. Cet endpoint permet des créations hors flux visite.
 
             Le lead peut être lié à une demande de visite et sert d'étape intermédiaire
             avant la création d'un contrat.
 
-            Statuts : `EN_COURS` → `CONVERTI` (contrat créé) ou `ABANDONNE`
+            Statuts :
+            - `EN_COURS` → `ABANDONNE` : abandon manuel (toujours permis)
+            - `EN_COURS` → `CONVERTI` : **uniquement si le lead n'est PAS lié à une visite**.
+              Si le lead a une visite associée, la conversion passe obligatoirement par
+              `PUT /api/v1/visites/{id}/cloture` avec `type=AVEC_CONTRAT`.
 
-            **Accès : ADMIN uniquement**
+            **Accès : ADMIN ou SUPER_ADMIN**
             """
     )
     @ApiResponses({
@@ -71,7 +79,7 @@ public class LeadController {
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
             content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "404", description = "Client, annonce ou visite non trouvé",
             content = @Content(mediaType = "application/json"))
@@ -90,7 +98,7 @@ public class LeadController {
             Peut être filtrée par statut pour suivre le pipeline commercial :
             `EN_COURS` | `CONVERTI` | `ABANDONNE`
 
-            **Accès : ADMIN uniquement**
+            **Accès : ADMIN ou SUPER_ADMIN**
             """
     )
     @ApiResponses({
@@ -98,7 +106,7 @@ public class LeadController {
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
             content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
             content = @Content(mediaType = "application/json"))
     })
     @GetMapping
@@ -115,7 +123,7 @@ public class LeadController {
         description = """
             Retourne les informations complètes d'un lead spécifique.
 
-            **Accès : ADMIN uniquement**
+            **Accès : ADMIN ou SUPER_ADMIN**
             """
     )
     @ApiResponses({
@@ -142,7 +150,7 @@ public class LeadController {
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
             content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "404", description = "Lead non trouvé",
             content = @Content(mediaType = "application/json"))
@@ -163,12 +171,19 @@ public class LeadController {
         description = """
             Change le statut d'un lead dans le pipeline commercial.
 
-            - `EN_COURS` → `CONVERTI` : lead transformé en contrat
-            - `EN_COURS` → `ABANDONNE` : prospect non concluant
+            **Règles métier :**
+            - Un lead **sans visite associée** peut être manuellement passé à `CONVERTI` ou `ABANDONNE`.
+            - Un lead **avec visite associée** est en **lecture seule** pour cet endpoint.
+              Les transitions de statut sont déclenchées automatiquement par la visite :
+              - `CONVERTI` ← `PUT /api/v1/visites/{id}/cloture` avec `type=AVEC_CONTRAT`
+              - `ABANDONNE` ← `PUT /api/v1/visites/{id}/cloture` avec `type=SANS_SUITE`
+              - `ABANDONNE` ← `PUT /api/v1/visites/{id}/status` (REFUSEE ou ANNULEE)
+
+            Toute tentative de modification de statut sur un lead lié à une visite retourne **HTTP 422**.
 
             Une note admin peut être mise à jour en même temps pour documenter la décision.
 
-            **Accès : ADMIN uniquement**
+            **Accès : ADMIN ou SUPER_ADMIN**
             """
     )
     @ApiResponses({
@@ -176,13 +191,15 @@ public class LeadController {
             content = @Content(mediaType = "application/json",
                 examples = @ExampleObject(value = """
                     {"success":true,"status":200,"data":{"id":3,"statut":"CONVERTI","noteAdmin":"Contrat signé le 25/01/2024"}}"""))),
-        @ApiResponse(responseCode = "400", description = "Identifiant invalide",
+        @ApiResponse(responseCode = "400", description = "Identifiant invalide ou transition de statut non autorisée",
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
             content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "404", description = "Lead non trouvé",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "422", description = "Règle métier violée — le lead est lié à une visite et ne peut être modifié que depuis celle-ci",
             content = @Content(mediaType = "application/json"))
     })
     @PutMapping("/{id}/status")
@@ -199,14 +216,14 @@ public class LeadController {
 
     @Operation(
         summary = "Historique d'un lead",
-        description = "Retourne l'historique complet des transitions et actions sur un lead. **Accès : ADMIN uniquement**"
+        description = "Retourne l'historique complet des transitions et actions sur un lead. **Accès : ADMIN ou SUPER_ADMIN**"
     )
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Historique du lead",
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
             content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "404", description = "Lead non trouvé",
             content = @Content(mediaType = "application/json"))
@@ -231,7 +248,7 @@ public class LeadController {
             La note est indépendante du statut — elle peut être modifiée à tout moment,
             y compris sur les leads CONVERTI ou ABANDONNE.
 
-            **Accès : ADMIN uniquement**
+            **Accès : ADMIN ou SUPER_ADMIN**
             """
     )
     @ApiResponses({
@@ -241,7 +258,7 @@ public class LeadController {
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
             content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "404", description = "Lead non trouvé",
             content = @Content(mediaType = "application/json"))

@@ -27,7 +27,7 @@ async function handleLogout() {
   <nav class="navbar">
     <!-- Logo -->
     <RouterLink to="/annonces" class="navbar__logo">
-      <img src="@/assets/logo nav 1 - orange 1.png" alt="ImmoSN" class="navbar__logo-img" />
+      <img src="@/assets/logo nav 1 - orange.svg" alt="ImmoSN" class="navbar__logo-img" />
     </RouterLink>
 
     <!-- Liens de navigation (desktop) -->

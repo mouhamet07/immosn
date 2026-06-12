@@ -36,6 +36,10 @@ public interface ContratRepository extends JpaRepository<Contrat, Long> {
     // Navigation croisée Lead → Contrat (un lead produit au plus un contrat)
     Optional<Contrat> findFirstByLeadId(Long leadId);
 
+    // Batch-load pour éliminer le N+1 sur la liste des leads (1 requête pour toute la page)
+    @Query("SELECT c FROM Contrat c WHERE c.lead.id IN :leadIds")
+    List<Contrat> findByLeadIdIn(@org.springframework.data.repository.query.Param("leadIds") List<Long> leadIds);
+
     // JOIN FETCH annonce + client : élimine le N+1 du dashboard (1 query au lieu de 1+5+5+5)
     @Query("""
         SELECT c FROM Contrat c

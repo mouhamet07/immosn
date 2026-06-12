@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, FileText, Edit3 } from 'lucide-vue-next'
 import leadService from '@/services/leadService'
+import StatusBadge from '@/components/StatusBadge.vue'
 import { useToastStore } from '@/stores/toastStore'
 import historyService from '@/services/historyService'
 
@@ -13,14 +14,12 @@ const toast  = useToastStore()
 const lead      = ref(null)
 const loading   = ref(false)
 const error     = ref('')
-const pending   = ref(false)
-
 const showNoteModal = ref(false)
 const noteValue     = ref('')
 const savingNote    = ref(false)
 
 const STATUT_LABELS = { EN_COURS: 'En cours', CONVERTI: 'Converti', ABANDONNE: 'Abandonné' }
-const STATUT_COLORS = { EN_COURS: 'badge--info', CONVERTI: 'badge--success', ABANDONNE: 'badge--neutral' }
+const STATUT_VARIANTS = { EN_COURS: 'info', CONVERTI: 'success', ABANDONNE: 'neutral' }
 
 async function fetchLead() {
   loading.value = true
@@ -34,20 +33,6 @@ async function fetchLead() {
       : 'Impossible de charger ce lead.'
   } finally {
     loading.value = false
-  }
-}
-
-async function updateStatut(statut) {
-  if (pending.value) return
-  pending.value = true
-  try {
-    await leadService.updateStatut(lead.value.id, statut)
-    toast.success(statut === 'CONVERTI' ? 'Lead converti avec succès.' : 'Lead abandonné.')
-    await fetchLead()
-  } catch (err) {
-    toast.error(err?.response?.data?.message || 'Erreur lors de la mise à jour du statut.')
-  } finally {
-    pending.value = false
   }
 }
 
@@ -140,17 +125,16 @@ onMounted(fetchLead)
       <div class="ld-header">
         <div class="ld-header__left">
           <span class="ld-header__id">Lead #{{ lead.id }}</span>
-          <span :class="['badge', STATUT_COLORS[lead.statut]]">{{ STATUT_LABELS[lead.statut] }}</span>
+          <StatusBadge :label="STATUT_LABELS[lead.statut]" :variant="STATUT_VARIANTS[lead.statut]" />
         </div>
         <div class="ld-header__actions">
-          <template v-if="lead.statut === 'EN_COURS'">
-            <button class="btn btn--success" :disabled="pending" @click="updateStatut('CONVERTI')">
-              Convertir
-            </button>
-            <button class="btn btn--neutral" :disabled="pending" @click="updateStatut('ABANDONNE')">
-              Abandonner
-            </button>
-          </template>
+          <button
+            class="btn btn--primary"
+            :disabled="!lead.visiteId"
+            @click="lead.visiteId && router.push(`/admin/visites/${lead.visiteId}`)"
+          >
+            Voir la visite associée
+          </button>
           <button class="btn btn--ghost" @click="openNoteModal">
             <Edit3 :size="14" /> Modifier la note
           </button>
@@ -414,11 +398,6 @@ onMounted(fetchLead)
 .btn--ghost   { background: transparent; color: var(--color-text); border: 1.5px solid var(--color-border); }
 .btn:not(:disabled):hover { opacity: .82; }
 
-/* Badges */
-.badge { padding: .3rem .8rem; border-radius: 12px; font-size: .82rem; font-weight: 700; }
-.badge--info    { background: #dbeafe; color: #2563eb; }
-.badge--success { background: #d1fae5; color: #059669; }
-.badge--neutral { background: #f3f4f6; color: #6b7280; }
 
 /* Modal */
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem; }

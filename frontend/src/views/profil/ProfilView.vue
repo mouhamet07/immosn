@@ -1,23 +1,14 @@
 <script setup>
 import { computed, ref, reactive, onMounted } from 'vue'
-
-// Formate le numéro en +221 XX XXX XX XX
-function formatTelephone(val) {
-  const digits = val.replace(/\D/g, '')
-  const local = digits.startsWith('221') ? digits.slice(3) : digits
-  const d = local.slice(0, 9)
-  if (d.length <= 2) return '+221 ' + d
-  if (d.length <= 5) return '+221 ' + d.slice(0,2) + ' ' + d.slice(2)
-  if (d.length <= 7) return '+221 ' + d.slice(0,2) + ' ' + d.slice(2,5) + ' ' + d.slice(5)
-  return '+221 ' + d.slice(0,2) + ' ' + d.slice(2,5) + ' ' + d.slice(5,7) + ' ' + d.slice(7,9)
-}
 import { Camera } from 'lucide-vue-next'
 import InputField from '@/components/InputField.vue'
 import ButtonPrimary from '@/components/ButtonPrimary.vue'
+import PhoneInput from '@/components/PhoneInput.vue'
 import { useAuthStore } from '@/stores/authStore'
 import { useToastStore } from '@/stores/toastStore'
 import { uploadImage } from '@/services/cloudinaryService'
 import authService from '@/services/authService'
+import { getErrorMessage } from '@/utils/messages'
 
 const authStore = useAuthStore()
 const toast = useToastStore()
@@ -97,7 +88,7 @@ onMounted(() => {
   if (authStore.user) {
     formInfo.nomComplet = authStore.user.nomComplet || ''
     formInfo.email      = authStore.user.email      || ''
-    formInfo.telephone  = formatTelephone(authStore.user.telephone || '')
+    formInfo.telephone  = authStore.user.telephone || ''
   }
 })
 
@@ -119,7 +110,7 @@ async function saveInfo() {
     toast.success('Informations mises à jour avec succès.')
     successInfo.value = 'Informations mises à jour avec succès.'
   } catch (err) {
-    const msg = err.response?.data?.message || 'Erreur lors de la mise à jour.'
+    const msg = getErrorMessage(err)
     errorInfo.value = msg
     toast.error(msg)
   } finally {
@@ -130,6 +121,10 @@ async function saveInfo() {
 async function saveSecurite() {
   if (!formSecurite.motDePasseActuel || !formSecurite.nouveauMotDePasse || !formSecurite.confirmationMotDePasse) {
     errorSecurite.value = 'Veuillez remplir les trois champs.'
+    return
+  }
+  if (formSecurite.nouveauMotDePasse.length < 8) {
+    errorSecurite.value = 'Le nouveau mot de passe doit contenir au moins 8 caractères.'
     return
   }
   if (formSecurite.nouveauMotDePasse !== formSecurite.confirmationMotDePasse) {
@@ -151,7 +146,8 @@ async function saveSecurite() {
     successSecurite.value = 'Mot de passe mis à jour avec succès.'
     toast.success('Mot de passe mis à jour avec succès.')
   } catch (err) {
-    errorSecurite.value = err.response?.data?.message || 'Erreur lors de la mise à jour.'
+    errorSecurite.value = getErrorMessage(err)
+    toast.error(getErrorMessage(err))
   } finally {
     loadingSecurite.value = false
   }
@@ -172,7 +168,10 @@ async function saveSecurite() {
             <form class="profil-card__form" @submit.prevent="saveInfo">
               <InputField v-model="formInfo.nomComplet" label="Nom complet" placeholder="Abdoulaye Diop" required />
               <InputField v-model="formInfo.email" label="Adresse e-mail" type="email" required />
-              <InputField v-model="formInfo.telephone" label="Numéro de téléphone" placeholder="+221 77 000 00 00" />
+              <div class="profil-field">
+                <label class="profil-field__label">Numéro de téléphone</label>
+                <PhoneInput v-model="formInfo.telephone" />
+              </div>
 
               <div v-if="successInfo" class="profil-alert profil-alert--success">{{ successInfo }}</div>
               <div v-if="errorInfo" class="profil-alert profil-alert--error">{{ errorInfo }}</div>

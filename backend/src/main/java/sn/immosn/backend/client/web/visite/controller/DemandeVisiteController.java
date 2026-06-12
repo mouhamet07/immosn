@@ -390,7 +390,7 @@ public class DemandeVisiteController {
         return ResponseEntity.ok(RestResponse.success(contrat, HttpStatus.OK));
     }
 
-    @Operation(summary = "Historique d'une visite", description = "Retourne l'historique complet des transitions et reprogrammations d'une visite. **Accès : ADMIN uniquement**")
+    @Operation(summary = "Historique d'une visite", description = "Retourne l'historique complet des transitions et reprogrammations d'une visite. **Accès : ADMIN ou SUPER_ADMIN**")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Historique de la visite",
             content = @Content(mediaType = "application/json")),
@@ -398,7 +398,7 @@ public class DemandeVisiteController {
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
             content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "404", description = "Visite non trouvée",
             content = @Content(mediaType = "application/json"))

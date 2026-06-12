@@ -20,6 +20,11 @@ export default {
     return api.get('/signalements/admin', { params })
   },
 
+  // GET /api/v1/signalements/{id} — ADMIN
+  getById(id) {
+    return api.get(`/signalements/${id}`)
+  },
+
   // PUT /api/v1/signalements/{id}/status — ADMIN : { statut, reponseAdmin? }
   updateStatut(id, statut, reponseAdmin = null) {
     return api.put(`/signalements/${id}/status`, { statut, reponseAdmin })

@@ -52,5 +52,7 @@ public record AnnonceCreateRequestDto(
     List<@Pattern(
         regexp = "^https://res\\.cloudinary\\.com/.+",
         message = "Les images doivent être des URLs Cloudinary valides (https://res.cloudinary.com/...)"
-    ) String> images
+    ) String> images,
+
+    Boolean isExclusivite
 ) {}

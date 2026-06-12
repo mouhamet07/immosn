@@ -115,7 +115,7 @@ public class DashboardController {
     @GetMapping("/activities")
     public ResponseEntity<RestResponse<PagedResponse<RecentActivityDto>>> getActivities(
             @RequestParam(defaultValue = "0")   int    page,
-            @RequestParam(defaultValue = "10")  int    size,
+            @RequestParam(defaultValue = "5")   int    size,
             @RequestParam(defaultValue = "ALL") String type) {
         return ResponseEntity.ok(
             RestResponse.success(dashboardService.getActivities(page, size, type), HttpStatus.OK)

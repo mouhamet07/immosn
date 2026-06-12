@@ -119,9 +119,11 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
     @Override
     @Transactional(readOnly = true)
     public Page<DemandeVisiteResponseDto> getAllVisites(StatutDemandeVisite statut, Pageable pageable) {
+        // Admin path: no isArchived filter — archived visits remain visible for audit/review.
+        // Mutation helpers (loadVisite) still enforce isArchivedFalse to block edits on archived visits.
         Page<DemandeVisite> page = statut != null
-            ? visiteRepository.findByStatutAndIsArchivedFalseOrderByCreatedAtDesc(statut, pageable)
-            : visiteRepository.findByIsArchivedFalseOrderByCreatedAtDesc(pageable);
+            ? visiteRepository.findByStatut(statut, pageable)
+            : visiteRepository.findAll(pageable);
         return page.map(mapper::toDto);
     }
 

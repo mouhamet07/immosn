@@ -82,13 +82,15 @@ class AnnonceServiceTest {
             BigDecimal.valueOf(150_000_000), "Almadies, Dakar",
             null, null, null, null, null,
             null, List.of(), List.of(), false,
+            null, null,
             LocalDateTime.now(), LocalDateTime.now()
         );
 
         listDto = new AnnonceListDto(
             "1", "Villa Almadies", BigDecimal.valueOf(150_000_000),
             "Almadies, Dakar", null, null, null, null,
-            null, 5, 250.0, null, LocalDateTime.now(), false
+            null, 5, 250.0, null, LocalDateTime.now(), false,
+            null, null
         );
     }
 
@@ -149,6 +151,7 @@ class AnnonceServiceTest {
             "Almadies",
             1L,
             null,
+            null,
             null
         );
 
@@ -195,6 +198,7 @@ class AnnonceServiceTest {
             "Dakar",
             "Almadies",
             1L,
+            null,
             null,
             null
         );
@@ -261,6 +265,7 @@ class AnnonceServiceTest {
             null,
             "Dakar",
             "Almadies",
+            null,
             null,
             null,
             null

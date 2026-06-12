@@ -93,14 +93,19 @@ public class SecurityConfig {
             .headers(headers -> headers.frameOptions(frame -> frame.disable()))
             .authorizeHttpRequests(authz -> authz
 
-                //  Actuator health : sans auth (Docker healthcheck) 
+                //  Actuator health : sans auth (Docker healthcheck)
                 .requestMatchers("/actuator/health").permitAll()
+
+                //  Fichiers uploadés — UUID-based, accessibles sans auth pour les téléchargements directs
+                .requestMatchers("/uploads/**").permitAll()
 
                 //  Public
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").permitAll()
                 .requestMatchers(HttpMethod.GET,  "/api/v1/annonces").permitAll()
+                .requestMatchers(HttpMethod.GET,  "/api/v1/annonces/admin").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.GET,  "/api/v1/annonces/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers(HttpMethod.GET,  "/api/v1/annonces/{id}").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/annonces/search").permitAll()
                 .requestMatchers(HttpMethod.GET,  "/api/v1/commodites").permitAll()

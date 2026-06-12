@@ -9,6 +9,7 @@ public interface SignalementService {
     SignalementResponseDto create(SignalementCreateRequestDto request, String clientEmail);
     Page<SignalementResponseDto> getClientSignalements(String clientEmail, StatutSignalement statut, Pageable pageable);
     Page<SignalementResponseDto> getAll(StatutSignalement statut, Pageable pageable);
+    SignalementResponseDto getById(Long id);
     SignalementResponseDto updateStatut(Long id, UpdateStatutSignalementDto dto);
     void markAsRead(Long id);
 }

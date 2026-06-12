@@ -17,12 +17,14 @@ const form = reactive({
   email: '',
   telephone: '',
   motDePasse: '',
+  confirmationMotDePasse: '',
   acceptConditions: false,
 })
 
 const errorMessage = ref('')
 const loading = ref(false)
 const showPassword = ref(false)
+const showConfirmPassword = ref(false)
 
 // Indicateur de force du mot de passe
 const passwordStrength = computed(() => {
@@ -33,14 +35,6 @@ const passwordStrength = computed(() => {
   return 'fort'
 })
 
-// Formater le numéro de téléphone avec le préfixe +221
-const formatPhoneNumber = (event) => {
-  let value = event.target.value.replace(/\D/g, '')
-  if (value.length > 9) value = value.slice(0, 9)
-  form.telephone = '+221 ' + value
-    .replace(/(\d{2})(\d{3})(\d{2})(\d{2})/, '$1 $2 $3 $4')
-    .trim()
-}
 
 async function handleSubmit() {
   errorMessage.value = ''
@@ -48,6 +42,7 @@ async function handleSubmit() {
   if (!form.email.includes('@')) { errorMessage.value = 'Adresse e-mail invalide.'; return }
   if (!form.telephone.trim()) { errorMessage.value = 'Le numéro de téléphone est requis.'; return }
   if (form.motDePasse.length < 8) { errorMessage.value = 'Le mot de passe doit contenir au moins 8 caractères.'; return }
+  if (form.motDePasse !== form.confirmationMotDePasse) { errorMessage.value = 'La confirmation du mot de passe ne correspond pas.'; return }
   loading.value = true
   try {
     await authService.register(form.nomComplet, form.email, form.telephone, form.motDePasse)
@@ -55,6 +50,7 @@ async function handleSubmit() {
     router.push({ name: 'connexion' })
   } catch (err) {
     errorMessage.value = getErrorMessage(err)
+    toastStore.error(getErrorMessage(err))
   } finally {
     loading.value = false
   }
@@ -67,7 +63,7 @@ async function handleSubmit() {
     <!-- Header fixe -->
     <header class="ins-header">
       <div class="ins-header__inner">
-        <img src="@/assets/logo nav 1 - orange 1.png" alt="ImmoSN" class="ins-header__logo" />
+        <img src="@/assets/logo nav 1 - orange.svg" alt="ImmoSN" class="ins-header__logo" />
         <div class="ins-header__actions">
           <RouterLink to="/connexion" class="ins-header__login">Connexion</RouterLink>
         </div>
@@ -151,6 +147,24 @@ async function handleSubmit() {
                 <span class="ins-strength__label" :class="`ins-strength__label--${passwordStrength}`">
                   {{ passwordStrength === 'faible' ? 'Faible' : passwordStrength === 'moyen' ? 'Moyen' : 'Fort' }}
                 </span>
+              </div>
+            </div>
+
+            <div class="ins-field">
+              <label class="ins-label" for="confirm_password">Confirmer le mot de passe</label>
+              <div class="ins-input-wrap">
+                <input
+                  id="confirm_password"
+                  v-model="form.confirmationMotDePasse"
+                  :type="showConfirmPassword ? 'text' : 'password'"
+                  class="ins-input ins-input--pw"
+                  placeholder="••••••••"
+                  required
+                />
+                <button type="button" class="ins-eye" @click="showConfirmPassword = !showConfirmPassword">
+                  <EyeOff v-if="showConfirmPassword" :size="16" />
+                  <Eye v-else :size="16" />
+                </button>
               </div>
             </div>
 
@@ -290,6 +304,7 @@ async function handleSubmit() {
   font-family: 'Playfair Display', Georgia, serif;
   font-size: 1.5rem; font-weight: 500;
   margin-bottom: 0.75rem;
+  color: #D4714A !important;
 }
 .ins-card__overlay-text { font-size: 1rem; opacity: 0.9; line-height: 1.6; }
 
