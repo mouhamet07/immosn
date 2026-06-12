@@ -151,7 +151,8 @@ onMounted(() => fetchItems())
       <div v-if="loading" class="cm-loading"><div class="spinner"></div></div>
       <div v-else-if="!paginatedItems.length" class="cm-empty">Aucune commodité enregistrée.</div>
 
-      <table v-else class="cm-table">
+      <div v-else class="cm-table-wrap">
+      <table class="cm-table">
         <thead>
           <tr><th>ID</th><th>Libellé</th><th>Statut</th><th>Actions</th></tr>
         </thead>
@@ -172,6 +173,7 @@ onMounted(() => fetchItems())
           </tr>
         </tbody>
       </table>
+      </div>
 
       <div v-if="totalPages > 1" class="cm-pagination">
         <button class="pagination-nav" :disabled="currentPage === 1" @click="currentPage--">
@@ -239,7 +241,8 @@ onMounted(() => fetchItems())
 
 .cm-card { background: var(--color-card); border-radius: var(--radius); box-shadow: var(--shadow-card); overflow: hidden; }
 
-.cm-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.cm-table-wrap { overflow-x: auto; width: 100%; }
+.cm-table { width: 100%; min-width: 480px; border-collapse: collapse; table-layout: fixed; }
 .cm-table th { padding: 0.5rem 0.65rem; text-align: center; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; background: var(--color-background); border-bottom: 1px solid var(--color-border); }
 .cm-table th:first-child { width: 10%; }
 .cm-table th:nth-child(2) { width: 34%; }

@@ -116,7 +116,7 @@ onMounted(() => fetchLeads(0))
           <div class="la-card__info">
             <p class="la-card__client table-client">{{ lead.clientNom }}</p>
             <p class="la-card__email">{{ lead.clientEmail }}</p>
-            <RouterLink :to="`/annonces/${lead.annonceId}`" class="la-card__annonce">
+            <RouterLink :to="`/admin/annonces/${lead.annonceId}`" class="la-card__annonce">
               {{ lead.annonceLibelle }}
             </RouterLink>
             <p class="la-card__addr">{{ lead.annonceAdresse }}</p>

@@ -228,7 +228,7 @@ onMounted(() => fetchVisite())
             <dl class="vda-dl">
               <div class="vda-dl__row">
                 <dt>Libellé</dt>
-                <dd><RouterLink :to="`/annonces/${visite.annonceId}`" class="vda-link">{{ visite.annonceLibelle }}</RouterLink></dd>
+                <dd><RouterLink :to="`/admin/annonces/${visite.annonceId}`" class="vda-link">{{ visite.annonceLibelle }}</RouterLink></dd>
               </div>
               <div class="vda-dl__row">
                 <dt>Adresse</dt>
@@ -449,10 +449,13 @@ onMounted(() => fetchVisite())
 }
 .vda-btn:disabled { opacity: .4; cursor: not-allowed; }
 .vda-btn--accept  { background: var(--color-primary); color: #fff; }
-.vda-btn--refuse  { background: var(--color-accent);  color: #fff; }
+.vda-btn--accept:hover:not(:disabled)  { background: var(--color-primary-hover); opacity: 1; }
+.vda-btn--refuse  { background: none; border: 1.5px solid var(--color-accent); color: var(--color-accent); }
+.vda-btn--refuse:hover:not(:disabled)  { background: var(--color-accent); color: #fff; opacity: 1; }
 .vda-btn--cloture { background: var(--color-primary); color: #fff; }
-.vda-btn--outline { background: none; border: 1.5px solid var(--color-border); color: var(--color-text); }
-.vda-btn--outline:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.vda-btn--cloture:hover:not(:disabled) { background: var(--color-primary-hover); opacity: 1; }
+.vda-btn--outline { background: none; border: 1.5px solid var(--color-primary); color: var(--color-primary); }
+.vda-btn--outline:hover { background: var(--color-primary); color: #fff; }
 
 /* Modal */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1rem; }

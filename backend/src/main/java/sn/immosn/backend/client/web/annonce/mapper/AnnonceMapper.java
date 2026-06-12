@@ -29,6 +29,7 @@ public class AnnonceMapper {
             a.getLibelle(),
             a.getDescription(),
             a.getNbrPieces(),
+            a.getNbrSallesBain(),
             a.getSurface(),
             a.getPrix(),
             a.getAdresse(),
@@ -64,7 +65,9 @@ public class AnnonceMapper {
             a.getLongitude(),
             typeBienAnnonceMapper.toResponseDto(a.getTypeBien()),
             a.getNbrPieces(),
+            a.getNbrSallesBain(),
             a.getSurface(),
+            a.getDescription(),
             firstImage,
             a.getCreatedAt(),
             a.isArchived(),
@@ -78,6 +81,7 @@ public class AnnonceMapper {
             .libelle(dto.libelle())
             .description(dto.description())
             .nbrPieces(dto.nbrPieces())
+            .nbrSallesBain(dto.nbrSallesBain())
             .surface(dto.surface())
             .prix(dto.prix())
             .region(dto.region())

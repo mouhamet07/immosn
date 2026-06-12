@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, FileText, Edit3 } from 'lucide-vue-next'
 import leadService from '@/services/leadService'
 import StatusBadge from '@/components/StatusBadge.vue'
+import ImageGallery from '@/components/ImageGallery.vue'
 import { useToastStore } from '@/stores/toastStore'
 import historyService from '@/services/historyService'
 
@@ -172,13 +173,13 @@ onMounted(fetchLead)
           <section class="ld-section">
             <h2 class="ld-section__title">Annonce</h2>
             <div class="ld-section__body">
-              <div v-if="lead.imagePrincipale" class="ld-annonce-img">
-                <img :src="lead.imagePrincipale" :alt="lead.annonceLibelle" />
+              <div class="ld-annonce-img">
+                <ImageGallery :images="lead.imagePrincipale ? [lead.imagePrincipale] : []" :alt="lead.annonceLibelle" height="180px" />
               </div>
               <dl class="ld-dl">
                 <dt>Libellé</dt>
                 <dd>
-                  <RouterLink :to="`/annonces/${lead.annonceId}`" class="ld-link">
+                  <RouterLink :to="`/admin/annonces/${lead.annonceId}`" class="ld-link">
                     {{ lead.annonceLibelle }}
                   </RouterLink>
                 </dd>
@@ -364,8 +365,7 @@ onMounted(fetchLead)
 .ld-row__sub  { font-size: .8rem; color: var(--color-text); opacity: .5; }
 
 /* Annonce image */
-.ld-annonce-img { border-radius: var(--radius-sm); overflow: hidden; margin-bottom: .85rem; max-height: 140px; }
-.ld-annonce-img img { width: 100%; height: 140px; object-fit: cover; }
+.ld-annonce-img { margin-bottom: .85rem; }
 
 /* DL */
 .ld-dl { display: grid; grid-template-columns: auto 1fr; gap: .3rem .75rem; font-size: .85rem; }

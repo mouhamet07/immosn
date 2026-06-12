@@ -240,11 +240,11 @@ function toUSD(prix) {
           <div class="detail-bento">
             <div class="detail-bento__item">
               <SvgIcon name="bed" :size="28" class="detail-bento__icon" />
-              <span class="detail-bento__label">{{ annonce.nbrPieces }} Chambres</span>
+              <span class="detail-bento__label">{{ annonce.nbrPieces }} Pièces</span>
             </div>
             <div class="detail-bento__item">
               <SvgIcon name="droplet" :size="28" class="detail-bento__icon" />
-              <span class="detail-bento__label">Salles de bain</span>
+              <span class="detail-bento__label">{{ annonce.nbrSallesBain >= 1 ? `${annonce.nbrSallesBain} Salles de bain` : 'Non renseigné' }}</span>
             </div>
             <div class="detail-bento__item">
               <SvgIcon name="maximize" :size="28" class="detail-bento__icon" />

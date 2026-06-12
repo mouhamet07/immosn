@@ -296,7 +296,7 @@ onMounted(() => fetchContrat())
             <dl class="cda-dl">
               <div class="cda-dl__row">
                 <dt>Libellé</dt>
-                <dd><RouterLink :to="`/annonces/${contrat.annonceId}`" class="cda-link">{{ contrat.annonceLibelle }}</RouterLink></dd>
+                <dd><RouterLink :to="`/admin/annonces/${contrat.annonceId}`" class="cda-link">{{ contrat.annonceLibelle }}</RouterLink></dd>
               </div>
               <div class="cda-dl__row"><dt>Adresse</dt><dd>{{ contrat.annonceAdresse || '–' }}</dd></div>
             </dl>
@@ -613,7 +613,7 @@ onMounted(() => fetchContrat())
 .cda-btn--outline { background: none; border-color: var(--color-border); color: var(--color-primary); }
 .cda-btn--outline:hover:not(:disabled) { border-color: var(--color-primary); }
 
-.badge-type { display: inline-flex; align-items: center; gap: .3rem; padding: .2rem .6rem; border-radius: 10px; font-size: .75rem; font-weight: 700; }
+.badge-type { display: inline-flex; align-items: center; gap: .3rem; padding: .25rem .65rem; border-radius: 12px; font-size: .75rem; font-weight: 700; white-space: nowrap; }
 .badge-type--vente { background: #fef9c3; color: #a16207; }
 .badge-type--location { background: #ede9fe; color: #7c3aed; }
 

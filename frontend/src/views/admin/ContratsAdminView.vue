@@ -140,7 +140,7 @@ onMounted(() => fetchContrats(0))
           <tr v-for="c in contrats" :key="c.id">
             <td class="table-client">{{ c.clientNom }}</td>
             <td>
-              <RouterLink :to="`/annonces/${c.annonceId}`" class="ca-td-link">{{ c.annonceLibelle }}</RouterLink>
+              <RouterLink :to="`/admin/annonces/${c.annonceId}`" class="ca-td-link">{{ c.annonceLibelle }}</RouterLink>
               <p class="ca-td-sub">{{ c.annonceAdresse }}</p>
             </td>
             <td>
@@ -263,7 +263,7 @@ onMounted(() => fetchContrats(0))
 .ca-table tr:last-child td { border-bottom: none; }
 .ca-td-link { color: var(--color-primary); font-weight: 600; text-decoration: none; }
 .ca-td-sub { font-size: .75rem; opacity: .5; }
-.badge-type { display: inline-flex; align-items: center; gap: .3rem; padding: .2rem .6rem; border-radius: 10px; font-size: .75rem; font-weight: 700; }
+.badge-type { display: inline-flex; align-items: center; gap: .3rem; padding: .25rem .65rem; border-radius: 12px; font-size: .75rem; font-weight: 700; white-space: nowrap; }
 .badge-type--vente { background: #fef9c3; color: #a16207; }
 .badge-type--location { background: #ede9fe; color: #7c3aed; }
 .badge-type__duree { font-size: .68rem; font-weight: 500; opacity: .75; }
