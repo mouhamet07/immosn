@@ -95,6 +95,7 @@ public class SecurityConfig {
 
                 //  Actuator health : sans auth (Docker healthcheck)
                 .requestMatchers("/actuator/health").permitAll()
+                .requestMatchers("/actuator/prometheus").permitAll()
 
                 //  Fichiers uploadés — UUID-based, accessibles sans auth pour les téléchargements directs
                 .requestMatchers("/uploads/**").permitAll()

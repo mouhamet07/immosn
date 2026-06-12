@@ -4,14 +4,14 @@ import { useRoute, useRouter } from 'vue-router'
 import { Heart, Phone, Mail, Share2, FileText, Flag } from 'lucide-vue-next'
 import ButtonPrimary from '@/components/ButtonPrimary.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import ImageGallery from '@/components/ImageGallery.vue'
 import annonceService from '@/services/annonceService'
 import discussionService from '@/services/discussionService'
 import { useAuthStore } from '@/stores/authStore'
 import { useToastStore } from '@/stores/toastStore'
 import { useFavorisStore } from '@/stores/favorisStore'
-const placeholderImg = 'data:image/svg+xml,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 width%3D%22400%22 height%3D%22300%22%3E%3Crect width%3D%22400%22 height%3D%22300%22 fill%3D%22%23e5e7eb%22%2F%3E%3C%2Fsvg%3E'
 import LocationMap from '@/components/LocationMap.vue'
-import logoImg from '@/assets/logo nav 1 - orange.svg'
+import logoImg from '@/assets/logo-2s-immo.png'
 
 const route = useRoute()
 const router = useRouter()
@@ -23,7 +23,6 @@ const annonce = ref(null)
 const loading = ref(false)
 const error = ref('')
 const isFavori = computed(() => favorisStore.isFavori(Number(route.params.id)))
-const imageActive = ref(0)
 
 //  Modal visite
 import visiteService from '@/services/visiteService'
@@ -181,10 +180,6 @@ function toUSD(prix) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(prix / 600)
 }
 
-// Retourner placeholder si pas d'image (dév)
-function getImage(index) {
-  return annonce.value?.images?.[index] || placeholderImg
-}
 </script>
 
 <template>
@@ -201,35 +196,25 @@ function getImage(index) {
 
     <main v-else-if="annonce" class="detail-main">
 
-      <!-- Galerie Figma : 2/3 gauche + 1/3 droite -->
+      <!-- Galerie -->
       <section class="detail-gallery">
-        <!-- Image principale -->
-        <div class="detail-gallery__main">
-          <img :src="getImage(imageActive)" :alt="annonce.libelle" class="detail-gallery__img" />
-          <button
-            v-if="authStore.isAuthenticated && authStore.role === 'CLIENT'"
-            class="detail-gallery__fav"
-            :class="{ 'detail-gallery__fav--active': isFavori }"
-            @click="toggleFavori"
-            :title="isFavori ? 'Retirer des favoris' : 'Ajouter aux favoris'"
-          >
-            <Heart
-              :size="18"
-              :fill="isFavori ? 'var(--color-accent)' : 'none'"
-              :color="isFavori ? 'var(--color-accent)' : 'currentColor'"
-            />
-          </button>
-        </div>
-        <!-- Miniatures empilées -->
-        <div class="detail-gallery__side">
-          <div class="detail-gallery__thumb" @click="imageActive = 1">
-            <img :src="getImage(1)" alt="Photo 2" />
-          </div>
-          <div class="detail-gallery__thumb detail-gallery__thumb--more" @click="imageActive = 2">
-            <img :src="getImage(2)" alt="Photo 3" />
-            <div v-if="annonce.images?.length > 3" class="detail-gallery__overlay">+{{ annonce.images.length - 3 }} Plus</div>
-          </div>
-        </div>
+        <ImageGallery :images="annonce.images" :alt="annonce.libelle" height="520px">
+          <template #overlay>
+            <button
+              v-if="authStore.isAuthenticated && authStore.role === 'CLIENT'"
+              class="detail-gallery__fav"
+              :class="{ 'detail-gallery__fav--active': isFavori }"
+              @click="toggleFavori"
+              :title="isFavori ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+            >
+              <Heart
+                :size="18"
+                :fill="isFavori ? 'var(--color-accent)' : 'none'"
+                :color="isFavori ? 'var(--color-accent)' : 'currentColor'"
+              />
+            </button>
+          </template>
+        </ImageGallery>
       </section>
 
       <!-- Corps : contenu + sidebar -->
@@ -314,7 +299,7 @@ function getImage(index) {
                 <img :src="logoImg" alt="ImmoSN" class="agent-logo" />
               </div>
               <div>
-                <p class="agent-name">ImmoSN</p>
+                <p class="agent-name">2S IMMO</p>
                 <p class="agent-title">Agence Immobilière Sénégalaise</p>
               </div>
             </div>
@@ -496,23 +481,8 @@ function getImage(index) {
 }
 
 /* Galerie */
-.detail-gallery {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 0.5rem;
-  height: 520px;
-  border-radius: var(--radius);
-  overflow: hidden;
-  margin-bottom: 2.5rem;
-}
-.detail-gallery__main {
-  position: relative; overflow: hidden;
-}
-.detail-gallery__img {
-  width: 100%; height: 100%; object-fit: cover;
-  transition: transform 0.5s;
-}
-.detail-gallery__main:hover .detail-gallery__img { transform: scale(1.03); }
+.detail-gallery { margin-bottom: 2.5rem; }
+
 .detail-gallery__fav {
   position: absolute; top: 1rem; right: 1rem;
   width: 40px; height: 40px; border-radius: 50%;
@@ -521,26 +491,10 @@ function getImage(index) {
   display: flex; align-items: center; justify-content: center;
   color: var(--color-text-muted);
   transition: color var(--transition);
+  border: none; cursor: pointer; z-index: 3;
 }
 .detail-gallery__fav:hover { color: var(--color-accent); }
 .detail-gallery__fav--active { color: var(--color-danger); }
-.detail-gallery__side {
-  display: grid; grid-template-rows: 1fr 1fr; gap: 0.5rem;
-}
-.detail-gallery__thumb {
-  position: relative; overflow: hidden; cursor: pointer;
-}
-.detail-gallery__thumb img {
-  width: 100%; height: 100%; object-fit: cover;
-  transition: transform 0.4s;
-}
-.detail-gallery__thumb:hover img { transform: scale(1.06); }
-.detail-gallery__overlay {
-  position: absolute; inset: 0;
-  background: rgba(30,37,50,0.55);
-  display: flex; align-items: center; justify-content: center;
-  color: #fff; font-size: 1.1rem; font-weight: 700;
-}
 
 /* Corps */
 .detail-body {
@@ -795,8 +749,6 @@ function getImage(index) {
   .detail-bento { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 900px) {
-  .detail-gallery { grid-template-columns: 1fr; height: 300px; }
-  .detail-gallery__side { display: none; }
   .detail-body { grid-template-columns: 1fr; }
   .detail-sidebar { position: static; }
 }
@@ -808,7 +760,6 @@ function getImage(index) {
   .detail-bento { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 480px) {
-  .detail-gallery { height: 220px; }
   .detail-header__title { font-size: 1.4rem; }
 }
 </style>

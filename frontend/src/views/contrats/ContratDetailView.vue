@@ -1,9 +1,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Download, FileText, Home } from 'lucide-vue-next'
+import { ArrowLeft, Download, FileText } from 'lucide-vue-next'
 import contratService from '@/services/contratService'
 import StatusBadge from '@/components/StatusBadge.vue'
+import ImageGallery from '@/components/ImageGallery.vue'
 
 const route  = useRoute()
 const router = useRouter()
@@ -117,11 +118,8 @@ onMounted(() => fetchContrat())
         </div>
 
         <!-- Image annonce -->
-        <div class="cd-image" v-if="contrat.imagePrincipale">
-          <img :src="contrat.imagePrincipale" :alt="contrat.annonceLibelle" />
-        </div>
-        <div class="cd-image cd-image--ph" v-else>
-          <Home :size="48" />
+        <div class="cd-image">
+          <ImageGallery :images="contrat.imagePrincipale ? [contrat.imagePrincipale] : []" :alt="contrat.annonceLibelle" height="240px" />
         </div>
 
         <!-- Grille d'informations -->
@@ -277,9 +275,7 @@ onMounted(() => fetchContrat())
 }
 .cd-download:hover { border-color: var(--color-primary); }
 
-.cd-image { height: 220px; border-radius: var(--radius); overflow: hidden; margin-bottom: 1.5rem; background: var(--color-border); }
-.cd-image img { width: 100%; height: 100%; object-fit: cover; }
-.cd-image--ph { display: flex; align-items: center; justify-content: center; color: var(--color-text); opacity: .3; }
+.cd-image { margin-bottom: 1.5rem; }
 
 .cd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
 .cd-card {

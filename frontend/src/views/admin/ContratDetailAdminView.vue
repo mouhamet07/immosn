@@ -1,11 +1,12 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Download, FileText, Home, Paperclip } from 'lucide-vue-next'
+import { ArrowLeft, Download, FileText, Paperclip } from 'lucide-vue-next'
 import contratService from '@/services/contratService'
 import { uploadPdf } from '@/services/cloudinaryService'
 import historyService from '@/services/historyService'
 import StatusBadge from '@/components/StatusBadge.vue'
+import ImageGallery from '@/components/ImageGallery.vue'
 
 const route  = useRoute()
 const router = useRouter()
@@ -276,11 +277,8 @@ onMounted(() => fetchContrat())
 
         <div v-show="tab === 'detail'">
         <!-- Image -->
-        <div class="cda-image" v-if="contrat.imagePrincipale">
-          <img :src="contrat.imagePrincipale" :alt="contrat.annonceLibelle" />
-        </div>
-        <div class="cda-image cda-image--ph" v-else>
-          <Home :size="48" />
+        <div class="cda-image">
+          <ImageGallery :images="contrat.imagePrincipale ? [contrat.imagePrincipale] : []" :alt="contrat.annonceLibelle" height="220px" />
         </div>
 
         <!-- Grille -->
@@ -573,9 +571,7 @@ onMounted(() => fetchContrat())
 .cda-header__sub { font-size: .9rem; color: var(--color-text); opacity: .6; margin: 0; }
 .cda-header__right { display: flex; gap: .5rem; align-items: flex-start; }
 
-.cda-image { height: 200px; border-radius: var(--radius); overflow: hidden; margin-bottom: 1.5rem; background: var(--color-border); }
-.cda-image img { width: 100%; height: 100%; object-fit: cover; }
-.cda-image--ph { display: flex; align-items: center; justify-content: center; color: var(--color-text); opacity: .3; }
+.cda-image { margin-bottom: 1.5rem; }
 
 .cda-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
 .cda-card { background: var(--color-card); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow-card); }
@@ -605,15 +601,17 @@ onMounted(() => fetchContrat())
 .cda-btn {
   display: inline-flex; align-items: center; gap: .35rem;
   padding: .5rem 1.1rem; border-radius: var(--radius-sm); font-size: .85rem;
-  font-weight: 600; cursor: pointer; border: none; text-decoration: none; transition: opacity .15s;
+  font-weight: 600; cursor: pointer; border: 1.5px solid transparent; text-decoration: none; transition: all .15s;
 }
 .cda-btn:disabled { opacity: .35; cursor: not-allowed; }
-.cda-btn:hover:not(:disabled) { opacity: .85; }
 .cda-btn--primary { background: var(--color-primary); color: #fff; }
-.cda-btn--success { background: var(--color-primary); color: #fff; }
-.cda-btn--danger  { background: var(--color-accent);  color: #fff; }
-.cda-btn--outline { background: none; border: 1.5px solid var(--color-border); color: var(--color-primary); }
-.cda-btn--outline:hover { border-color: var(--color-primary); }
+.cda-btn--primary:hover:not(:disabled) { opacity: .88; }
+.cda-btn--success { background: none; border-color: #059669; color: #059669; }
+.cda-btn--success:hover:not(:disabled) { background: rgba(5,150,105,.07); }
+.cda-btn--danger  { background: none; border-color: #dc2626; color: #dc2626; }
+.cda-btn--danger:hover:not(:disabled)  { background: rgba(220,38,38,.07); }
+.cda-btn--outline { background: none; border-color: var(--color-border); color: var(--color-primary); }
+.cda-btn--outline:hover:not(:disabled) { border-color: var(--color-primary); }
 
 .badge-type { display: inline-flex; align-items: center; gap: .3rem; padding: .2rem .6rem; border-radius: 10px; font-size: .75rem; font-weight: 700; }
 .badge-type--vente { background: #fef9c3; color: #a16207; }

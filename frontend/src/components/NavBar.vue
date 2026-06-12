@@ -116,7 +116,7 @@ async function handleLogout() {
 }
 
 .navbar__logo-img {
-  height: 40px;
+  height: 28px;
   object-fit: contain;
 }
 
