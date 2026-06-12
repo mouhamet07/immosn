@@ -19,12 +19,15 @@ import sn.immosn.backend.contrat.service.ContratService;
 import sn.immosn.backend.lead.data.entity.Lead;
 import sn.immosn.backend.lead.data.entity.StatutLead;
 import sn.immosn.backend.lead.data.repository.LeadRepository;
+import sn.immosn.backend.lead.service.LeadHistoryService;
 import sn.immosn.backend.shared.exception.EntityNotFoundException;
 import sn.immosn.backend.visite.data.entity.DemandeVisite;
 import sn.immosn.backend.visite.data.entity.StatutDemandeVisite;
 import sn.immosn.backend.visite.data.repository.DemandeVisiteRepository;
 import sn.immosn.backend.visite.service.DemandeVisiteService;
+import sn.immosn.backend.visite.service.VisiteHistoryService;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -39,6 +42,8 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
     private final LeadRepository          leadRepository;
     private final DemandeVisiteMapper     mapper;
     private final ContratService          contratService;
+    private final VisiteHistoryService    visiteHistoryService;
+    private final LeadHistoryService      leadHistoryService;
 
     /**
      * Crée une demande de visite ET un lead automatiquement.
@@ -51,6 +56,16 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
         Annonce annonce = annonceRepository.findByIdAndIsArchivedFalse(request.annonceId())
             .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée"));
 
+        boolean visiteActiveExiste = visiteRepository.existsByClientIdAndAnnonceIdAndStatutIn(
+            client.getId(), annonce.getId(),
+            List.of(StatutDemandeVisite.EN_ATTENTE, StatutDemandeVisite.ACCEPTEE)
+        );
+        if (visiteActiveExiste) {
+            throw new IllegalStateException(
+                "Vous avez déjà une demande de visite active (EN_ATTENTE ou ACCEPTEE) pour ce bien. "
+                + "Veuillez annuler ou attendre la clôture de votre demande existante avant d'en créer une nouvelle.");
+        }
+
         DemandeVisite visite = DemandeVisite.builder()
             .client(client)
             .annonce(annonce)
@@ -60,6 +75,9 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
 
         visite = visiteRepository.save(visite);
 
+        visiteHistoryService.record(visite, null, StatutDemandeVisite.EN_ATTENTE,
+            "CREATION", request.commentaire(), null, null);
+
         // Lead créé automatiquement dès la demande de visite (pas à l'acceptation)
         boolean leadExisteDeja = !leadRepository.findByVisiteId(visite.getId()).isEmpty();
         if (!leadExisteDeja) {
@@ -68,10 +86,23 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
                 .annonce(annonce)
                 .visite(visite)
                 .build();
-            leadRepository.save(lead);
+            Lead savedLead = leadRepository.save(lead);
+            leadHistoryService.record(savedLead, null, StatutLead.EN_COURS,
+                "CREATION", "Lead créé automatiquement pour visite #" + visite.getId());
             log.info("Lead auto-créé pour visite #{} (client={}, annonce={})", visite.getId(), client.getEmail(), annonce.getId());
         }
 
+        return mapper.toDto(visite);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DemandeVisiteResponseDto getById(Long id, String userEmail, boolean isAdmin) {
+        DemandeVisite visite = visiteRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Demande de visite non trouvée : id=" + id));
+        if (!isAdmin && !visite.getClient().getEmail().equals(userEmail)) {
+            throw new EntityNotFoundException("Demande de visite non trouvée");
+        }
         return mapper.toDto(visite);
     }
 
@@ -95,47 +126,111 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
     }
 
     /**
-     * Transitions de statut.
-     * CLIENT : peut uniquement passer à ANNULEE → lead → ABANDONNE.
-     * ADMIN  : peut passer à ACCEPTEE ou REFUSEE (REFUSEE → lead → ABANDONNE).
-     * La clôture (CLOTUREE_*) passe par cloturerVisite() — pas via cet endpoint.
+     * Transitions de statut autorisées via cet endpoint.
+     * CLIENT : EN_ATTENTE → ANNULEE  |  ACCEPTEE → ANNULEE  (lead → ABANDONNE).
+     * ADMIN  : EN_ATTENTE → ACCEPTEE  |  EN_ATTENTE → REFUSEE  (REFUSEE → lead → ABANDONNE).
+     * La clôture (CLOTUREE_*) passe exclusivement par cloturerVisite() — PUT /{id}/cloture.
+     * TERMINEE est un statut historique en lecture seule : ne peut plus être défini via l'API.
      */
     @Override
     @Transactional
+    @SuppressWarnings("deprecation")
     public DemandeVisiteResponseDto updateStatut(Long id, UpdateStatutVisiteDto dto, String userEmail, boolean isAdmin) {
         DemandeVisite visite = loadVisite(id);
+        StatutDemandeVisite actuel = visite.getStatut();
+        StatutDemandeVisite cible  = dto.statut();
+
+        // TERMINEE est en lecture seule — interdit en tant que cible via l'API
+        if (cible == StatutDemandeVisite.TERMINEE) {
+            throw new IllegalArgumentException(
+                "TERMINEE est un statut historique en lecture seule. "
+                + "Utilisez PUT /visites/{id}/cloture pour CLOTUREE_SANS_SUITE ou CLOTUREE_AVEC_CONTRAT.");
+        }
 
         if (!isAdmin) {
             if (!visite.getClient().getEmail().equals(userEmail)) {
                 throw new EntityNotFoundException("Demande non trouvée");
             }
-            if (dto.statut() != StatutDemandeVisite.ANNULEE) {
-                throw new IllegalStateException("Le client peut seulement annuler une demande");
+            if (cible != StatutDemandeVisite.ANNULEE) {
+                throw new IllegalStateException("Le client peut seulement annuler une demande.");
+            }
+            if (actuel != StatutDemandeVisite.EN_ATTENTE && actuel != StatutDemandeVisite.ACCEPTEE) {
+                throw new IllegalStateException(
+                    "Annulation impossible : la visite est déjà " + actuel + ".");
+            }
+        } else {
+            // ADMIN : seules deux transitions sont autorisées via cet endpoint
+            boolean transitionValide =
+                (actuel == StatutDemandeVisite.EN_ATTENTE && cible == StatutDemandeVisite.ACCEPTEE) ||
+                (actuel == StatutDemandeVisite.EN_ATTENTE && cible == StatutDemandeVisite.REFUSEE);
+            if (!transitionValide) {
+                throw new IllegalStateException(
+                    "Transition invalide : " + actuel + " → " + cible
+                    + ". Cet endpoint autorise uniquement EN_ATTENTE → ACCEPTEE ou EN_ATTENTE → REFUSEE. "
+                    + "Pour clôturer une visite ACCEPTEE, utilisez PUT /visites/{id}/cloture.");
             }
         }
 
-        visite.setStatut(dto.statut());
+        visite.setStatut(cible);
         if (dto.commentaire() != null) visite.setCommentaire(dto.commentaire());
 
-        // Lead → ABANDONNE si la visite est refusée ou annulée via cet endpoint
-        if (dto.statut() == StatutDemandeVisite.REFUSEE || dto.statut() == StatutDemandeVisite.ANNULEE) {
+        // Lead → ABANDONNE si la visite est refusée ou annulée
+        if (cible == StatutDemandeVisite.REFUSEE || cible == StatutDemandeVisite.ANNULEE) {
             abandonnerLeadsDeLaVisite(visite.getId());
         }
 
-        return mapper.toDto(visiteRepository.save(visite));
+        DemandeVisite saved = visiteRepository.save(visite);
+
+        String action = switch (cible) {
+            case ACCEPTEE -> "ACCEPTATION";
+            case REFUSEE  -> "REFUS";
+            case ANNULEE  -> "ANNULATION";
+            default       -> "CHANGEMENT_STATUT";
+        };
+        visiteHistoryService.record(saved, actuel, cible, action, dto.commentaire(), null, null);
+
+        return mapper.toDto(saved);
     }
 
     @Override
     @Transactional
     public DemandeVisiteResponseDto updateDate(Long id, UpdateDateVisiteDto dto) {
         DemandeVisite visite = loadVisite(id);
+        LocalDateTime ancienneDate = visite.getDateVisite();
         visite.setDateVisite(dto.dateVisite());
         if (dto.commentaire() != null) visite.setCommentaire(dto.commentaire());
-        return mapper.toDto(visiteRepository.save(visite));
+        DemandeVisite saved = visiteRepository.save(visite);
+        visiteHistoryService.record(saved, saved.getStatut(), saved.getStatut(),
+            "REPROGRAMMATION", dto.commentaire(), ancienneDate, dto.dateVisite());
+        return mapper.toDto(saved);
     }
 
     /**
-     * Annulation client : visite → ANNULEE + isArchived=true + lead → ABANDONNE.
+     * Modification client (EN_ATTENTE uniquement) : date et/ou commentaire.
+     */
+    @Override
+    @Transactional
+    public DemandeVisiteResponseDto modifierParClient(Long id, UpdateDateVisiteDto dto, String clientEmail) {
+        DemandeVisite visite = loadVisite(id);
+        if (!visite.getClient().getEmail().equals(clientEmail)) {
+            throw new EntityNotFoundException("Demande non trouvée");
+        }
+        if (visite.getStatut() != StatutDemandeVisite.EN_ATTENTE) {
+            throw new IllegalStateException(
+                "Seule une visite EN_ATTENTE peut être modifiée. Statut actuel : " + visite.getStatut());
+        }
+        LocalDateTime ancienneDate = visite.getDateVisite();
+        visite.setDateVisite(dto.dateVisite());
+        if (dto.commentaire() != null) visite.setCommentaire(dto.commentaire());
+        DemandeVisite saved = visiteRepository.save(visite);
+        visiteHistoryService.record(saved, StatutDemandeVisite.EN_ATTENTE, StatutDemandeVisite.EN_ATTENTE,
+            "REPROGRAMMATION_CLIENT", dto.commentaire(), ancienneDate, dto.dateVisite());
+        return mapper.toDto(saved);
+    }
+
+    /**
+     * Annulation client : visite → ANNULEE + lead → ABANDONNE.
+     * La visite reste accessible (isArchived inchangé) pour conserver l'historique.
      */
     @Override
     @Transactional
@@ -144,9 +239,14 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
         if (!visite.getClient().getEmail().equals(clientEmail)) {
             throw new EntityNotFoundException("Demande non trouvée");
         }
+        StatutDemandeVisite actuel = visite.getStatut();
+        if (actuel != StatutDemandeVisite.EN_ATTENTE && actuel != StatutDemandeVisite.ACCEPTEE) {
+            throw new IllegalStateException("Annulation impossible : la visite est déjà " + actuel + ".");
+        }
         visite.setStatut(StatutDemandeVisite.ANNULEE);
-        visite.setArchived(true);
         visiteRepository.save(visite);
+        visiteHistoryService.record(visite, actuel, StatutDemandeVisite.ANNULEE,
+            "ANNULATION", null, null, null);
         abandonnerLeadsDeLaVisite(id);
     }
 
@@ -170,6 +270,9 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
             case SANS_SUITE -> {
                 visite.setStatut(StatutDemandeVisite.CLOTUREE_SANS_SUITE);
                 visiteRepository.save(visite);
+                visiteHistoryService.record(visite, StatutDemandeVisite.ACCEPTEE,
+                    StatutDemandeVisite.CLOTUREE_SANS_SUITE,
+                    "CLOTURE_SANS_SUITE", null, null, null);
                 abandonnerLeadsDeLaVisite(id);
                 log.info("Visite #{} clôturée sans suite", id);
                 return null;
@@ -188,6 +291,9 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
                 }
                 visite.setStatut(StatutDemandeVisite.CLOTUREE_AVEC_CONTRAT);
                 visiteRepository.save(visite);
+                visiteHistoryService.record(visite, StatutDemandeVisite.ACCEPTEE,
+                    StatutDemandeVisite.CLOTUREE_AVEC_CONTRAT,
+                    "CLOTURE_AVEC_CONTRAT", null, null, null);
                 ContratResponseDto contrat = contratService.createFromVisite(visite, dto.typeContrat(), dto.dureeLocationMois());
                 log.info("Visite #{} clôturée avec contrat #{}", id, contrat.id());
                 return contrat;
@@ -196,7 +302,7 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
         }
     }
 
-    // ─── helpers ──────────────────────────────────────────────────────────────
+    // Helpers
 
     private void abandonnerLeadsDeLaVisite(Long visiteId) {
         List<Lead> leads = leadRepository.findByVisiteId(visiteId);
@@ -205,6 +311,8 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
             .forEach(l -> {
                 l.setStatut(StatutLead.ABANDONNE);
                 leadRepository.save(l);
+                leadHistoryService.record(l, StatutLead.EN_COURS, StatutLead.ABANDONNE,
+                    "ABANDON", "Abandon automatique — visite #" + visiteId);
                 log.info("Lead #{} → ABANDONNE (visite #{})", l.getId(), visiteId);
             });
     }

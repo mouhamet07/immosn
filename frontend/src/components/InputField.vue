@@ -87,7 +87,7 @@ function togglePassword() {
   align-items: center;
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-sm);
-  background: #fff;
+  background: var(--color-card);
   transition: border-color 0.2s;
 }
 

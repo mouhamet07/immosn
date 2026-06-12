@@ -426,8 +426,9 @@ async function submit() {
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .field__label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text); }
 .req { color: var(--color-accent); }
-.field__input { padding: 0.7rem 0.9rem; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); font-size: 0.9rem; color: var(--color-text); background: #fff; transition: border-color 0.2s; width: 100%; }
+.field__input { padding: 0.7rem 0.9rem; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); font-size: 0.9rem; color: var(--color-text); background: var(--color-card); transition: border-color 0.2s; width: 100%; }
 .field__input:focus { border-color: var(--color-primary); outline: none; }
+select.field__input { padding-right: 2.5rem; }
 .field__textarea { resize: vertical; min-height: 100px; }
 .field__optional { font-weight: 400; text-transform: none; font-size: 0.72rem; color: var(--color-text-muted); letter-spacing: 0; }
 .field__hint { font-size: 0.78rem; color: var(--color-text-muted); margin-top: 0.15rem; }

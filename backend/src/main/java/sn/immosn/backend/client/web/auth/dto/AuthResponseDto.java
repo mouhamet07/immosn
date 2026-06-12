@@ -24,4 +24,6 @@ public class AuthResponseDto {
     private String accessToken;
     private String tokenType;
     private Set<String> roles;
+    private LocalDateTime dernierConnexion;
+    private long sessionsActives;
 }

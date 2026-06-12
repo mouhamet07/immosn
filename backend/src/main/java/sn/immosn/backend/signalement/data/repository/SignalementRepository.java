@@ -10,6 +10,8 @@ import org.springframework.stereotype.Repository;
 import sn.immosn.backend.signalement.data.entity.Signalement;
 import sn.immosn.backend.signalement.data.entity.StatutSignalement;
 
+import java.util.List;
+
 @Repository
 public interface SignalementRepository extends JpaRepository<Signalement, Long> {
 
@@ -24,7 +26,16 @@ public interface SignalementRepository extends JpaRepository<Signalement, Long> 
 
     long countByIsReadFalse();
 
+    long countByStatut(StatutSignalement statut);
+
     @Modifying
     @Query("UPDATE Signalement s SET s.isRead = true WHERE s.id = :id")
     void markAsRead(@Param("id") Long id);
+
+    // JOIN FETCH client : élimine le N+1 du dashboard (1 query au lieu de 1+5+5)
+    @Query("""
+        SELECT s FROM Signalement s
+        JOIN FETCH s.client
+        """)
+    List<Signalement> findRecentForDashboard(Pageable pageable);
 }

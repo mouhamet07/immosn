@@ -63,6 +63,14 @@ public class Contrat {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    /** Motif fourni par le client lors d'une demande de résiliation. Champ dédié, séparé des notes admin. */
+    @Column(name = "motif_resiliation", columnDefinition = "TEXT")
+    private String motifResiliation;
+
+    /** Motif fourni par le client lors d'une demande de prolongation (inclut la date proposée si fournie). */
+    @Column(name = "motif_prolongation", columnDefinition = "TEXT")
+    private String motifProlongation;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

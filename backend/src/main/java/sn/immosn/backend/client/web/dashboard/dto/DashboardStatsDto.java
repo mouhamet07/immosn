@@ -17,6 +17,9 @@ public record DashboardStatsDto(
     long signalementsOuverts,
     long totalLeads,
     long leadsEnCours,
+    long leadsConvertis,
+    long leadsAbandonnes,
+    double tauxConversionLeads,
     long totalDiscussions,
 
     // Activités récentes

@@ -22,4 +22,9 @@ export default {
   updateStatut(id, statut, noteAdmin = null) {
     return api.put(`/leads/${id}/status`, { statut, noteAdmin })
   },
+
+  // PUT /api/v1/leads/{id}/note — { note }
+  updateNote(id, note) {
+    return api.put(`/leads/${id}/note`, { note })
+  },
 }

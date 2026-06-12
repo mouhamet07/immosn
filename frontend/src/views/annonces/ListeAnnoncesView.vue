@@ -113,15 +113,6 @@ onMounted(async () => {
   <div class="liste-page">
     <main class="liste-main">
 
-      <!-- Hero h1 -->
-      <h1 class="liste-hero__title">Explorer les Propriétés</h1>
-
-      <!-- Sous-titre page annonces -->
-      <p class="liste-hero__sub">
-        Découvrez notre sélection exclusive de biens immobiliers de luxe au Sénégal,
-        des villas côtières aux appartements contemporains.
-      </p>
-
       <!-- Filtres compacts sur une ligne -->
       <div class="liste-filters">
         <div class="filter-input-wrap">
@@ -161,19 +152,19 @@ onMounted(async () => {
         <button v-if="filters.adresse || filters.typeBienId || filters.prixMin || filters.prixMax || filters.nbreChambres || selectedCommoditeIds.length" class="filters-reset" @click="resetFiltres">
           <SvgIcon name="x" :size="14" />
         </button>
-      </div>
 
-      <!-- Filtres commodités sous la barre principale -->
-      <div v-if="commodites.length" class="commodites-filter">
-        <label
-          v-for="c in commodites"
-          :key="c.id"
-          class="commodite-chip"
-          :class="{ selected: selectedCommoditeIds.includes(c.id) }"
-        >
-          <input type="checkbox" :value="c.id" v-model="selectedCommoditeIds" hidden />
-          {{ c.libelle }}
-        </label>
+        <!-- Commodités — affichées sous les contrôles mais à l'intérieur du bloc de filtres -->
+        <div v-if="commodites.length" class="commodites-filter commodites-filter--inside">
+          <label
+            v-for="c in commodites"
+            :key="c.id"
+            class="commodite-chip"
+            :class="{ selected: selectedCommoditeIds.includes(c.id) }"
+          >
+            <input type="checkbox" :value="c.id" v-model="selectedCommoditeIds" hidden />
+            {{ c.libelle }}
+          </label>
+        </div>
       </div>
 
       <!-- Chargement -->
@@ -279,7 +270,7 @@ onMounted(async () => {
   background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  padding: 0.75rem 1rem;
+  padding: 2rem 1.5rem;
   box-shadow: var(--shadow-card);
 }
 
@@ -317,6 +308,8 @@ onMounted(async () => {
   flex: 1;
   min-width: 80px;
 }
+.filter-input:hover,
+.filter-select:hover { border-color: var(--color-border-hover); }
 .filter-input:focus,
 .filter-select:focus { border-color: var(--color-primary); outline: none; }
 
@@ -358,6 +351,13 @@ onMounted(async () => {
   flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 1.5rem;
+}
+.commodites-filter--inside {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border);
+  margin-bottom: 0;
 }
 .commodite-chip {
   display: flex;
