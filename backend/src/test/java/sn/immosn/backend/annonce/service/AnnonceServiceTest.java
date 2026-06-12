@@ -99,7 +99,7 @@ class AnnonceServiceTest {
     @Test
     @DisplayName("getAnnonceById — annonce active trouvée")
     void getAnnonceById_found() {
-        when(annonceRepository.findByIdAndIsArchivedFalse(1L))
+        when(annonceRepository.findAnnonceByIdWithImages(1L))
             .thenReturn(Optional.of(annonceActive));
         when(annonceMapper.toResponse(annonceActive)).thenReturn(responseDto);
 
@@ -107,13 +107,13 @@ class AnnonceServiceTest {
 
         assertThat(result).isNotNull();
         assertThat(result.libelle()).isEqualTo("Villa Almadies");
-        verify(annonceRepository).findByIdAndIsArchivedFalse(1L);
+        verify(annonceRepository).findAnnonceByIdWithImages(1L);
     }
 
     @Test
     @DisplayName("getAnnonceById — annonce non trouvée → EntityNotFoundException")
     void getAnnonceById_notFound() {
-        when(annonceRepository.findByIdAndIsArchivedFalse(99L))
+        when(annonceRepository.findAnnonceByIdWithImages(99L))
             .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> annonceService.getAnnonceById(99L))
@@ -159,7 +159,6 @@ class AnnonceServiceTest {
         TypeBienAnnonce typeBien = new TypeBienAnnonce();
         typeBien.setId(1L);
         when(typeBienAnnonceRepository.findByIdAndIsArchivedFalse(1L)).thenReturn(Optional.of(typeBien));
-        when(commoditeRepository.findByIdInAndIsArchivedFalse(any())).thenReturn(List.of());
 
         Annonce incoming = Annonce.builder()
             .libelle(request.libelle())
@@ -208,7 +207,6 @@ class AnnonceServiceTest {
         TypeBienAnnonce typeBien = new TypeBienAnnonce();
         typeBien.setId(1L);
         when(typeBienAnnonceRepository.findByIdAndIsArchivedFalse(1L)).thenReturn(Optional.of(typeBien));
-        when(commoditeRepository.findByIdInAndIsArchivedFalse(any())).thenReturn(List.of());
 
         Annonce incoming = Annonce.builder()
             .libelle(request.libelle())
@@ -252,7 +250,7 @@ class AnnonceServiceTest {
             .isArchived(false)
             .build();
 
-        when(annonceRepository.findByIdAndIsArchivedFalse(1L)).thenReturn(Optional.of(existing));
+        when(annonceRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(annonceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(annonceMapper.toResponse(any())).thenReturn(responseDto);
         when(geoCodingService.geocode("Almadies", "Dakar", null)).thenReturn(Optional.of(new double[]{14.0, -17.0}));
