@@ -1,11 +1,12 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Download, FileText, Home, Paperclip } from 'lucide-vue-next'
+import { ArrowLeft, Download, FileText, Paperclip } from 'lucide-vue-next'
 import contratService from '@/services/contratService'
 import { uploadPdf } from '@/services/cloudinaryService'
 import historyService from '@/services/historyService'
 import StatusBadge from '@/components/StatusBadge.vue'
+import ImageGallery from '@/components/ImageGallery.vue'
 
 const route  = useRoute()
 const router = useRouter()
@@ -276,11 +277,8 @@ onMounted(() => fetchContrat())
 
         <div v-show="tab === 'detail'">
         <!-- Image -->
-        <div class="cda-image" v-if="contrat.imagePrincipale">
-          <img :src="contrat.imagePrincipale" :alt="contrat.annonceLibelle" />
-        </div>
-        <div class="cda-image cda-image--ph" v-else>
-          <Home :size="48" />
+        <div class="cda-image">
+          <ImageGallery :images="contrat.imagePrincipale ? [contrat.imagePrincipale] : []" :alt="contrat.annonceLibelle" height="220px" />
         </div>
 
         <!-- Grille -->
@@ -573,9 +571,7 @@ onMounted(() => fetchContrat())
 .cda-header__sub { font-size: .9rem; color: var(--color-text); opacity: .6; margin: 0; }
 .cda-header__right { display: flex; gap: .5rem; align-items: flex-start; }
 
-.cda-image { height: 200px; border-radius: var(--radius); overflow: hidden; margin-bottom: 1.5rem; background: var(--color-border); }
-.cda-image img { width: 100%; height: 100%; object-fit: cover; }
-.cda-image--ph { display: flex; align-items: center; justify-content: center; color: var(--color-text); opacity: .3; }
+.cda-image { margin-bottom: 1.5rem; }
 
 .cda-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
 .cda-card { background: var(--color-card); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow-card); }

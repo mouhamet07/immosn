@@ -32,6 +32,18 @@ const filtres = reactive({
   sortDir:       'DESC',
 })
 
+const filtersOpen = ref(false)
+const activeFiltersCount = computed(() => {
+  let n = 0
+  if (filtres.typeBienId)       n++
+  if (filtres.adresse?.trim())  n++
+  if (filtres.prixMin)          n++
+  if (filtres.prixMax)          n++
+  if (filtres.chambresRange)    n++
+  n += selectedCommoditeIds.value.length
+  return n
+})
+
 
 // Convertit la tranche de chambres en nbrPieces pour l'API (champ exact SearchAnnonceRequestDto)
 function parseChambresFilter(range) {
@@ -101,7 +113,18 @@ onMounted(async () => {
   <div class="liste-page">
     <main class="liste-main">
 
+      <!-- Toggle mobile uniquement -->
+      <button class="filters-toggle" @click="filtersOpen = !filtersOpen">
+        <span class="filters-toggle__label">
+          <SvgIcon name="sliders" :size="15" />
+          Filtres
+          <span v-if="activeFiltersCount" class="filters-toggle__badge">{{ activeFiltersCount }}</span>
+        </span>
+        <SvgIcon :name="filtersOpen ? 'chevron-up' : 'chevron-down'" :size="15" />
+      </button>
+
       <!-- Filtres compacts sur une ligne -->
+      <div class="filters-panel" :class="{ 'filters-panel--open': filtersOpen }">
       <div class="liste-filters">
         <div class="filter-input-wrap">
           <SvgIcon name="map-pin" :size="14" class="filter-icon" />
@@ -152,6 +175,7 @@ onMounted(async () => {
           </label>
         </div>
       </div>
+      </div><!-- /filters-panel -->
 
       <!-- Chargement -->
       <div v-if="loading" class="liste-loading">
@@ -244,6 +268,9 @@ onMounted(async () => {
   line-height: 1.6;
   margin-bottom: 1.25rem;
 }
+
+/* Toggle mobile — caché sur desktop */
+.filters-toggle { display: none; }
 
 /* Filtres compacts */
 .liste-filters {
@@ -459,6 +486,55 @@ onMounted(async () => {
 @media (max-width: 768px) {
   .liste-main { padding: 1.5rem 1rem 3rem; }
   .liste-hero__title { font-size: 1.8rem; }
+
+  /* Toggle visible sur mobile */
+  .filters-toggle {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1.25rem;
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--color-text);
+    cursor: pointer;
+    margin-bottom: 0.5rem;
+    box-shadow: var(--shadow-card);
+  }
+  .filters-toggle__label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .filters-toggle__badge {
+    background: var(--color-primary);
+    color: #fff;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.1rem 0.45rem;
+    min-width: 18px;
+    text-align: center;
+  }
+
+  /* Panneau collapsible */
+  .filters-panel {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.35s ease, opacity 0.25s ease;
+    margin-bottom: 0;
+  }
+  .filters-panel--open {
+    max-height: 1000px;
+    opacity: 1;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Filtres en colonne sur mobile */
   .liste-filters { flex-direction: column; align-items: stretch; gap: 6px; }
   .filter-input-wrap { flex: none; }
   .filter-input--noicon { flex: none; min-width: 0; }

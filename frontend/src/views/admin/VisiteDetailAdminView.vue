@@ -1,10 +1,11 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Home, MapPin } from 'lucide-vue-next'
+import { ArrowLeft, MapPin } from 'lucide-vue-next'
 import visiteService from '@/services/visiteService'
 import historyService from '@/services/historyService'
 import StatusBadge from '@/components/StatusBadge.vue'
+import ImageGallery from '@/components/ImageGallery.vue'
 
 const route  = useRoute()
 const router = useRouter()
@@ -208,11 +209,8 @@ onMounted(() => fetchVisite())
 
         <div v-show="tab === 'detail'">
         <!-- Image -->
-        <div class="vda-image" v-if="visite.imagePrincipale">
-          <img :src="visite.imagePrincipale" :alt="visite.annonceLibelle" />
-        </div>
-        <div class="vda-image vda-image--ph" v-else>
-          <Home :size="48" />
+        <div class="vda-image">
+          <ImageGallery :images="visite.imagePrincipale ? [visite.imagePrincipale] : []" :alt="visite.annonceLibelle" height="220px" />
         </div>
 
         <!-- Grille -->
@@ -423,9 +421,7 @@ onMounted(() => fetchVisite())
 .vda-header__sub { font-size: .9rem; color: var(--color-text); opacity: .6; margin: .15rem 0 0; }
 .vda-header__actions { display: flex; gap: .5rem; align-items: flex-start; }
 
-.vda-image { height: 200px; border-radius: var(--radius); overflow: hidden; margin-bottom: 1.5rem; background: var(--color-border); }
-.vda-image img { width: 100%; height: 100%; object-fit: cover; }
-.vda-image--ph { display: flex; align-items: center; justify-content: center; color: var(--color-text); opacity: .3; }
+.vda-image { margin-bottom: 1.5rem; }
 
 .vda-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
 .vda-card { background: var(--color-card); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow-card); }

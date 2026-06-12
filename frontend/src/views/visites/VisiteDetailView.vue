@@ -1,9 +1,10 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Home, MapPin } from 'lucide-vue-next'
+import { ArrowLeft, MapPin } from 'lucide-vue-next'
 import visiteService from '@/services/visiteService'
 import StatusBadge from '@/components/StatusBadge.vue'
+import ImageGallery from '@/components/ImageGallery.vue'
 
 const route  = useRoute()
 const router = useRouter()
@@ -118,11 +119,8 @@ onMounted(() => fetchVisite())
         </div>
 
         <!-- Image annonce -->
-        <div class="vd-image" v-if="visite.imagePrincipale">
-          <img :src="visite.imagePrincipale" :alt="visite.annonceLibelle" />
-        </div>
-        <div class="vd-image vd-image--ph" v-else>
-          <Home :size="48" />
+        <div class="vd-image">
+          <ImageGallery :images="visite.imagePrincipale ? [visite.imagePrincipale] : []" :alt="visite.annonceLibelle" height="220px" />
         </div>
 
         <!-- Informations -->
@@ -258,9 +256,7 @@ onMounted(() => fetchVisite())
 .vd-header { margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: .4rem; }
 .vd-header__title { font-size: 1.5rem; font-weight: 800; color: var(--color-text); margin: .3rem 0 0; }
 
-.vd-image { height: 200px; border-radius: var(--radius); overflow: hidden; margin-bottom: 1.5rem; background: var(--color-border); }
-.vd-image img { width: 100%; height: 100%; object-fit: cover; }
-.vd-image--ph { display: flex; align-items: center; justify-content: center; color: var(--color-text); opacity: .3; }
+.vd-image { margin-bottom: 1.5rem; }
 
 .vd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
 .vd-card { background: var(--color-card); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow-card); }

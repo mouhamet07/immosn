@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { Edit, Archive, RotateCcw, MapPin, Bed, Maximize, CheckCircle } from 'lucide-vue-next'
 import annonceService from '@/services/annonceService'
 import StatusBadge from '@/components/StatusBadge.vue'
-const placeholderImg = 'data:image/svg+xml,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 width%3D%22400%22 height%3D%22300%22%3E%3Crect width%3D%22400%22 height%3D%22300%22 fill%3D%22%23e5e7eb%22%2F%3E%3C%2Fsvg%3E'
+import ImageGallery from '@/components/ImageGallery.vue'
 import LocationMap from '@/components/LocationMap.vue'
 
 const route  = useRoute()
@@ -13,7 +13,6 @@ const router = useRouter()
 const annonce  = ref(null)
 const loading  = ref(false)
 const error    = ref('')
-const imageActive = ref(0)
 
 // Confirmation archivage
 const showConfirm = ref(false)
@@ -51,10 +50,6 @@ async function handleRestore() {
   } catch (err) {
     error.value = err.response?.data?.message || 'Erreur lors de la restauration.'
   }
-}
-
-function getImage(index) {
-  return annonce.value?.images?.[index] || placeholderImg
 }
 
 function formatPrix(prix) {
@@ -95,14 +90,7 @@ onMounted(fetchAnnonce)
 
       <!-- Galerie -->
       <div class="daa-gallery">
-        <div class="daa-gallery__main">
-          <img :src="getImage(imageActive)" :alt="annonce.libelle" />
-        </div>
-        <div class="daa-gallery__side">
-          <div v-for="i in 2" :key="i" class="daa-gallery__thumb" @click="imageActive = i">
-            <img :src="getImage(i)" :alt="`Photo ${i+1}`" />
-          </div>
-        </div>
+        <ImageGallery :images="annonce.images" :alt="annonce.libelle" height="400px" />
       </div>
 
       <!-- Corps -->
@@ -213,12 +201,7 @@ onMounted(fetchAnnonce)
 .daa-btn:hover { opacity: .85; }
 
 /* Galerie */
-.daa-gallery { display: grid; grid-template-columns: 2fr 1fr; gap: .5rem; height: 400px; border-radius: var(--radius); overflow: hidden; margin-bottom: 2rem; }
-.daa-gallery__main img { width: 100%; height: 100%; object-fit: cover; }
-.daa-gallery__side { display: grid; grid-template-rows: 1fr 1fr; gap: .5rem; }
-.daa-gallery__thumb { overflow: hidden; cursor: pointer; }
-.daa-gallery__thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform .3s; }
-.daa-gallery__thumb:hover img { transform: scale(1.05); }
+.daa-gallery { margin-bottom: 2rem; }
 
 /* Corps */
 .daa-body { display: grid; grid-template-columns: 1fr 280px; gap: 2rem; align-items: start; }
@@ -261,8 +244,6 @@ onMounted(fetchAnnonce)
 @keyframes spin { to { transform: rotate(360deg); } }
 
 @media (max-width: 900px) {
-  .daa-gallery { grid-template-columns: 1fr; height: 280px; }
-  .daa-gallery__side { display: none; }
   .daa-body { grid-template-columns: 1fr; }
 }
 </style>
