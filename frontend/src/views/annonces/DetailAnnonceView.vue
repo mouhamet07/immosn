@@ -11,7 +11,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useToastStore } from '@/stores/toastStore'
 import { useFavorisStore } from '@/stores/favorisStore'
 import LocationMap from '@/components/LocationMap.vue'
-import logoImg from '@/assets/logo nav 1 - orange.svg'
+import logoImg from '@/assets/logo-2s-immo.png'
 
 const route = useRoute()
 const router = useRouter()
@@ -299,7 +299,7 @@ function toUSD(prix) {
                 <img :src="logoImg" alt="ImmoSN" class="agent-logo" />
               </div>
               <div>
-                <p class="agent-name">ImmoSN</p>
+                <p class="agent-name">2S IMMO</p>
                 <p class="agent-title">Agence Immobilière Sénégalaise</p>
               </div>
             </div>
