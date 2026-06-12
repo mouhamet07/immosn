@@ -2,6 +2,7 @@ package sn.immosn.backend.signalement.data.repository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -20,8 +21,10 @@ public interface SignalementRepository extends JpaRepository<Signalement, Long> 
     Page<Signalement> findByClientIdAndStatutOrderByCreatedAtDesc(
         Long clientId, StatutSignalement statut, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"contrat", "contrat.annonce", "client"})
     Page<Signalement> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
+    @EntityGraph(attributePaths = {"contrat", "contrat.annonce", "client"})
     Page<Signalement> findByStatutOrderByCreatedAtDesc(StatutSignalement statut, Pageable pageable);
 
     long countByIsReadFalse();

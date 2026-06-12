@@ -5,6 +5,7 @@ import { ArrowLeft, Download, FileText, Home, Paperclip } from 'lucide-vue-next'
 import contratService from '@/services/contratService'
 import { uploadPdf } from '@/services/cloudinaryService'
 import historyService from '@/services/historyService'
+import StatusBadge from '@/components/StatusBadge.vue'
 
 const route  = useRoute()
 const router = useRouter()
@@ -44,13 +45,13 @@ const STATUT_LABELS = {
   EN_ATTENTE_RESILIATION:  'Résiliation en attente',
   PROLONGATION_EN_ATTENTE: 'Prolongation en attente',
 }
-const STATUT_COLORS = {
-  EN_ATTENTE:              'badge--warning',
-  ACTIF:                   'badge--success',
-  EXPIRE:                  'badge--neutral',
-  RESILIE:                 'badge--danger',
-  EN_ATTENTE_RESILIATION:  'badge--warning',
-  PROLONGATION_EN_ATTENTE: 'badge--warning',
+const STATUT_VARIANTS = {
+  EN_ATTENTE:              'warning',
+  ACTIF:                   'success',
+  EXPIRE:                  'neutral',
+  RESILIE:                 'danger',
+  EN_ATTENTE_RESILIATION:  'warning',
+  PROLONGATION_EN_ATTENTE: 'warning',
 }
 
 async function fetchContrat() {
@@ -255,7 +256,7 @@ onMounted(() => fetchContrat())
         <!-- En-tête -->
         <div class="cda-header">
           <div class="cda-header__left">
-            <span :class="['badge', STATUT_COLORS[contrat.statut]]">{{ STATUT_LABELS[contrat.statut] }}</span>
+            <StatusBadge :label="STATUT_LABELS[contrat.statut]" :variant="STATUT_VARIANTS[contrat.statut]" />
             <h1 class="cda-header__title">Contrat #{{ contrat.id }}</h1>
             <p class="cda-header__sub">{{ contrat.annonceLibelle }}</p>
           </div>
@@ -609,16 +610,10 @@ onMounted(() => fetchContrat())
 .cda-btn:disabled { opacity: .35; cursor: not-allowed; }
 .cda-btn:hover:not(:disabled) { opacity: .85; }
 .cda-btn--primary { background: var(--color-primary); color: #fff; }
-.cda-btn--success { background: #d1fae5; color: #059669; }
-.cda-btn--danger { background: #fee2e2; color: #dc2626; }
+.cda-btn--success { background: var(--color-primary); color: #fff; }
+.cda-btn--danger  { background: var(--color-accent);  color: #fff; }
 .cda-btn--outline { background: none; border: 1.5px solid var(--color-border); color: var(--color-primary); }
 .cda-btn--outline:hover { border-color: var(--color-primary); }
-
-.badge { padding: .25rem .65rem; border-radius: 12px; font-size: .75rem; font-weight: 700; display: inline-block; }
-.badge--warning { background: rgba(212, 113, 74, 0.12); color: #c0613a; }
-.badge--success { background: rgba(74, 124, 111, 0.12); color: #3a6b5e; }
-.badge--neutral { background: rgba(107, 114, 128, 0.10); color: #6b7280; }
-.badge--danger  { background: rgba(229, 62, 62, 0.10);  color: #c0392b; }
 
 .badge-type { display: inline-flex; align-items: center; gap: .3rem; padding: .2rem .6rem; border-radius: 10px; font-size: .75rem; font-weight: 700; }
 .badge-type--vente { background: #fef9c3; color: #a16207; }

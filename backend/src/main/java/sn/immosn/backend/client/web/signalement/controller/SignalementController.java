@@ -123,7 +123,7 @@ public class SignalementController {
             Peut être filtrée par statut. Les signalements non lus (`isRead: false`)
             doivent être traités en priorité.
 
-            **Accès : ADMIN uniquement**
+            **Accès : ADMIN ou SUPER_ADMIN**
             """
     )
     @ApiResponses({
@@ -131,17 +131,47 @@ public class SignalementController {
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
             content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
             content = @Content(mediaType = "application/json"))
     })
     @GetMapping("/admin")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<PagedResponse<SignalementResponseDto>> getAll(
             @Parameter(description = "Numéro de page", example = "0") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Taille de la page", example = "20") @RequestParam(defaultValue = "20") int size,
             @Parameter(description = "Filtre optionnel par statut") @RequestParam(required = false) StatutSignalement statut) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         return ResponseEntity.ok(PagedResponse.fromPage(service.getAll(statut, pageable)));
+    }
+
+    @Operation(
+        summary = "Détail d'un signalement",
+        description = """
+            Retourne le détail complet d'un signalement par son identifiant.
+
+            **Accès : ADMIN ou SUPER_ADMIN**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Détail du signalement",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Signalement non trouvé",
+            content = @Content(mediaType = "application/json"))
+    })
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<RestResponse<SignalementResponseDto>> getById(
+            @Parameter(description = "Identifiant du signalement", required = true, example = "5")
+            @PathVariable Long id) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de signalement invalide", null));
+        }
+        return ResponseEntity.ok(RestResponse.success(service.getById(id), HttpStatus.OK));
     }
 
     @Operation(
@@ -155,7 +185,7 @@ public class SignalementController {
             - `EN_COURS` → `RESOLU` (problème résolu, réponse fournie)
             - `EN_COURS` → `FERME` (signalement non fondé)
 
-            **Accès : ADMIN uniquement**
+            **Accès : ADMIN ou SUPER_ADMIN**
             """
     )
     @ApiResponses({
@@ -175,13 +205,13 @@ public class SignalementController {
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
             content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "404", description = "Signalement non trouvé",
             content = @Content(mediaType = "application/json"))
     })
     @PutMapping("/{id}/status")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<RestResponse<SignalementResponseDto>> updateStatut(
             @Parameter(description = "Identifiant du signalement", required = true, example = "5")
             @PathVariable Long id, @RequestBody @Valid UpdateStatutSignalementDto dto) {
@@ -200,7 +230,7 @@ public class SignalementController {
             Appelé automatiquement quand l'admin ouvre un signalement dans le tableau de bord.
             Permet de réduire le compteur de signalements non lus.
 
-            **Accès : ADMIN uniquement**
+            **Accès : ADMIN ou SUPER_ADMIN**
             """
     )
     @ApiResponses({
@@ -209,13 +239,13 @@ public class SignalementController {
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
             content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "404", description = "Signalement non trouvé",
             content = @Content(mediaType = "application/json"))
     })
     @PutMapping("/{id}/read")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<RestResponse<Void>> markAsRead(
             @Parameter(description = "Identifiant du signalement à marquer lu", required = true, example = "5")
             @PathVariable Long id) {

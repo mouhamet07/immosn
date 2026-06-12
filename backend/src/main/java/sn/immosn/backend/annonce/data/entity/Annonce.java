@@ -79,6 +79,10 @@ public class Annonce {
     private List<String> images = new ArrayList<>();
 
     @Builder.Default
+    @Column(name = "is_exclusivite", nullable = false, columnDefinition = "boolean DEFAULT false")
+    private boolean isExclusivite = false;
+
+    @Builder.Default
     @Column(name = "is_archived", nullable = false)
     private boolean isArchived = false;
     @Column(name = "created_at", nullable = false, updatable = false)

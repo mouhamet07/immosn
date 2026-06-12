@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useToastStore } from '@/stores/toastStore'
 import { uploadImage } from '@/services/cloudinaryService'
 import api from '@/services/api'
+import { getErrorMessage } from '@/utils/messages'
 
 const authStore = useAuthStore()
 const toast     = useToastStore()
@@ -85,7 +86,7 @@ async function saveInfo() {
     await authStore.fetchProfile()
     toast.success('Informations mises à jour.')
   } catch (err) {
-    toast.error(err.response?.data?.message || 'Erreur lors de la mise à jour.')
+    toast.error(getErrorMessage(err))
   } finally {
     loadingInfo.value = false
   }
@@ -96,13 +97,12 @@ async function saveSecurite() {
     toast.error('Veuillez remplir les trois champs.')
     return
   }
-  if (formSecurite.nouveauMotDePasse !== formSecurite.confirmationMotDePasse) {
-    toast.error('La confirmation du mot de passe ne correspond pas.')
+  if (formSecurite.nouveauMotDePasse.length < 8) {
+    toast.error('Le nouveau mot de passe doit contenir au moins 8 caractères.')
     return
   }
-
-  if (formSecurite.nouveauMotDePasse !== formSecurite.confirmationNouveauMotDePasse) {
-    toast.error('Les deux nouveaux mots de passe ne correspondent pas.')
+  if (formSecurite.nouveauMotDePasse !== formSecurite.confirmationMotDePasse) {
+    toast.error('La confirmation du mot de passe ne correspond pas.')
     return
   }
 
@@ -118,7 +118,7 @@ async function saveSecurite() {
     formSecurite.confirmationMotDePasse = ''
     toast.success('Mot de passe mis à jour.')
   } catch (err) {
-    toast.error(err.response?.data?.message || 'Erreur lors de la mise à jour.')
+    toast.error(getErrorMessage(err))
   } finally {
     loadingSecurite.value = false
   }

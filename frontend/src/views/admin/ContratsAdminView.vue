@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import contratService from '@/services/contratService'
 import FilterSelect from '@/components/FilterSelect.vue'
+import StatusBadge from '@/components/StatusBadge.vue'
 
 const contrats    = ref([])
 const loading     = ref(false)
@@ -11,11 +12,14 @@ const totalItems  = ref(0)
 const filtreStatut = ref('')
 
 // Modal édition
-const showEdit    = ref(false)
-const editId      = ref(null)
-const editForm    = ref({})
-const editIsLoc   = ref(false)  // true si le contrat édité est de type LOCATION
-const saving      = ref(false)
+const showEdit        = ref(false)
+const editId          = ref(null)
+const editForm        = ref({})
+const editIsLoc       = ref(false)  // true si le contrat édité est de type LOCATION
+const editDocumentFile = ref(null)   // nouveau fichier sélectionné
+const editDocumentName = ref('')     // nom du fichier choisi
+const editCurrentDoc  = ref('')     // URL du document existant
+const saving          = ref(false)
 
 const STATUTS       = ['', 'EN_ATTENTE', 'ACTIF', 'EXPIRE', 'RESILIE', 'EN_ATTENTE_RESILIATION', 'PROLONGATION_EN_ATTENTE']
 const STATUT_LABELS = {
@@ -27,13 +31,13 @@ const STATUT_LABELS = {
   PROLONGATION_EN_ATTENTE: 'Prolongation en attente',
 }
 const filterOptions = STATUTS.map(s => ({ value: s, label: s ? STATUT_LABELS[s] : 'Tous les statuts' }))
-const STATUT_COLORS = {
-  EN_ATTENTE:              'badge--warning',
-  ACTIF:                   'badge--success',
-  EXPIRE:                  'badge--neutral',
-  RESILIE:                 'badge--danger',
-  EN_ATTENTE_RESILIATION:  'badge--warning',
-  PROLONGATION_EN_ATTENTE: 'badge--warning',
+const STATUT_VARIANTS = {
+  EN_ATTENTE:              'warning',
+  ACTIF:                   'success',
+  EXPIRE:                  'neutral',
+  RESILIE:                 'danger',
+  EN_ATTENTE_RESILIATION:  'warning',
+  PROLONGATION_EN_ATTENTE: 'warning',
 }
 
 async function fetchContrats(page = 0) {
@@ -49,37 +53,47 @@ async function fetchContrats(page = 0) {
 }
 
 function openEdit(c) {
-  editId.value    = c.id
-  editIsLoc.value = c.typeContrat === 'LOCATION'
-  editForm.value  = {
+  editId.value           = c.id
+  editIsLoc.value        = c.typeContrat === 'LOCATION'
+  editDocumentFile.value = null
+  editDocumentName.value = ''
+  editCurrentDoc.value   = c.documentUrl ?? ''
+  editForm.value = {
     dateDebut:         c.dateDebut ?? '',
     dateFin:           c.dateFin ?? '',
     montant:           c.montant ?? '',
     dureeLocationMois: c.dureeLocationMois ?? '',
     statut:            c.statut,
-    documentUrl:       c.documentUrl ?? '',
     notes:             c.notes ?? '',
   }
   showEdit.value = true
 }
 
+function handleDocumentFile(event) {
+  const file = event.target.files[0]
+  if (!file) return
+  editDocumentFile.value = file
+  editDocumentName.value = file.name
+}
+
 async function saveEdit() {
   saving.value = true
   try {
+    // Si un nouveau fichier est sélectionné, l'uploader en premier
+    if (editDocumentFile.value) {
+      await contratService.uploadDocument(editId.value, editDocumentFile.value)
+    }
     const payload = {
-      dateDebut:   editForm.value.dateDebut   || null,
-      statut:      editForm.value.statut      || null,
-      documentUrl: editForm.value.documentUrl || null,
-      notes:       editForm.value.notes       || null,
+      dateDebut: editForm.value.dateDebut || null,
+      statut:    editForm.value.statut    || null,
+      notes:     editForm.value.notes     || null,
     }
     if (editIsLoc.value) {
-      // LOCATION : dureeLocationMois déclenche le recalcul côté backend
       payload.dureeLocationMois = editForm.value.dureeLocationMois
         ? Number(editForm.value.dureeLocationMois) : null
     } else {
-      // VENTE : montant et dateFin sont libres
-      payload.dateFin  = editForm.value.dateFin  || null
-      payload.montant  = editForm.value.montant ? Number(editForm.value.montant) : null
+      payload.dateFin = editForm.value.dateFin  || null
+      payload.montant = editForm.value.montant ? Number(editForm.value.montant) : null
     }
     await contratService.update(editId.value, payload)
     showEdit.value = false
@@ -118,14 +132,13 @@ onMounted(() => fetchContrats(0))
       <table class="ca-table">
         <thead>
           <tr>
-            <th>#</th><th>Client</th><th>Annonce</th><th>Type</th><th>Montant</th>
-            <th>Début</th><th>Fin</th><th>Statut</th><th>Actions</th>
+            <th>Client</th><th>Annonce</th><th>Type</th><th>Montant</th>
+            <th>Statut</th><th>Actions</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="c in contrats" :key="c.id">
-            <td class="ca-td-id">{{ c.id }}</td>
-            <td><p class="ca-td-name">{{ c.clientNom }}</p></td>
+            <td class="table-client">{{ c.clientNom }}</td>
             <td>
               <RouterLink :to="`/annonces/${c.annonceId}`" class="ca-td-link">{{ c.annonceLibelle }}</RouterLink>
               <p class="ca-td-sub">{{ c.annonceAdresse }}</p>
@@ -137,13 +150,17 @@ onMounted(() => fetchContrats(0))
               </span>
               <span v-else class="ca-td-sub">–</span>
             </td>
-            <td class="ca-td-montant">{{ formatMontant(c.montant) }}</td>
-            <td>{{ formatDate(c.dateDebut) }}</td>
-            <td>{{ formatDate(c.dateFin) }}</td>
-            <td><span :class="['badge', STATUT_COLORS[c.statut]]">{{ STATUT_LABELS[c.statut] }}</span></td>
-            <td class="ca-td-actions">
-              <RouterLink :to="`/admin/contrats/${c.id}`" class="ca-btn">Voir</RouterLink>
-              <button class="ca-btn" @click="openEdit(c)">✎ Modifier</button>
+            <td class="table-price">{{ formatMontant(c.montant) }}</td>
+            <td><StatusBadge :label="STATUT_LABELS[c.statut]" :variant="STATUT_VARIANTS[c.statut]" /></td>
+            <td>
+              <div class="td-actions">
+                <RouterLink :to="`/admin/contrats/${c.id}`" class="action-btn" title="Voir le détail">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </RouterLink>
+                <button class="action-btn" title="Modifier" @click="openEdit(c)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -200,7 +217,27 @@ onMounted(() => fetchContrats(0))
               <option v-for="s in ['EN_ATTENTE','ACTIF','EXPIRE','RESILIE']" :key="s" :value="s">{{ STATUT_LABELS[s] }}</option>
             </select>
           </div>
-          <div class="modal-box__field"><label>URL document</label><input v-model="editForm.documentUrl" type="text" class="modal-box__input" placeholder="https://…" /></div>
+          <div class="modal-box__field">
+            <label>Document contractuel</label>
+            <div v-if="editCurrentDoc && !editDocumentFile" class="doc-current">
+              <a :href="editCurrentDoc" target="_blank" rel="noopener" class="doc-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Voir le document
+              </a>
+              <span class="doc-sep">·</span>
+              <label class="doc-replace">
+                Remplacer
+                <input type="file" accept=".pdf,.png,.jpg,.jpeg" @change="handleDocumentFile" hidden />
+              </label>
+            </div>
+            <div v-else class="doc-upload">
+              <label class="doc-upload__label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span>{{ editDocumentName || 'Choisir un fichier (PDF, PNG, JPG, JPEG)' }}</span>
+                <input type="file" accept=".pdf,.png,.jpg,.jpeg" @change="handleDocumentFile" hidden />
+              </label>
+            </div>
+          </div>
           <div class="modal-box__field"><label>Notes</label><textarea v-model="editForm.notes" class="modal-box__textarea" rows="3" /></div>
           <div class="modal-box__footer">
             <button class="modal-box__cancel" @click="showEdit = false">Annuler</button>
@@ -224,26 +261,15 @@ onMounted(() => fetchContrats(0))
 .ca-table th { padding: .75rem 1rem; text-align: left; font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--color-text); opacity: .55; background: var(--color-background); border-bottom: 1px solid var(--color-border); }
 .ca-table td { padding: .85rem 1rem; font-size: .88rem; color: var(--color-text); border-bottom: 1px solid var(--color-border); vertical-align: middle; }
 .ca-table tr:last-child td { border-bottom: none; }
-.ca-td-id { font-size: .78rem; opacity: .45; }
-.ca-td-name { font-weight: 600; }
 .ca-td-link { color: var(--color-primary); font-weight: 600; text-decoration: none; }
 .ca-td-sub { font-size: .75rem; opacity: .5; }
-.ca-td-montant { font-weight: 700; color: var(--color-accent); }
 .badge-type { display: inline-flex; align-items: center; gap: .3rem; padding: .2rem .6rem; border-radius: 10px; font-size: .75rem; font-weight: 700; }
 .badge-type--vente { background: #fef9c3; color: #a16207; }
 .badge-type--location { background: #ede9fe; color: #7c3aed; }
 .badge-type__duree { font-size: .68rem; font-weight: 500; opacity: .75; }
-.ca-td-actions { display: flex; gap: .4rem; align-items: center; }
-.ca-btn { padding: .3rem .7rem; border: 1.5px solid var(--color-border); border-radius: 6px; font-size: .78rem; cursor: pointer; background: none; color: var(--color-text); transition: all .15s; text-decoration: none; display: inline-block; }
-.ca-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
 .ca-pager { display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1.25rem; font-size: .88rem; }
 .ca-pager button { padding: .4rem .9rem; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-card); cursor: pointer; }
 .ca-pager button:disabled { opacity: .4; cursor: not-allowed; }
-.badge { padding: .25rem .65rem; border-radius: 12px; font-size: .75rem; font-weight: 700; }
-.badge--warning { background: #fef3c7; color: #d97706; }
-.badge--success { background: #d1fae5; color: #059669; }
-.badge--neutral { background: #f3f4f6; color: #6b7280; }
-.badge--danger  { background: #fee2e2; color: #dc2626; }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1rem; }
 .modal-box { background: var(--color-card); border-radius: var(--radius); padding: 1.75rem; width: 100%; max-width: 500px; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
 .modal-box__title { font-size: 1rem; font-weight: 700; color: var(--color-text); margin-bottom: 1.25rem; }
@@ -261,6 +287,21 @@ onMounted(() => fetchContrats(0))
   padding: .5rem .75rem; background: var(--color-background); border-radius: 6px;
   margin-bottom: 1rem;
 }
+
+.doc-current { display: flex; align-items: center; gap: .5rem; font-size: .83rem; }
+.doc-link { color: var(--color-primary); font-weight: 600; display: flex; align-items: center; gap: .3rem; }
+.doc-link svg { width: 14px; height: 14px; }
+.doc-sep { opacity: .35; }
+.doc-replace { color: var(--color-text-secondary); cursor: pointer; font-size: .8rem; transition: color .15s; }
+.doc-replace:hover { color: var(--color-primary); }
+.doc-upload__label {
+  display: flex; align-items: center; gap: .5rem; padding: .6rem .9rem;
+  border: 1.5px dashed var(--color-border); border-radius: var(--radius-sm);
+  font-size: .82rem; color: var(--color-text-secondary); cursor: pointer;
+  transition: border-color .15s, color .15s;
+}
+.doc-upload__label:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.doc-upload__label svg { width: 15px; height: 15px; flex-shrink: 0; }
 .spinner { width: 36px; height: 36px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 </style>

@@ -4,6 +4,7 @@ import { Home, MapPin, Calendar, Search, AlertCircle, RefreshCw } from 'lucide-v
 import { useRouter } from 'vue-router'
 import visiteService from '@/services/visiteService'
 import FilterSelect from '@/components/FilterSelect.vue'
+import StatusBadge from '@/components/StatusBadge.vue'
 
 const router = useRouter()
 
@@ -27,14 +28,14 @@ const STATUT_LABELS = {
   TERMINEE:              'Terminée',
 }
 const filterOptions = STATUTS.map(s => ({ value: s, label: s ? STATUT_LABELS[s] : 'Tous les statuts' }))
-const STATUT_COLORS = {
-  EN_ATTENTE:            'badge--warning',
-  ACCEPTEE:              'badge--success',
-  REFUSEE:               'badge--danger',
-  ANNULEE:               'badge--neutral',
-  CLOTUREE_SANS_SUITE:   'badge--neutral',
-  CLOTUREE_AVEC_CONTRAT: 'badge--info',
-  TERMINEE:              'badge--info',
+const STATUT_VARIANTS = {
+  EN_ATTENTE:            'warning',
+  ACCEPTEE:              'success',
+  REFUSEE:               'danger',
+  ANNULEE:               'neutral',
+  CLOTUREE_SANS_SUITE:   'neutral',
+  CLOTUREE_AVEC_CONTRAT: 'info',
+  TERMINEE:              'info',
 }
 
 async function fetchVisites(page = 0) {
@@ -85,7 +86,6 @@ onMounted(() => fetchVisites(0))
           <h1 class="mv-header__title">Mes demandes de visite</h1>
           <p class="mv-header__sub">Suivez l'état de vos rendez-vous</p>
         </div>
-        <RouterLink to="/annonces" class="mv-header__btn">+ Demander une visite</RouterLink>
       </div>
 
       <!-- Filtres statut -->
@@ -130,7 +130,7 @@ onMounted(() => fetchVisites(0))
           </div>
           <div class="mv-card__body">
             <div class="mv-card__top">
-              <span :class="['badge', STATUT_COLORS[v.statut]]">{{ STATUT_LABELS[v.statut] }}</span>
+              <StatusBadge :label="STATUT_LABELS[v.statut]" :variant="STATUT_VARIANTS[v.statut]" />
               <span class="mv-card__date">Demandé le {{ formatDate(v.createdAt) }}</span>
             </div>
             <RouterLink :to="`/annonces/${v.annonceId}`" class="mv-card__title">{{ v.annonceLibelle }}</RouterLink>
@@ -259,13 +259,6 @@ onMounted(() => fetchVisites(0))
 .mv-card__cancel:hover:not(:disabled) { background: #e53e3e; color: #fff; }
 .mv-card__cancel:disabled { opacity: .4; cursor: not-allowed; }
 
-/* Badges */
-.badge { padding: .25rem .65rem; border-radius: 12px; font-size: .75rem; font-weight: 700; }
-.badge--warning  { background: #fef3c7; color: #d97706; }
-.badge--success  { background: #d1fae5; color: #059669; }
-.badge--danger   { background: #fee2e2; color: #dc2626; }
-.badge--neutral  { background: #f3f4f6; color: #6b7280; }
-.badge--info     { background: #dbeafe; color: #2563eb; }
 
 .mv-pager {
   display: flex; justify-content: center; align-items: center; gap: 1rem;

@@ -63,7 +63,7 @@ async function handleSubmit() {
     <div class="cx-main">
       <!-- Brand -->
       <div class="cx-brand">
-        <img src="@/assets/logo nav 1 - orange 1.png" alt="ImmoSN" class="cx-brand__logo" />
+        <img src="@/assets/logo nav 1 - orange.svg" alt="ImmoSN" class="cx-brand__logo" />
         <p class="cx-brand__tagline">Curateur d'immobilier haut de gamme au Sénégal</p>
       </div>
 

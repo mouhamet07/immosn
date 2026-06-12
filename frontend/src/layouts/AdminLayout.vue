@@ -36,7 +36,7 @@ function isActive(path) {
     <aside class="sidebar">
       <!-- Logo -->
       <RouterLink to="/admin/dashboard" class="sidebar__logo">
-        <img src="@/assets/logo nav 1 - orange 1.png" alt="ImmoSN" class="sidebar__logo-img" />
+        <img src="@/assets/logo nav 1 - orange.svg" alt="ImmoSN" class="sidebar__logo-img" />
       </RouterLink>
 
       <!-- L'affichage de l'utilisateur connecté a été déplacé vers le header -->

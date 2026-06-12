@@ -1,8 +1,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight, Pencil, Archive, RotateCcw } from 'lucide-vue-next'
 import commoditeService from '@/services/commoditeService'
 import FilterTabs from '@/components/FilterTabs.vue'
+import StatusBadge from '@/components/StatusBadge.vue'
 
 const allItems     = ref([])
 const loading      = ref(false)
@@ -159,16 +160,14 @@ onMounted(() => fetchItems())
             <td class="cm-id">{{ item.id }}</td>
             <td class="cm-label">{{ item.libelle }}</td>
             <td>
-              <span class="badge" :class="item.isArchived ? 'badge--neutral' : 'badge--success'">
-                {{ item.isArchived ? 'Archivée' : 'Active' }}
-              </span>
+              <StatusBadge :label="item.isArchived ? 'Archivée' : 'Active'" :variant="item.isArchived ? 'neutral' : 'success'" />
             </td>
             <td class="cm-actions">
               <template v-if="!item.isArchived">
-                <button class="btn-edit" @click="openEdit(item)">Modifier</button>
-                <button class="btn-delete" @click="confirmDelete(item.id)">Archiver</button>
+                <button class="action-btn" title="Modifier" @click="openEdit(item)"><Pencil :size="15" /></button>
+                <button class="action-btn danger" title="Archiver" @click="confirmDelete(item.id)"><Archive :size="15" /></button>
               </template>
-              <button v-else class="btn-restore" @click="restaurer(item.id)">Restaurer</button>
+              <button v-else class="action-btn" title="Restaurer" @click="restaurer(item.id)"><RotateCcw :size="15" /></button>
             </td>
           </tr>
         </tbody>
@@ -252,9 +251,6 @@ onMounted(() => fetchItems())
 .cm-id, .cm-label { text-align: center; }
 .cm-actions { display: flex; gap: 0.5rem; justify-content: center; }
 
-.badge { padding: 0.25rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
-.badge--success { background: #dcfce7; color: #16a34a; }
-.badge--neutral { background: #f3f4f6; color: #6b7280; }
 
 .cm-pagination { display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 1rem; border-top: 1px solid var(--color-border); }
 .cm-pagination .pagination-nav {
@@ -308,12 +304,6 @@ onMounted(() => fetchItems())
 .btn-primary { padding: 0.55rem 1.1rem; background: var(--color-primary); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: background .15s; }
 .btn-primary:hover:not(:disabled) { background: var(--color-primary-hover); }
 .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
-.btn-edit    { padding: 0.35rem 0.75rem; background: transparent; border: 1px solid var(--color-primary); color: var(--color-primary); border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
-.btn-edit:hover { background: rgba(74,124,111,.1); }
-.btn-delete  { padding: 0.35rem 0.75rem; background: transparent; border: 1px solid #ef4444; color: #ef4444; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
-.btn-delete:hover:not(:disabled) { background: rgba(239,68,68,.1); }
-.btn-delete:disabled { opacity: .6; cursor: not-allowed; }
-.btn-restore { padding: 0.35rem 0.75rem; background: transparent; border: 1px solid var(--color-primary); color: var(--color-primary); border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
 .btn-cancel  { padding: 0.55rem 1rem; background: transparent; border: 1px solid var(--color-border); color: var(--color-text); border-radius: var(--radius-sm); font-size: 0.88rem; cursor: pointer; }
 .btn-cancel:hover { background: var(--color-hover-row); }
 </style>

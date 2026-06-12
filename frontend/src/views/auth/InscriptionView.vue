@@ -50,6 +50,7 @@ async function handleSubmit() {
     router.push({ name: 'connexion' })
   } catch (err) {
     errorMessage.value = getErrorMessage(err)
+    toastStore.error(getErrorMessage(err))
   } finally {
     loading.value = false
   }
@@ -62,7 +63,7 @@ async function handleSubmit() {
     <!-- Header fixe -->
     <header class="ins-header">
       <div class="ins-header__inner">
-        <img src="@/assets/logo nav 1 - orange 1.png" alt="ImmoSN" class="ins-header__logo" />
+        <img src="@/assets/logo nav 1 - orange.svg" alt="ImmoSN" class="ins-header__logo" />
         <div class="ins-header__actions">
           <RouterLink to="/connexion" class="ins-header__login">Connexion</RouterLink>
         </div>
@@ -303,6 +304,7 @@ async function handleSubmit() {
   font-family: 'Playfair Display', Georgia, serif;
   font-size: 1.5rem; font-weight: 500;
   margin-bottom: 0.75rem;
+  color: #D4714A !important;
 }
 .ins-card__overlay-text { font-size: 1rem; opacity: 0.9; line-height: 1.6; }
 

@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Download, FileText, Home } from 'lucide-vue-next'
 import contratService from '@/services/contratService'
+import StatusBadge from '@/components/StatusBadge.vue'
 
 const route  = useRoute()
 const router = useRouter()
@@ -26,13 +27,13 @@ const STATUT_LABELS = {
   EN_ATTENTE_RESILIATION:  'Résiliation en attente',
   PROLONGATION_EN_ATTENTE: 'Prolongation en attente',
 }
-const STATUT_COLORS = {
-  EN_ATTENTE:              'badge--warning',
-  ACTIF:                   'badge--success',
-  EXPIRE:                  'badge--neutral',
-  RESILIE:                 'badge--danger',
-  EN_ATTENTE_RESILIATION:  'badge--warning',
-  PROLONGATION_EN_ATTENTE: 'badge--warning',
+const STATUT_VARIANTS = {
+  EN_ATTENTE:              'warning',
+  ACTIF:                   'success',
+  EXPIRE:                  'neutral',
+  RESILIE:                 'danger',
+  EN_ATTENTE_RESILIATION:  'warning',
+  PROLONGATION_EN_ATTENTE: 'warning',
 }
 
 async function fetchContrat() {
@@ -106,7 +107,7 @@ onMounted(() => fetchContrat())
         <!-- En-tête -->
         <div class="cd-header">
           <div class="cd-header__left">
-            <span :class="['badge', STATUT_COLORS[contrat.statut]]">{{ STATUT_LABELS[contrat.statut] }}</span>
+            <StatusBadge :label="STATUT_LABELS[contrat.statut]" :variant="STATUT_VARIANTS[contrat.statut]" />
             <h1 class="cd-header__title">Contrat #{{ contrat.id }}</h1>
             <p class="cd-header__sub">{{ contrat.annonceLibelle }}</p>
           </div>
@@ -320,12 +321,6 @@ onMounted(() => fetchContrat())
   border-left: 3px solid var(--color-primary);
 }
 
-/* Badge statut */
-.badge { padding: .25rem .65rem; border-radius: 12px; font-size: .75rem; font-weight: 700; display: inline-block; }
-.badge--warning { background: #fef3c7; color: #d97706; }
-.badge--success { background: #d1fae5; color: #059669; }
-.badge--neutral { background: #f3f4f6; color: #6b7280; }
-.badge--danger  { background: #fee2e2; color: #dc2626; }
 
 .badge-type { display: inline-flex; align-items: center; gap: .3rem; padding: .2rem .6rem; border-radius: 10px; font-size: .75rem; font-weight: 700; }
 .badge-type--vente { background: #fef9c3; color: #a16207; }

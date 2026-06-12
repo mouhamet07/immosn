@@ -17,6 +17,8 @@ public record AnnonceListDto (
     Double surface,
     String imagePrincipale,
     LocalDateTime createdAt,
-    Boolean archived
+    Boolean archived,
+    Boolean isNew,
+    Boolean isExclusivite
 ) {
 }

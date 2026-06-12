@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { FileText, Edit3 } from 'lucide-vue-next'
 import leadService from '@/services/leadService'
 import FilterSelect from '@/components/FilterSelect.vue'
+import StatusBadge from '@/components/StatusBadge.vue'
 import { useToastStore } from '@/stores/toastStore'
 
 const toast = useToastStore()
@@ -13,8 +14,6 @@ const currentPage  = ref(0)
 const totalPages   = ref(1)
 const totalItems   = ref(0)
 const filtreStatut = ref('')
-const pending      = ref({})
-
 const showNoteModal = ref(false)
 const modalLead     = ref(null)
 const noteValue     = ref('')
@@ -22,7 +21,7 @@ const savingNote    = ref(false)
 
 const STATUTS       = ['', 'EN_COURS', 'CONVERTI', 'ABANDONNE']
 const STATUT_LABELS = { EN_COURS: 'En cours', CONVERTI: 'Converti', ABANDONNE: 'Abandonné' }
-const STATUT_COLORS = { EN_COURS: 'badge--info', CONVERTI: 'badge--success', ABANDONNE: 'badge--neutral' }
+const STATUT_VARIANTS = { EN_COURS: 'info', CONVERTI: 'success', ABANDONNE: 'neutral' }
 const filterOptions = STATUTS.map(s => ({ value: s, label: s ? STATUT_LABELS[s] : 'Tous les leads' }))
 
 async function fetchLeads(page = 0) {
@@ -38,22 +37,6 @@ async function fetchLeads(page = 0) {
     leads.value = []
   } finally {
     loading.value = false
-  }
-}
-
-async function updateStatut(lead, statut) {
-  if (pending.value[lead.id]) return
-  pending.value = { ...pending.value, [lead.id]: true }
-  try {
-    await leadService.updateStatut(lead.id, statut)
-    toast.success(statut === 'CONVERTI' ? 'Lead converti avec succès.' : 'Lead abandonné.')
-    await fetchLeads(currentPage.value)
-  } catch (err) {
-    toast.error(err?.response?.data?.message || 'Erreur lors de la mise à jour du statut.')
-  } finally {
-    const next = { ...pending.value }
-    delete next[lead.id]
-    pending.value = next
   }
 }
 
@@ -123,7 +106,7 @@ onMounted(() => fetchLeads(0))
         <!-- Header -->
         <div class="la-card__header">
           <RouterLink :to="`/admin/leads/${lead.id}`" class="la-card__id">#{{ lead.id }}</RouterLink>
-          <span :class="['badge', STATUT_COLORS[lead.statut]]">{{ STATUT_LABELS[lead.statut] }}</span>
+          <StatusBadge :label="STATUT_LABELS[lead.statut]" :variant="STATUT_VARIANTS[lead.statut]" />
           <span class="la-card__date">{{ formatDate(lead.createdAt) }}</span>
         </div>
 
@@ -131,7 +114,7 @@ onMounted(() => fetchLeads(0))
         <div class="la-card__body">
           <div class="la-card__avatar">{{ lead.clientNom?.charAt(0)?.toUpperCase() || '?' }}</div>
           <div class="la-card__info">
-            <p class="la-card__client">{{ lead.clientNom }}</p>
+            <p class="la-card__client table-client">{{ lead.clientNom }}</p>
             <p class="la-card__email">{{ lead.clientEmail }}</p>
             <RouterLink :to="`/annonces/${lead.annonceId}`" class="la-card__annonce">
               {{ lead.annonceLibelle }}
@@ -171,18 +154,6 @@ onMounted(() => fetchLeads(0))
 
         <!-- Actions -->
         <div class="la-card__actions">
-          <template v-if="lead.statut === 'EN_COURS'">
-            <button
-              class="btn btn--success btn--sm"
-              :disabled="!!pending[lead.id]"
-              @click="updateStatut(lead, 'CONVERTI')"
-            >Convertir</button>
-            <button
-              class="btn btn--neutral btn--sm"
-              :disabled="!!pending[lead.id]"
-              @click="updateStatut(lead, 'ABANDONNE')"
-            >Abandonner</button>
-          </template>
           <button class="btn btn--ghost btn--sm" @click="openNoteModal(lead)">
             <Edit3 :size="12" /> Note
           </button>
@@ -291,11 +262,6 @@ onMounted(() => fetchLeads(0))
 .la-pager button { padding: .4rem .9rem; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-card); cursor: pointer; }
 .la-pager button:disabled { opacity: .4; cursor: not-allowed; }
 
-/* Badges */
-.badge { padding: .25rem .65rem; border-radius: 12px; font-size: .75rem; font-weight: 700; }
-.badge--info    { background: #dbeafe; color: #2563eb; }
-.badge--success { background: #d1fae5; color: #059669; }
-.badge--neutral { background: #f3f4f6; color: #6b7280; }
 
 /* Modal */
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem; }
