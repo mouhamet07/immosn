@@ -24,6 +24,7 @@ const form = reactive({
   description:   '',
   typeBienId:    null,
   nbrPieces:     '',
+  nbrSallesBain: '',
   surface:       '',
   prix:          '',
   adresse:       '',
@@ -158,6 +159,10 @@ async function submit() {
     toast.value.show('Le département et le quartier sont obligatoires.', 'error')
     return
   }
+  if (!form.nbrSallesBain || parseInt(form.nbrSallesBain) < 1) {
+    toast.value.show('Le nombre de salles de bains est obligatoire (minimum 1).', 'error')
+    return
+  }
   loading.value = true
   try {
     // Upload photo principale en premier (index 0 = principal)
@@ -177,6 +182,7 @@ async function submit() {
       libelle:       form.libelle,
       description:   form.description,
       nbrPieces:     parseInt(form.nbrPieces),
+      nbrSallesBain: parseInt(form.nbrSallesBain),
       surface:       parseFloat(form.surface),
       prix:          parseFloat(form.prix),
       adresse:       form.adresse || null,
@@ -254,6 +260,10 @@ async function submit() {
           <div class="field">
             <label class="field__label">NOMBRE DE PIÈCES <span class="req">*</span></label>
             <input v-model.number="form.nbrPieces" type="number" min="0" step="1" class="field__input" placeholder="ex. 4" @input="form.nbrPieces = Math.max(0, form.nbrPieces)" />
+          </div>
+          <div class="field">
+            <label class="field__label">SALLES DE BAINS <span class="req">*</span></label>
+            <input v-model.number="form.nbrSallesBain" type="number" min="1" step="1" class="field__input" placeholder="ex. 2" @input="form.nbrSallesBain = Math.max(1, form.nbrSallesBain)" />
           </div>
           <div class="field">
             <label class="field__label">SURFACE (m²) <span class="req">*</span></label>

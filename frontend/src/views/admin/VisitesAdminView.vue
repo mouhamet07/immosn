@@ -151,7 +151,7 @@ onMounted(() => fetchVisites(0))
           <tr v-for="v in visites" :key="v.id">
             <td class="table-client">{{ v.clientNom }}</td>
             <td>
-              <RouterLink :to="`/annonces/${v.annonceId}`" class="va-td-link">{{ v.annonceLibelle }}</RouterLink>
+              <RouterLink :to="`/admin/annonces/${v.annonceId}`" class="va-td-link">{{ v.annonceLibelle }}</RouterLink>
               <p class="va-td-sub">{{ v.annonceAdresse }}</p>
             </td>
             <td>

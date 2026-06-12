@@ -244,11 +244,17 @@ onMounted(() => fetchVisites(0))
   font-style: italic; margin-top: .4rem;
 }
 
-.mv-card__actions { flex-shrink: 0; }
+.mv-card__actions {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
 .mv-card__detail {
   padding: .4rem .9rem; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm);
   color: var(--color-text); font-size: .82rem; font-weight: 600; background: none;
-  text-decoration: none; transition: all .15s; display: inline-block;
+  text-decoration: none; transition: all .15s; display: inline-block; text-align: center;
 }
 .mv-card__detail:hover { border-color: var(--color-primary); color: var(--color-primary); }
 .mv-card__cancel {
@@ -277,4 +283,17 @@ onMounted(() => fetchVisites(0))
   animation: spin .8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 640px) {
+  .mv-container { padding: 1.5rem 1rem; }
+  .mv-card { flex-wrap: wrap; }
+  .mv-card__thumb { width: 64px; height: 64px; }
+  .mv-card__actions {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .mv-card__actions > * { flex: 1; text-align: center; }
+}
 </style>

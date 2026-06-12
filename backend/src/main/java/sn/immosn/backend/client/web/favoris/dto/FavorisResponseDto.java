@@ -10,6 +10,7 @@ public record FavorisResponseDto(
     String adresse,
     String typeBien,
     Integer nbrPieces,
+    Integer nbrSallesBain,
     Double surface,
     String imagePrincipale,
     LocalDateTime addedAt

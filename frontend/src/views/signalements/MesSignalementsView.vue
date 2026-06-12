@@ -170,7 +170,8 @@ onMounted(() => fetchSignalements(0))
 
 .ms-list { display: flex; flex-direction: column; gap: 1rem; }
 .ms-card { background: var(--color-card); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow-card); }
-.ms-card__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: .75rem; }
+.ms-card__header { display: flex; justify-content: space-between; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: .75rem; }
+.ms-card__contenu, .ms-card__reponse-text { overflow-wrap: break-word; }
 .ms-card__date { font-size: .75rem; color: var(--color-text); opacity: .45; }
 .ms-card__annonce { font-size: .82rem; color: var(--color-text); opacity: .65; margin-bottom: .5rem; }
 .ms-card__contenu { font-size: .9rem; color: var(--color-text); line-height: 1.6; }
@@ -199,4 +200,9 @@ onMounted(() => fetchSignalements(0))
 
 .spinner { width: 36px; height: 36px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 640px) {
+  .ms-container { padding: 1.5rem 1rem; }
+  .ms-header__btn { width: 100%; }
+}
 </style>

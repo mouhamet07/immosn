@@ -97,6 +97,7 @@ public class AnnonceServiceImpl implements AnnonceService {
         if (requestDto.libelle()       != null) annonce.setLibelle(requestDto.libelle());
         if (requestDto.description()   != null) annonce.setDescription(requestDto.description());
         if (requestDto.nbrPieces()     != null) annonce.setNbrPieces(requestDto.nbrPieces());
+        if (requestDto.nbrSallesBain() != null) annonce.setNbrSallesBain(requestDto.nbrSallesBain());
         if (requestDto.surface()       != null) annonce.setSurface(requestDto.surface());
         if (requestDto.prix()          != null) annonce.setPrix(requestDto.prix());
         if (requestDto.images()        != null) annonce.setImages(requestDto.images());

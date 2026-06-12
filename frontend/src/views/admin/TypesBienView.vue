@@ -151,7 +151,8 @@ onMounted(() => fetchItems())
       <div v-if="loading" class="tb-loading"><div class="spinner"></div></div>
       <div v-else-if="!paginatedItems.length" class="tb-empty">Aucun type de bien enregistré.</div>
 
-      <table v-else class="tb-table">
+      <div v-else class="tb-table-wrap">
+      <table class="tb-table">
         <thead>
           <tr><th>ID</th><th>Libellé</th><th>Statut</th><th>Actions</th></tr>
         </thead>
@@ -172,6 +173,7 @@ onMounted(() => fetchItems())
           </tr>
         </tbody>
       </table>
+      </div>
 
       <div v-if="totalPages > 1" class="tb-pagination">
         <button class="pagination-nav" :disabled="currentPage === 1" @click="currentPage--">
@@ -242,7 +244,8 @@ onMounted(() => fetchItems())
 
 .tb-card { background: var(--color-card); border-radius: var(--radius); box-shadow: var(--shadow-card); overflow: hidden; }
 
-.tb-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.tb-table-wrap { overflow-x: auto; width: 100%; }
+.tb-table { width: 100%; min-width: 480px; border-collapse: collapse; table-layout: fixed; }
 .tb-table th { padding: 0.5rem 0.65rem; text-align: center; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; background: var(--color-background); border-bottom: 1px solid var(--color-border); }
 .tb-table th:first-child { width: 10%; }
 .tb-table th:nth-child(2) { width: 34%; }

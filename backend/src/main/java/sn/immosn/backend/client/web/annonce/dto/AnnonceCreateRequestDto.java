@@ -1,6 +1,7 @@
 package sn.immosn.backend.client.web.annonce.dto;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -22,6 +23,10 @@ public record AnnonceCreateRequestDto(
     @NotNull(message = "Le nombre de pièces est obligatoire")
     @Positive(message = "Le nombre de pièces doit être positif")
     Integer nbrPieces,
+
+    @NotNull(message = "Le nombre de salles de bains est obligatoire")
+    @Min(value = 1, message = "Le nombre de salles de bains doit être au minimum 1")
+    Integer nbrSallesBain,
 
     @NotNull(message = "La surface est obligatoire")
     @Positive(message = "La surface doit être positive")

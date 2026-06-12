@@ -23,13 +23,13 @@ const pageNumbers = computed(() =>
 )
 
 const filtres = reactive({
-  typeBienId:    null,
-  prixMin:       null,
-  prixMax:       null,
-  adresse:       '',
-  chambresRange: '',
-  sortBy:        'createdAt',
-  sortDir:       'DESC',
+  typeBienId: null,
+  prixMin:    null,
+  prixMax:    null,
+  adresse:    '',
+  piecesMin:  null,
+  sortBy:     'createdAt',
+  sortDir:    'DESC',
 })
 
 const filtersOpen = ref(false)
@@ -39,28 +39,17 @@ const activeFiltersCount = computed(() => {
   if (filtres.adresse?.trim())  n++
   if (filtres.prixMin)          n++
   if (filtres.prixMax)          n++
-  if (filtres.chambresRange)    n++
+  if (filtres.piecesMin)        n++
   n += selectedCommoditeIds.value.length
   return n
 })
 
-
-// Convertit la tranche de chambres en nbrPieces pour l'API (champ exact SearchAnnonceRequestDto)
-function parseChambresFilter(range) {
-  if (!range) return {}
-  if (range === '1-3')  return { nbrPieces: 1 }
-  if (range === '4-6')  return { nbrPieces: 4 }
-  if (range === '7-10') return { nbrPieces: 7 }
-  if (range === '10+')  return { nbrPieces: 10 }
-  return {}
-}
-
 function resetFiltres() {
-  filtres.typeBienId    = null
-  filtres.prixMin       = null
-  filtres.prixMax       = null
-  filtres.adresse       = ''
-  filtres.chambresRange = ''
+  filtres.typeBienId = null
+  filtres.prixMin    = null
+  filtres.prixMax    = null
+  filtres.adresse    = ''
+  filtres.piecesMin  = null
   selectedCommoditeIds.value = []
   fetchAnnonces(0)
 }
@@ -75,7 +64,7 @@ async function fetchAnnonces(page = 0) {
     if (filtres.adresse?.trim())         body.adresse      = filtres.adresse.trim()
     if (filtres.prixMin)                 body.prixMin      = filtres.prixMin
     if (filtres.prixMax)                 body.prixMax      = filtres.prixMax
-    if (filtres.chambresRange)           Object.assign(body, parseChambresFilter(filtres.chambresRange))
+    if (filtres.piecesMin)               body.piecesMin    = filtres.piecesMin
     if (selectedCommoditeIds.value.length > 0) body.commoditeIds = selectedCommoditeIds.value
 
     const response = await annonceService.searchAnnonces(body)
@@ -144,12 +133,13 @@ onMounted(async () => {
 
         <div class="filter-input-wrap">
           <SvgIcon name="bed" :size="14" class="filter-icon" />
-          <select v-model="filtres.chambresRange" class="filter-select">
-            <option value="">Pièces</option>
-            <option value="1-3">1 — 3 pièces</option>
-            <option value="4-6">4 — 6 pièces</option>
-            <option value="7-10">7 — 10 pièces</option>
-            <option value="10+">10+ pièces</option>
+          <select v-model.number="filtres.piecesMin" class="filter-select">
+            <option :value="null">Pièces</option>
+            <option :value="1">1+ pièce</option>
+            <option :value="2">2+ pièces</option>
+            <option :value="3">3+ pièces</option>
+            <option :value="4">4+ pièces</option>
+            <option :value="5">5+ pièces</option>
           </select>
         </div>
 
@@ -158,7 +148,7 @@ onMounted(async () => {
           Rechercher
         </button>
 
-        <button v-if="filtres.adresse || filtres.typeBienId || filtres.prixMin || filtres.prixMax || filtres.chambresRange || selectedCommoditeIds.length" class="filters-reset" @click="resetFiltres">
+        <button v-if="filtres.adresse || filtres.typeBienId || filtres.prixMin || filtres.prixMax || filtres.piecesMin || selectedCommoditeIds.length" class="filters-reset" @click="resetFiltres">
           <SvgIcon name="x" :size="14" />
         </button>
 
@@ -195,10 +185,11 @@ onMounted(async () => {
           :title="annonce.libelle"
           :prix="annonce.prix"
           :images="annonce.imagePrincipale ? [annonce.imagePrincipale] : []"
-          :nbrChambres="annonce.nbrPieces"
-          :nbrSallesBain="1"
+          :nbrPieces="annonce.nbrPieces"
+          :nbrSallesBain="annonce.nbrSallesBain ?? null"
           :surface="annonce.surface"
           :adresse="annonce.adresse"
+          :description="annonce.description || ''"
           :badge="annonce.isExclusivite ? 'exclusif' : ''"
           :isNew="!!annonce.isNew"
         />
