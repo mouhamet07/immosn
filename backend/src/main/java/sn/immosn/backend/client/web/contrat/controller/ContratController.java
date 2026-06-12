@@ -14,9 +14,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import sn.immosn.backend.client.web.contrat.dto.*;
 import sn.immosn.backend.contrat.data.entity.StatutContrat;
 import sn.immosn.backend.contrat.service.ContratHistoryService;
@@ -242,6 +244,44 @@ public class ContratController {
                 .body(RestResponse.badRequest("Identifiant de contrat invalide", null));
         }
         return ResponseEntity.ok(RestResponse.success(service.update(id, request), HttpStatus.OK));
+    }
+
+    @Operation(
+        summary = "Uploader le document contractuel",
+        description = """
+            Permet à un administrateur d'uploader le document contractuel (PDF, PNG, JPG, JPEG)
+            associé à un contrat. Le fichier est stocké sur le serveur et son URL est mise à jour
+            dans le contrat. Si un document existant avait déjà été uploadé, il est supprimé.
+
+            **Formats acceptés :** PDF, PNG, JPG, JPEG (max 10 Mo)
+
+            **Accès : ADMIN ou SUPER_ADMIN**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Document uploadé avec succès",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Fichier invalide ou format non supporté",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Contrat non trouvé",
+            content = @Content(mediaType = "application/json"))
+    })
+    @PostMapping(value = "/{id}/document", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<RestResponse<ContratResponseDto>> uploadDocument(
+            @Parameter(description = "Identifiant du contrat", required = true, example = "8")
+            @PathVariable Long id,
+            @Parameter(description = "Fichier à uploader (PDF, PNG, JPG, JPEG — max 10 Mo)", required = true)
+            @RequestParam("file") MultipartFile file) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de contrat invalide", null));
+        }
+        return ResponseEntity.ok(RestResponse.success(service.uploadDocument(id, file), HttpStatus.OK));
     }
 
     @Operation(

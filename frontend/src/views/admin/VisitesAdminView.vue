@@ -165,10 +165,14 @@ onMounted(() => fetchVisites(0))
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                 </RouterLink>
                 <template v-if="v.statut === 'EN_ATTENTE'">
-                  <button class="va-btn va-btn--accept" :disabled="updating === v.id"
-                    @click="changeStatut(v.id, 'ACCEPTEE')">Accepter</button>
-                  <button class="va-btn va-btn--refuse" :disabled="updating === v.id"
-                    @click="changeStatut(v.id, 'REFUSEE')">Refuser</button>
+                  <button class="action-btn" :disabled="updating === v.id" title="Accepter"
+                    @click="changeStatut(v.id, 'ACCEPTEE')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  </button>
+                  <button class="action-btn danger" :disabled="updating === v.id" title="Refuser"
+                    @click="changeStatut(v.id, 'REFUSEE')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
                 </template>
                 <button v-else-if="v.statut === 'ACCEPTEE'" class="va-btn va-btn--cloture" :disabled="updating === v.id"
                   @click="openCloture(v.id)">Clôturer</button>
@@ -296,9 +300,8 @@ onMounted(() => fetchVisites(0))
 
 .va-btn { padding: .3rem .7rem; border-radius: 6px; font-size: .78rem; font-weight: 600; border: none; cursor: pointer; transition: opacity .15s; text-decoration: none; display: inline-block; }
 .va-btn:disabled { opacity: .4; cursor: not-allowed; }
-.va-btn--accept  { background: var(--color-primary); color: #fff; }
-.va-btn--refuse  { background: var(--color-accent);  color: #fff; }
 .va-btn--cloture { background: var(--color-primary); color: #fff; }
+.action-btn:disabled { opacity: .4; cursor: not-allowed; }
 
 .va-pager { display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1.25rem; font-size: .88rem; }
 .va-pager button { padding: .4rem .9rem; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-card); cursor: pointer; }

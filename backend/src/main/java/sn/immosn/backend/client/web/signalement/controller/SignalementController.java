@@ -145,6 +145,36 @@ public class SignalementController {
     }
 
     @Operation(
+        summary = "Détail d'un signalement",
+        description = """
+            Retourne le détail complet d'un signalement par son identifiant.
+
+            **Accès : ADMIN ou SUPER_ADMIN**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Détail du signalement",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Signalement non trouvé",
+            content = @Content(mediaType = "application/json"))
+    })
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<RestResponse<SignalementResponseDto>> getById(
+            @Parameter(description = "Identifiant du signalement", required = true, example = "5")
+            @PathVariable Long id) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de signalement invalide", null));
+        }
+        return ResponseEntity.ok(RestResponse.success(service.getById(id), HttpStatus.OK));
+    }
+
+    @Operation(
         summary = "Mettre à jour le statut d'un signalement",
         description = """
             Permet à un administrateur de traiter un signalement en changeant son statut

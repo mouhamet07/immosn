@@ -49,6 +49,7 @@ const router = createRouter({
         { path: 'contrats',            name: 'admin-contrats',       component: () => import('@/views/admin/ContratsAdminView.vue') },
         { path: 'contrats/:id',       name: 'admin-detail-contrat', component: () => import('@/views/admin/ContratDetailAdminView.vue') },
         { path: 'signalements',        name: 'admin-signalements',   component: () => import('@/views/admin/SignalementsAdminView.vue') },
+        { path: 'signalements/:id',   name: 'admin-detail-signalement', component: () => import('@/views/admin/SignalementDetailAdminView.vue') },
         { path: 'types-biens',         name: 'admin-types-biens',    component: () => import('@/views/admin/TypesBienView.vue') },
         { path: 'commodites',          name: 'admin-commodites',     component: () => import('@/views/admin/CommoditesView.vue') },
         { path: 'administrateurs',         name: 'admin-admins',        component: () => import('@/views/admin/AdministrateursView.vue') },

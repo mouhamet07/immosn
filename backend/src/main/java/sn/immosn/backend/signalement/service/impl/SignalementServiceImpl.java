@@ -62,6 +62,12 @@ public class SignalementServiceImpl implements SignalementService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public SignalementResponseDto getById(Long id) {
+        return mapper.toDto(load(id));
+    }
+
+    @Override
     @Transactional
     public SignalementResponseDto updateStatut(Long id, UpdateStatutSignalementDto dto) {
         Signalement sig = load(id);

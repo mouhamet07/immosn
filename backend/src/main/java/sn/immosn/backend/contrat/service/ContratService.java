@@ -2,6 +2,7 @@ package sn.immosn.backend.contrat.service;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
 import sn.immosn.backend.client.web.contrat.dto.*;
 import sn.immosn.backend.contrat.data.entity.StatutContrat;
 import sn.immosn.backend.contrat.data.entity.TypeContrat;
@@ -25,6 +26,8 @@ public interface ContratService {
     ContratResponseDto getById(Long id, String userEmail, boolean isAdmin);
 
     ContratResponseDto update(Long id, ContratUpdateRequestDto request);
+
+    ContratResponseDto uploadDocument(Long id, MultipartFile file);
 
     ContratResponseDto demanderResiliation(Long id, ContratActionDto dto, String clientEmail);
 

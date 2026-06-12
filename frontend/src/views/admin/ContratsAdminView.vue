@@ -12,11 +12,14 @@ const totalItems  = ref(0)
 const filtreStatut = ref('')
 
 // Modal édition
-const showEdit    = ref(false)
-const editId      = ref(null)
-const editForm    = ref({})
-const editIsLoc   = ref(false)  // true si le contrat édité est de type LOCATION
-const saving      = ref(false)
+const showEdit        = ref(false)
+const editId          = ref(null)
+const editForm        = ref({})
+const editIsLoc       = ref(false)  // true si le contrat édité est de type LOCATION
+const editDocumentFile = ref(null)   // nouveau fichier sélectionné
+const editDocumentName = ref('')     // nom du fichier choisi
+const editCurrentDoc  = ref('')     // URL du document existant
+const saving          = ref(false)
 
 const STATUTS       = ['', 'EN_ATTENTE', 'ACTIF', 'EXPIRE', 'RESILIE', 'EN_ATTENTE_RESILIATION', 'PROLONGATION_EN_ATTENTE']
 const STATUT_LABELS = {
@@ -50,37 +53,47 @@ async function fetchContrats(page = 0) {
 }
 
 function openEdit(c) {
-  editId.value    = c.id
-  editIsLoc.value = c.typeContrat === 'LOCATION'
-  editForm.value  = {
+  editId.value           = c.id
+  editIsLoc.value        = c.typeContrat === 'LOCATION'
+  editDocumentFile.value = null
+  editDocumentName.value = ''
+  editCurrentDoc.value   = c.documentUrl ?? ''
+  editForm.value = {
     dateDebut:         c.dateDebut ?? '',
     dateFin:           c.dateFin ?? '',
     montant:           c.montant ?? '',
     dureeLocationMois: c.dureeLocationMois ?? '',
     statut:            c.statut,
-    documentUrl:       c.documentUrl ?? '',
     notes:             c.notes ?? '',
   }
   showEdit.value = true
 }
 
+function handleDocumentFile(event) {
+  const file = event.target.files[0]
+  if (!file) return
+  editDocumentFile.value = file
+  editDocumentName.value = file.name
+}
+
 async function saveEdit() {
   saving.value = true
   try {
+    // Si un nouveau fichier est sélectionné, l'uploader en premier
+    if (editDocumentFile.value) {
+      await contratService.uploadDocument(editId.value, editDocumentFile.value)
+    }
     const payload = {
-      dateDebut:   editForm.value.dateDebut   || null,
-      statut:      editForm.value.statut      || null,
-      documentUrl: editForm.value.documentUrl || null,
-      notes:       editForm.value.notes       || null,
+      dateDebut: editForm.value.dateDebut || null,
+      statut:    editForm.value.statut    || null,
+      notes:     editForm.value.notes     || null,
     }
     if (editIsLoc.value) {
-      // LOCATION : dureeLocationMois déclenche le recalcul côté backend
       payload.dureeLocationMois = editForm.value.dureeLocationMois
         ? Number(editForm.value.dureeLocationMois) : null
     } else {
-      // VENTE : montant et dateFin sont libres
-      payload.dateFin  = editForm.value.dateFin  || null
-      payload.montant  = editForm.value.montant ? Number(editForm.value.montant) : null
+      payload.dateFin = editForm.value.dateFin  || null
+      payload.montant = editForm.value.montant ? Number(editForm.value.montant) : null
     }
     await contratService.update(editId.value, payload)
     showEdit.value = false
@@ -204,7 +217,27 @@ onMounted(() => fetchContrats(0))
               <option v-for="s in ['EN_ATTENTE','ACTIF','EXPIRE','RESILIE']" :key="s" :value="s">{{ STATUT_LABELS[s] }}</option>
             </select>
           </div>
-          <div class="modal-box__field"><label>URL document</label><input v-model="editForm.documentUrl" type="text" class="modal-box__input" placeholder="https://…" /></div>
+          <div class="modal-box__field">
+            <label>Document contractuel</label>
+            <div v-if="editCurrentDoc && !editDocumentFile" class="doc-current">
+              <a :href="editCurrentDoc" target="_blank" rel="noopener" class="doc-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Voir le document
+              </a>
+              <span class="doc-sep">·</span>
+              <label class="doc-replace">
+                Remplacer
+                <input type="file" accept=".pdf,.png,.jpg,.jpeg" @change="handleDocumentFile" hidden />
+              </label>
+            </div>
+            <div v-else class="doc-upload">
+              <label class="doc-upload__label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span>{{ editDocumentName || 'Choisir un fichier (PDF, PNG, JPG, JPEG)' }}</span>
+                <input type="file" accept=".pdf,.png,.jpg,.jpeg" @change="handleDocumentFile" hidden />
+              </label>
+            </div>
+          </div>
           <div class="modal-box__field"><label>Notes</label><textarea v-model="editForm.notes" class="modal-box__textarea" rows="3" /></div>
           <div class="modal-box__footer">
             <button class="modal-box__cancel" @click="showEdit = false">Annuler</button>
@@ -254,6 +287,21 @@ onMounted(() => fetchContrats(0))
   padding: .5rem .75rem; background: var(--color-background); border-radius: 6px;
   margin-bottom: 1rem;
 }
+
+.doc-current { display: flex; align-items: center; gap: .5rem; font-size: .83rem; }
+.doc-link { color: var(--color-primary); font-weight: 600; display: flex; align-items: center; gap: .3rem; }
+.doc-link svg { width: 14px; height: 14px; }
+.doc-sep { opacity: .35; }
+.doc-replace { color: var(--color-text-secondary); cursor: pointer; font-size: .8rem; transition: color .15s; }
+.doc-replace:hover { color: var(--color-primary); }
+.doc-upload__label {
+  display: flex; align-items: center; gap: .5rem; padding: .6rem .9rem;
+  border: 1.5px dashed var(--color-border); border-radius: var(--radius-sm);
+  font-size: .82rem; color: var(--color-text-secondary); cursor: pointer;
+  transition: border-color .15s, color .15s;
+}
+.doc-upload__label:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.doc-upload__label svg { width: 15px; height: 15px; flex-shrink: 0; }
 .spinner { width: 36px; height: 36px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 </style>

@@ -389,17 +389,16 @@ const shortcuts = [
 
           <!-- Pagination -->
           <div v-if="activitiesTotalPages > 1" class="activity-pager">
+            <button class="pager-btn" :disabled="activitiesPage === 0"
+              @click="changeActivityPage(activitiesPage - 1)">←</button>
             <button
-              class="pager-btn"
-              :disabled="activitiesPage === 0"
-              @click="changeActivityPage(activitiesPage - 1)"
-            >←</button>
-            <span class="pager-info">{{ activitiesPage + 1 }} / {{ activitiesTotalPages }}</span>
-            <button
-              class="pager-btn"
-              :disabled="activitiesPage >= activitiesTotalPages - 1"
-              @click="changeActivityPage(activitiesPage + 1)"
-            >→</button>
+              v-for="p in activitiesTotalPages"
+              :key="p"
+              :class="['pager-btn', { 'pager-btn--active': activitiesPage === p - 1 }]"
+              @click="changeActivityPage(p - 1)"
+            >{{ p }}</button>
+            <button class="pager-btn" :disabled="activitiesPage >= activitiesTotalPages - 1"
+              @click="changeActivityPage(activitiesPage + 1)">→</button>
           </div>
         </div>
 
@@ -634,9 +633,9 @@ const shortcuts = [
 /* Pagination activités */
 .activity-pager { display: flex; align-items: center; justify-content: center; gap: .75rem; padding: .75rem; border-top: 1px solid var(--color-border); }
 .pager-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--color-border); background: transparent; font-size: .85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; }
-.pager-btn:hover:not(:disabled) { border-color: var(--color-primary); color: var(--color-primary); }
+.pager-btn:hover:not(:disabled):not(.pager-btn--active) { border-color: var(--color-primary); color: var(--color-primary); }
 .pager-btn:disabled { opacity: .35; cursor: not-allowed; }
-.pager-info { font-size: .78rem; color: var(--color-text); opacity: .55; min-width: 50px; text-align: center; }
+.pager-btn--active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; font-weight: 700; cursor: default; }
 
 /* Raccourcis */
 .shortcuts-grid { display: grid; grid-template-columns: 1fr 1fr; }

@@ -22,7 +22,9 @@ import sn.immosn.backend.lead.data.entity.StatutLead;
 import sn.immosn.backend.lead.data.repository.LeadRepository;
 import sn.immosn.backend.lead.service.LeadHistoryService;
 import sn.immosn.backend.shared.exception.EntityNotFoundException;
+import sn.immosn.backend.shared.service.FileStorageService;
 import sn.immosn.backend.visite.data.entity.DemandeVisite;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -69,6 +71,7 @@ public class ContratServiceImpl implements ContratService {
     private final ContratMapper          mapper;
     private final ContratHistoryService  contratHistoryService;
     private final LeadHistoryService     leadHistoryService;
+    private final FileStorageService     fileStorageService;
 
     @Override
     @Transactional
@@ -464,6 +467,22 @@ public class ContratServiceImpl implements ContratService {
         log.info("Prolongation refusée : contratId={}", id);
         contratHistoryService.record(saved, StatutContrat.PROLONGATION_EN_ATTENTE, StatutContrat.ACTIF,
             "REFUS_PROLONGATION", motif);
+        return mapper.toDto(saved);
+    }
+
+    @Override
+    @Transactional
+    public ContratResponseDto uploadDocument(Long id, MultipartFile file) {
+        Contrat contrat = contratRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Contrat non trouvé : id=" + id));
+        String existingUrl = contrat.getDocumentUrl();
+        if (existingUrl != null && existingUrl.startsWith("/uploads/")) {
+            fileStorageService.delete(existingUrl);
+        }
+        String url = fileStorageService.store(file, "contrats");
+        contrat.setDocumentUrl(url);
+        Contrat saved = contratRepository.save(contrat);
+        log.info("Document uploadé pour contrat #{} : {}", id, url);
         return mapper.toDto(saved);
     }
 
