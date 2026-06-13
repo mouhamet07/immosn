@@ -68,9 +68,11 @@ async function annuler(id) {
 }
 
 function formatDate(dt) {
-  return new Date(dt).toLocaleDateString('fr-FR', {
-    day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
-  })
+  const d = new Date(dt)
+  const jour = d.toLocaleDateString('fr-FR', { weekday: 'long' })
+  const date = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
+  const heure = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+  return `${jour.charAt(0).toUpperCase() + jour.slice(1)} ${date} ${heure.replace(':', 'H')}`
 }
 
 onMounted(() => fetchVisites(0))
