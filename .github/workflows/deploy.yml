@@ -34,6 +34,11 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           # Ignore exit code : keyscan retourne 1 si une seule négociation échoue,
           # même quand les autres types (rsa/ecdsa/ed25519) ont bien été récupérés
+          ssh-keyscan -v -T 10 -t rsa,ecdsa,ed25519 -p "$SSH_PORT" -H "$SSH_HOST" > ~/.ssh/known_hosts 2>&1 || true
+          echo "--- known_hosts content ---"
+          cat ~/.ssh/known_hosts || true
+          echo "--- end known_hosts ---"
+          # Séparer les clés des logs verbeux
           ssh-keyscan -T 10 -t rsa,ecdsa,ed25519 -p "$SSH_PORT" -H "$SSH_HOST" > ~/.ssh/known_hosts 2>/dev/null || true
 
           # Ce qui compte : known_hosts doit contenir au moins une empreinte
