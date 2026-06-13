@@ -1,0 +1,58 @@
+name: CI — Validation PR
+
+on:
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ci-${{ github.head_ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  test:
+    name: Tests & SonarCloud
+    runs-on: ubuntu-latest
+    env:
+      SUPER_ADMIN_PASSWORD: ci-test-password
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # requis par SonarCloud pour l'analyse blame + décoration PR
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Tests unitaires
+        working-directory: backend
+        run: mvn test -B
+
+      - name: Upload rapport JaCoCo
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: backend/target/site/jacoco/
+          retention-days: 7
+
+      # Secret requis  : SONAR_TOKEN (GitHub → Settings → Secrets)
+      # Secret optionnel : SONAR_HOST_URL (défaut : https://sonarcloud.io)
+      # projectKey + organization définis dans sonar-project.properties à la racine
+      - name: Analyse SonarCloud
+        if: ${{ env.SONAR_TOKEN != '' }}
+        run: |
+          cd backend
+          mvn sonar:sonar \
+            -Dsonar.token="${SONAR_TOKEN}" \
+            -Dsonar.organization="${{ secrets.SONAR_ORGANIZATION }}" \
+            -Dsonar.projectKey="${{ secrets.SONAR_PROJECT_KEY }}" \
+            -Dsonar.host.url="https://sonarcloud.io" \
+            -B
