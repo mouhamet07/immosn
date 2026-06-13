@@ -184,9 +184,9 @@ async function saveSecurite() {
           <section class="profil-card">
             <h2 class="profil-card__title">Sécurité du compte</h2>
             <form class="profil-card__form" @submit.prevent="saveSecurite">
-              <InputField v-model="formSecurite.motDePasseActuel" label="Mot de passe actuel" type="password" />
-              <InputField v-model="formSecurite.nouveauMotDePasse" label="Nouveau mot de passe" type="password" />
-              <InputField v-model="formSecurite.confirmationMotDePasse" label="Confirmer le nouveau mot de passe" type="password" />
+              <InputField v-model="formSecurite.motDePasseActuel" label="Mot de passe actuel" type="password" placeholder="••••••••" />
+              <InputField v-model="formSecurite.nouveauMotDePasse" label="Nouveau mot de passe" type="password" placeholder="••••••••" />
+              <InputField v-model="formSecurite.confirmationMotDePasse" label="Confirmer le nouveau mot de passe" type="password" placeholder="••••••••" />
 
               <div v-if="successSecurite" class="profil-alert profil-alert--success">{{ successSecurite }}</div>
               <div v-if="errorSecurite" class="profil-alert profil-alert--error">{{ errorSecurite }}</div>

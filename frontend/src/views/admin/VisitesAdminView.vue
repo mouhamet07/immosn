@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { Pencil, CheckSquare } from 'lucide-vue-next'
 import visiteService from '@/services/visiteService'
 import FilterSelect from '@/components/FilterSelect.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
@@ -154,11 +155,11 @@ onMounted(() => fetchVisites(0))
               <RouterLink :to="`/admin/annonces/${v.annonceId}`" class="va-td-link">{{ v.annonceLibelle }}</RouterLink>
               <p class="va-td-sub">{{ v.annonceAdresse }}</p>
             </td>
-            <td>
+            <td class="td-date">
               <p class="table-date">{{ formatDate(v.dateVisite) }}</p>
-              <button class="va-edit-date" @click="openDateModal(v.id, v.dateVisite)">✎ Modifier</button>
+              <button class="va-edit-date" @click="openDateModal(v.id, v.dateVisite)"><Pencil :size="13" /> Modifier</button>
             </td>
-            <td><StatusBadge :label="STATUT_LABELS[v.statut] ?? v.statut" :variant="STATUT_VARIANTS[v.statut] ?? 'neutral'" /></td>
+            <td class="td-statut"><StatusBadge :label="STATUT_LABELS[v.statut] ?? v.statut" :variant="STATUT_VARIANTS[v.statut] ?? 'neutral'" /></td>
             <td>
               <div class="td-actions">
                 <RouterLink :to="`/admin/visites/${v.id}`" class="action-btn" title="Voir le détail">
@@ -174,8 +175,10 @@ onMounted(() => fetchVisites(0))
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                   </button>
                 </template>
-                <button v-else-if="v.statut === 'ACCEPTEE'" class="va-btn va-btn--cloture" :disabled="updating === v.id"
-                  @click="openCloture(v.id)">Clôturer</button>
+                <button v-else-if="v.statut === 'ACCEPTEE'" class="action-btn success" :disabled="updating === v.id"
+                  title="Clôturer" @click="openCloture(v.id)">
+                  <CheckSquare :size="16" />
+                </button>
               </div>
             </td>
           </tr>
@@ -296,6 +299,8 @@ onMounted(() => fetchVisites(0))
 
 .va-td-link { color: var(--color-primary); font-weight: 600; text-decoration: none; }
 .va-td-sub { font-size: .75rem; opacity: .5; margin-top: .15rem; }
+.td-statut { width: 1%; white-space: nowrap; text-align: center; }
+.td-date { white-space: nowrap; padding-left: .5rem; }
 .va-edit-date { font-size: .72rem; color: var(--color-primary); background: none; border: none; cursor: pointer; padding: 0; margin-top: .15rem; }
 
 .va-btn { padding: .3rem .7rem; border-radius: 6px; font-size: .78rem; font-weight: 600; border: none; cursor: pointer; transition: opacity .15s; text-decoration: none; display: inline-block; }

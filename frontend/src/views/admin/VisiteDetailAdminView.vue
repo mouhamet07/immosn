@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, MapPin } from 'lucide-vue-next'
+import { ArrowLeft, MapPin, Pencil, Check, X } from 'lucide-vue-next'
 import visiteService from '@/services/visiteService'
 import historyService from '@/services/historyService'
 import StatusBadge from '@/components/StatusBadge.vue'
@@ -197,7 +197,7 @@ onMounted(() => fetchVisite())
             <p class="vda-header__sub">{{ visite.clientNom }}</p>
           </div>
           <div class="vda-header__actions" v-if="visite.statut === 'ACCEPTEE'">
-            <button class="vda-btn vda-btn--outline" @click="openDateModal">✎ Modifier la date</button>
+            <button class="vda-btn vda-btn--outline" @click="openDateModal"><Pencil :size="13" /> Modifier la date</button>
           </div>
         </div>
 
@@ -266,8 +266,8 @@ onMounted(() => fetchVisite())
 
           <!-- EN_ATTENTE : accepter ou refuser -->
           <div v-if="visite.statut === 'EN_ATTENTE'" class="vda-actions">
-            <button class="vda-btn vda-btn--accept" :disabled="updating" @click="accepter">✓ Accepter</button>
-            <button class="vda-btn vda-btn--refuse" :disabled="updating" @click="refuser">✗ Refuser</button>
+            <button class="vda-btn vda-btn--accept" :disabled="updating" @click="accepter"><Check :size="14" /> Accepter</button>
+            <button class="vda-btn vda-btn--refuse" :disabled="updating" @click="refuser"><X :size="14" /> Refuser</button>
           </div>
 
           <!-- ACCEPTEE : clôturer -->
@@ -448,10 +448,10 @@ onMounted(() => fetchVisite())
   font-weight: 600; cursor: pointer; border: none; transition: opacity .15s;
 }
 .vda-btn:disabled { opacity: .4; cursor: not-allowed; }
-.vda-btn--accept  { background: var(--color-primary); color: #fff; }
-.vda-btn--accept:hover:not(:disabled)  { background: var(--color-primary-hover); opacity: 1; }
-.vda-btn--refuse  { background: none; border: 1.5px solid var(--color-accent); color: var(--color-accent); }
-.vda-btn--refuse:hover:not(:disabled)  { background: var(--color-accent); color: #fff; opacity: 1; }
+.vda-btn--accept  { background:none; border: 1.5px solid var(--color-primary); color: #fff; }
+.vda-btn--accept:hover:not(:disabled)  { background: var(--color-primary); opacity: 1; }
+.vda-btn--refuse  { background: none; border: 1.5px solid var(--color-accent); color: #fff; }
+.vda-btn--refuse:hover:not(:disabled)  { background: var(--color-accent); opacity: 1; }
 .vda-btn--cloture { background: var(--color-primary); color: #fff; }
 .vda-btn--cloture:hover:not(:disabled) { background: var(--color-primary-hover); opacity: 1; }
 .vda-btn--outline { background: none; border: 1.5px solid var(--color-primary); color: var(--color-primary); }

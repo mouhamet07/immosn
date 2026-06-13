@@ -198,5 +198,10 @@ select:focus {
   color: var(--color-accent);
   background: #FEF3EE;
 }
+.action-btn.success:hover {
+  border-color: #059669;
+  color: #059669;
+  background: #d1fae5;
+}
 
 .td-actions { display: flex; gap: 0.5rem; align-items: center; }
