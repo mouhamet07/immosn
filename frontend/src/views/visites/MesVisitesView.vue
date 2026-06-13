@@ -137,10 +137,6 @@ onMounted(() => fetchVisites(0))
             </div>
             <RouterLink :to="`/annonces/${v.annonceId}`" class="mv-card__title">{{ v.annonceLibelle }}</RouterLink>
             <p class="mv-card__addr"><MapPin :size="12" /> {{ v.annonceAdresse }}</p>
-            <div class="mv-card__visite">
-              <span class="mv-card__visite-label">Date souhaitée :</span>
-              <span class="mv-card__visite-val">{{ formatDate(v.dateVisite) }}</span>
-            </div>
             <p v-if="v.commentaire" class="mv-card__comment">{{ v.commentaire }}</p>
           </div>
           <div class="mv-card__actions">
