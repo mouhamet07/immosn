@@ -22,33 +22,45 @@ jobs:
           fetch-depth: 1
 
       - name: Setup SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_KEY }}
+          SSH_HOST: ${{ secrets.VPS_HOST }}
+          SSH_PORT: ${{ secrets.VPS_SSH_PORT || '22' }}
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -T 10 -t rsa,ecdsa,ed25519 -p "${{ secrets.VPS_SSH_PORT || '22' }}" "${{ secrets.VPS_HOST }}" > ~/.ssh/known_hosts 2>/dev/null
+          ssh-keyscan -T 10 -t rsa,ecdsa,ed25519 -p "$SSH_PORT" "$SSH_HOST" > ~/.ssh/known_hosts 2>/dev/null
           if [ ! -s ~/.ssh/known_hosts ]; then
-            echo "::error::known_hosts vide — VPS injoignable (${{ secrets.VPS_HOST }})"
+            echo "::error::known_hosts vide — VPS injoignable"
             exit 1
           fi
           chmod 644 ~/.ssh/known_hosts
 
       - name: Test SSH connection
+        env:
+          SSH_HOST: ${{ secrets.VPS_HOST }}
+          SSH_PORT: ${{ secrets.VPS_SSH_PORT || '22' }}
+          SSH_USER: ${{ secrets.VPS_USER }}
         run: |
           ssh -i ~/.ssh/id_ed25519 \
             -o BatchMode=yes \
             -o StrictHostKeyChecking=yes \
-            -p "${{ secrets.VPS_SSH_PORT || '22' }}" \
-            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            -p "$SSH_PORT" \
+            "$SSH_USER@$SSH_HOST" \
             'echo "SSH OK — $(hostname)"'
 
       - name: Deploy to VPS
+        env:
+          SSH_HOST: ${{ secrets.VPS_HOST }}
+          SSH_PORT: ${{ secrets.VPS_SSH_PORT || '22' }}
+          SSH_USER: ${{ secrets.VPS_USER }}
         run: |
           ssh -i ~/.ssh/id_ed25519 \
             -o StrictHostKeyChecking=yes \
-            -p "${{ secrets.VPS_SSH_PORT || '22' }}" \
-            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" << 'EOF'
+            -p "$SSH_PORT" \
+            "$SSH_USER@$SSH_HOST" << 'EOF'
             set -euo pipefail
             cd /root/immosn
             echo "=== [1/4] Pull code ==="
@@ -78,9 +90,13 @@ jobs:
 
       - name: Logs backend (sur échec)
         if: failure()
+        env:
+          SSH_HOST: ${{ secrets.VPS_HOST }}
+          SSH_PORT: ${{ secrets.VPS_SSH_PORT || '22' }}
+          SSH_USER: ${{ secrets.VPS_USER }}
         run: |
           ssh -i ~/.ssh/id_ed25519 \
             -o StrictHostKeyChecking=yes \
-            -p "${{ secrets.VPS_SSH_PORT || '22' }}" \
-            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            -p "$SSH_PORT" \
+            "$SSH_USER@$SSH_HOST" \
             'docker logs immosn-backend --tail 150 2>/dev/null || true' || true
