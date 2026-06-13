@@ -6,7 +6,7 @@ on:
 
 concurrency:
   group: deploy-production
-  cancel-in-progress: true
+  cancel-in-progress: false  # ne jamais interrompre un déploiement en cours
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -15,67 +15,87 @@ jobs:
   deploy:
     name: Déploiement VPS
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
+        with:
+          fetch-depth: 1  # pas besoin d'historique pour le déploiement
       - name: Setup SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_KEY }}
-          SSH_PORT: ${{ secrets.VPS_SSH_PORT || '22' }}
+          SSH_HOST: ${{ secrets.VPS_HOST }}
+          SSH_PORT: ${{ secrets.VPS_SSH_PORT }}
+          SSH_USER: ${{ secrets.VPS_USER }}
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          touch ~/.ssh/known_hosts
-          for i in 1 2 3 4 5; do
-            ssh-keyscan -T 30 -p "${SSH_PORT}" -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null && break
-            echo "ssh-keyscan attempt $i/5 failed, retrying in 15s..."
-            sleep 15
-          done
+          if ! ssh-keyscan -T 10 -t rsa,ecdsa,ed25519 -p "$SSH_PORT" -H "$SSH_HOST" > ~/.ssh/known_hosts 2>/dev/null; then
+            echo "::error::ssh-keyscan impossible — le VPS ($SSH_HOST:$SSH_PORT) est injoignable depuis GitHub Actions."
+            echo "Vérifiez : firewall VPS, IP publique correcte dans VPS_HOST, port ouvert."
+            exit 1
+          fi
+          if [ ! -s ~/.ssh/known_hosts ]; then
+            echo "::error::known_hosts est vide après ssh-keyscan — empreinte du serveur non récupérée."
+            exit 1
+          fi
           chmod 644 ~/.ssh/known_hosts
-
+          cat >> ~/.ssh/config << SSHCFG
+          Host vps
+            HostName $SSH_HOST
+            Port $SSH_PORT
+            User $SSH_USER
+            IdentityFile ~/.ssh/id_ed25519
+            BatchMode yes
+            ConnectTimeout 15
+            ServerAliveInterval 10
+            ServerAliveCountMax 6
+            TCPKeepAlive yes
+            StrictHostKeyChecking yes
+          SSHCFG
+      - name: Vérification connectivité SSH
+        run: ssh vps 'echo "SSH OK — $(hostname)"'
       - name: Deploy to VPS
-        env:
-          SSH_PORT: ${{ secrets.VPS_SSH_PORT || '22' }}
         run: |
-          ssh \
-            -i ~/.ssh/id_ed25519 \
-            -p "${SSH_PORT}" \
-            -o BatchMode=yes \
-            -o ConnectTimeout=60 \
-            -o ServerAliveInterval=15 \
-            -o ServerAliveCountMax=4 \
-            -o TCPKeepAlive=yes \
-            -o StrictHostKeyChecking=accept-new \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
-            set -e
+          ssh vps << 'EOF'
+            set -euo pipefail
             cd /root/immosn
-            echo "=== Pull code ==="
+            echo "=== [1/4] Pull code ==="
             git pull origin master
-            echo "=== Build containers ==="
-            docker compose down
+            echo "=== [2/4] Build & restart containers ==="
+            docker compose pull --quiet 2>/dev/null || true
+            docker compose down --remove-orphans
             docker compose build --no-cache
             docker compose up -d
-            echo "=== Wait backend startup ==="
-            sleep 40
-            echo "=== Healthcheck backend ==="
+            echo "=== [3/4] Healthcheck backend (max 4 min) ==="
+            DEADLINE=$(( $(date +%s) + 240 ))
             HEALTHY=false
-            for i in $(seq 1 20); do
-              STATUS=$(docker inspect --format='{{.State.Health.Status}}' immosn-backend 2>/dev/null || echo "starting")
-              echo "Attempt $i/20 - Status: $STATUS"
+            until [ "$(date +%s)" -ge "$DEADLINE" ]; do
+              STATUS=$(docker inspect --format='{{.State.Health.Status}}' immosn-backend 2>/dev/null || echo "unknown")
+              echo "  $(date +%T) — statut: $STATUS"
               if [ "$STATUS" = "healthy" ]; then
                 HEALTHY=true
                 break
               fi
-              sleep 10
+              if [ "$STATUS" = "unhealthy" ]; then
+                echo "  Container marqué unhealthy, inutile d'attendre."
+                break
+              fi
+              sleep 8
             done
-            if [ "$HEALTHY" != "true" ]; then
-              echo "=== DEPLOY FAILED ==="
-              docker logs immosn-backend --tail 100 || true
+            echo "=== [4/4] Résultat ==="
+            if [ "$HEALTHY" = "true" ]; then
+              echo "DEPLOY SUCCESS"
+              docker image prune -f
+            else
+              echo "::error::DEPLOY FAILED — backend non healthy après 4 min"
               exit 1
             fi
-            echo "=== DEPLOY SUCCESS ==="
-            docker image prune -f
           EOF
+      - name: Logs backend (sur échec)
+        if: failure()
+        run: |
+          ssh vps 'docker logs immosn-backend --tail 150 2>/dev/null || echo "Container introuvable"' || true
+          ssh vps 'docker compose ps 2>/dev/null || true' || true
