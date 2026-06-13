@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Download, FileText, Paperclip } from 'lucide-vue-next'
+import { ArrowLeft, Download, FileText, Paperclip, Pencil, Check, X } from 'lucide-vue-next'
 import contratService from '@/services/contratService'
 import { uploadPdf } from '@/services/cloudinaryService'
 import historyService from '@/services/historyService'
@@ -265,7 +265,7 @@ onMounted(() => fetchContrat())
             <a v-if="contrat.documentUrl" :href="contrat.documentUrl" target="_blank" class="cda-btn cda-btn--outline">
               <Download :size="14" /> Télécharger
             </a>
-            <button class="cda-btn cda-btn--primary" @click="openEdit">✎ Modifier</button>
+            <button class="cda-btn cda-btn--primary" @click="openEdit"><Pencil :size="13" /> Modifier</button>
           </div>
         </div>
 
@@ -356,27 +356,27 @@ onMounted(() => fetchContrat())
 
           <!-- EN_ATTENTE → Valider ou Rejeter -->
           <div v-if="contrat.statut === 'EN_ATTENTE'" class="cda-actions">
-            <button class="cda-btn cda-btn--success" :disabled="activating" @click="activer">{{ activating ? '…' : '✓ Valider le contrat' }}</button>
-            <button class="cda-btn cda-btn--danger"  :disabled="activating" @click="rejeter">{{ activating ? '…' : '✗ Rejeter le contrat' }}</button>
+            <button class="cda-btn cda-btn--success" :disabled="activating" @click="activer"><template v-if="!activating"><Check :size="14" /> Valider le contrat</template><template v-else>…</template></button>
+            <button class="cda-btn cda-btn--danger"  :disabled="activating" @click="rejeter"><template v-if="!activating"><X :size="14" /> Rejeter le contrat</template><template v-else>…</template></button>
           </div>
 
           <!-- EN_ATTENTE_RESILIATION → Accepter ou Refuser -->
           <div v-else-if="contrat.statut === 'EN_ATTENTE_RESILIATION'" class="cda-actions">
             <button class="cda-btn cda-btn--success" @click="openResiliation('accepter')">
-              ✓ Accepter la résiliation
+              <Check :size="14" /> Accepter la résiliation
             </button>
             <button class="cda-btn cda-btn--danger" @click="openResiliation('refuser')">
-              ✗ Refuser la résiliation
+              <X :size="14" /> Refuser la résiliation
             </button>
           </div>
 
           <!-- PROLONGATION_EN_ATTENTE → Accepter ou Refuser -->
           <div v-else-if="contrat.statut === 'PROLONGATION_EN_ATTENTE'" class="cda-actions">
             <button class="cda-btn cda-btn--success" @click="openProlongation('accepter')">
-              ✓ Accepter la prolongation
+              <Check :size="14" /> Accepter la prolongation
             </button>
             <button class="cda-btn cda-btn--danger" @click="openProlongation('refuser')">
-              ✗ Refuser la prolongation
+              <X :size="14" /> Refuser la prolongation
             </button>
           </div>
 
@@ -419,7 +419,8 @@ onMounted(() => fetchContrat())
       <div v-if="showResiliationModal" class="modal-overlay" @click.self="showResiliationModal = false">
         <div class="modal-box">
           <h2 class="modal-box__title">
-            {{ resiliationAction === 'accepter' ? '✓ Accepter la résiliation' : '✗ Refuser la résiliation' }}
+            <template v-if="resiliationAction === 'accepter'"><Check :size="14" /> Accepter la résiliation</template>
+            <template v-else><X :size="14" /> Refuser la résiliation</template>
           </h2>
           <p class="modal-box__desc">
             Contrat : <strong>{{ contrat?.annonceLibelle }}</strong> — Client : <strong>{{ contrat?.clientNom }}</strong>
@@ -454,7 +455,8 @@ onMounted(() => fetchContrat())
       <div v-if="showProlongationModal" class="modal-overlay" @click.self="showProlongationModal = false">
         <div class="modal-box">
           <h2 class="modal-box__title">
-            {{ prolongationAction === 'accepter' ? '✓ Accepter la prolongation' : '✗ Refuser la prolongation' }}
+            <template v-if="prolongationAction === 'accepter'"><Check :size="14" /> Accepter la prolongation</template>
+            <template v-else><X :size="14" /> Refuser la prolongation</template>
           </h2>
           <p class="modal-box__desc">
             Contrat : <strong>{{ contrat?.annonceLibelle }}</strong> — Client : <strong>{{ contrat?.clientNom }}</strong>
