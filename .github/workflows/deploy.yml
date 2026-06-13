@@ -32,13 +32,14 @@ jobs:
           chmod 700 ~/.ssh
           printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          if ! ssh-keyscan -T 10 -t rsa,ecdsa,ed25519 -p "$SSH_PORT" -H "$SSH_HOST" > ~/.ssh/known_hosts 2>/dev/null; then
-            echo "::error::ssh-keyscan impossible — le VPS ($SSH_HOST:$SSH_PORT) est injoignable depuis GitHub Actions."
-            echo "Vérifiez : firewall VPS, IP publique correcte dans VPS_HOST, port ouvert."
-            exit 1
-          fi
+          # Ignore exit code : keyscan retourne 1 si une seule négociation échoue,
+          # même quand les autres types (rsa/ecdsa/ed25519) ont bien été récupérés
+          ssh-keyscan -T 10 -t rsa,ecdsa,ed25519 -p "$SSH_PORT" -H "$SSH_HOST" > ~/.ssh/known_hosts 2>/dev/null || true
+
+          # Ce qui compte : known_hosts doit contenir au moins une empreinte
           if [ ! -s ~/.ssh/known_hosts ]; then
-            echo "::error::known_hosts est vide après ssh-keyscan — empreinte du serveur non récupérée."
+            echo "::error::known_hosts est vide — le VPS ($SSH_HOST:$SSH_PORT) est injoignable depuis GitHub Actions."
+            echo "Vérifiez : firewall VPS, IP publique correcte dans VPS_HOST, port ouvert."
             exit 1
           fi
           chmod 644 ~/.ssh/known_hosts
