@@ -15,7 +15,9 @@ public record SearchAnnonceRequestDto(
 
     String adresse,
 
-    @Min(1) Integer nbrPieces,
+    @Min(1) Integer nbrPieces,      // égalité exacte (conservé pour compatibilité)
+    @Min(1) Integer piecesMin,      // nbrPieces >= piecesMin
+    @Min(1) Integer piecesMax,      // nbrPieces <= piecesMax
 
     List<Long> commoditeIds,
 

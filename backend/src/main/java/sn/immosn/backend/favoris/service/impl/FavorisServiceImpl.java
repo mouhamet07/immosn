@@ -59,7 +59,7 @@ public class FavorisServiceImpl implements FavorisService {
             .orElseThrow(() -> new EntityNotFoundException("Utilisateur non trouvé"));
 
         return favorisRepository
-            .findByClientIdOrderByCreatedAtDesc(client.getId(), pageable)
+            .findActiveByClientId(client.getId(), pageable)
             .map(fav -> {
                 var a = fav.getAnnonce();
                 String image = (a.getImages() != null && !a.getImages().isEmpty())
@@ -71,6 +71,7 @@ public class FavorisServiceImpl implements FavorisService {
                     a.getAdresse(),
                     a.getTypeBien() != null ? a.getTypeBien().getLibelle() : null,
                     a.getNbrPieces(),
+                    a.getNbrSallesBain(),
                     a.getSurface(),
                     image,
                     fav.getCreatedAt()
@@ -83,7 +84,9 @@ public class FavorisServiceImpl implements FavorisService {
     public FavorisStatusDto checkFavoris(Long annonceId, String clientEmail) {
         var client = userRepository.findByEmail(clientEmail)
             .orElseThrow(() -> new EntityNotFoundException("Utilisateur non trouvé"));
-        boolean isFav = favorisRepository.existsByClientIdAndAnnonceId(client.getId(), annonceId);
+        // Utilise existsActiveByClientIdAndAnnonceId pour exclure les annonces archivées
+        // cohérence avec getAllFavorisIds() et getClientFavoris() qui filtrent déjà isArchived=false
+        boolean isFav = favorisRepository.existsActiveByClientIdAndAnnonceId(client.getId(), annonceId);
         return new FavorisStatusDto(annonceId, isFav);
     }
 
@@ -98,7 +101,7 @@ public class FavorisServiceImpl implements FavorisService {
             .orElseThrow(() -> new EntityNotFoundException("Utilisateur non trouvé"));
 
         return favorisRepository
-            .findAllByClientId(client.getId())
+            .findAllActiveByClientId(client.getId())
             .stream()
             .map(fav -> fav.getAnnonce().getId())
             .toList();

@@ -6,8 +6,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+
+import java.time.LocalDateTime;
 import sn.immosn.backend.annonce.data.repository.AnnonceRepository;
 import sn.immosn.backend.auth.data.entity.RoleType;
 import sn.immosn.backend.auth.data.repository.UserRepository;
@@ -33,13 +34,13 @@ import static org.mockito.Mockito.*;
 @DisplayName("DashboardService — Tests unitaires")
 class DashboardServiceTest {
 
-    @Mock AnnonceRepository     annonceRepository;
-    @Mock UserRepository        userRepository;
-    @Mock ContratRepository     contratRepository;
+    @Mock AnnonceRepository       annonceRepository;
+    @Mock UserRepository          userRepository;
+    @Mock ContratRepository       contratRepository;
     @Mock DemandeVisiteRepository visiteRepository;
-    @Mock SignalementRepository signalementRepository;
-    @Mock LeadRepository        leadRepository;
-    @Mock DiscussionRepository  discussionRepository;
+    @Mock SignalementRepository   signalementRepository;
+    @Mock LeadRepository          leadRepository;
+    @Mock DiscussionRepository    discussionRepository;
 
     @InjectMocks
     DashboardServiceImpl dashboardService;
@@ -47,46 +48,42 @@ class DashboardServiceTest {
     @Test
     @DisplayName("getStats — agrège les compteurs de tous les domaines")
     void getStats_aggregatesAllCounts() {
-        // Stub tous les repositories
+        // --- Compteurs directs ---
         when(annonceRepository.count()).thenReturn(12L);
-        when(annonceRepository.findByIsArchivedFalse(any(Pageable.class)))
-            .thenReturn(new PageImpl<>(List.of(), Pageable.ofSize(1), 8));
+        when(annonceRepository.countByIsArchivedFalse()).thenReturn(8L);
 
-        when(userRepository.findByRoles_Role(eq(RoleType.CLIENT), any(Pageable.class)))
-            .thenReturn(new PageImpl<>(List.of(), Pageable.ofSize(1), 25));
-        when(userRepository.findByRoles_Role(eq(RoleType.ADMIN), any(Pageable.class)))
-            .thenReturn(new PageImpl<>(List.of(), Pageable.ofSize(1), 3));
+        when(userRepository.countByRoles_Role(RoleType.CLIENT)).thenReturn(25L);
+        when(userRepository.countByRoles_Role(RoleType.ADMIN)).thenReturn(3L);
 
         when(contratRepository.count()).thenReturn(7L);
         when(contratRepository.countByStatut(StatutContrat.ACTIF)).thenReturn(5L);
 
         when(visiteRepository.count()).thenReturn(30L);
-        when(visiteRepository.findByStatutAndIsArchivedFalseOrderByCreatedAtDesc(
-            eq(StatutDemandeVisite.EN_ATTENTE), any(Pageable.class)))
-            .thenReturn(new PageImpl<>(List.of(), Pageable.ofSize(1), 4));
-        when(visiteRepository.findByIsArchivedFalseOrderByCreatedAtDesc(any(Pageable.class)))
-            .thenReturn(new PageImpl<>(List.of()));
+        when(visiteRepository.countByStatutAndIsArchivedFalse(StatutDemandeVisite.EN_ATTENTE)).thenReturn(4L);
+        when(visiteRepository.countByDateVisiteBetweenAndIsArchivedFalse(
+            any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(2L);
 
         when(signalementRepository.count()).thenReturn(10L);
-        when(signalementRepository.findByStatutOrderByCreatedAtDesc(
-            eq(StatutSignalement.OUVERT), any(Pageable.class)))
-            .thenReturn(new PageImpl<>(List.of(), Pageable.ofSize(1), 2));
-        when(signalementRepository.findAllByOrderByCreatedAtDesc(any(Pageable.class)))
-            .thenReturn(new PageImpl<>(List.of()));
+        when(signalementRepository.countByStatut(StatutSignalement.OUVERT)).thenReturn(2L);
 
         when(leadRepository.count()).thenReturn(15L);
         when(leadRepository.countByStatut(StatutLead.EN_COURS)).thenReturn(6L);
-        when(leadRepository.findAllByOrderByCreatedAtDesc(any(Pageable.class)))
-            .thenReturn(new PageImpl<>(List.of()));
+        when(leadRepository.countByStatut(StatutLead.CONVERTI)).thenReturn(4L);
+        when(leadRepository.countByStatut(StatutLead.ABANDONNE)).thenReturn(2L);
 
         when(discussionRepository.count()).thenReturn(20L);
 
-        when(annonceRepository.findByIsArchivedFalse(any(Pageable.class)))
-            .thenReturn(new PageImpl<>(List.of(), Pageable.ofSize(1), 8));
-        when(visiteRepository.findByIsArchivedFalseOrderByCreatedAtDesc(any(Pageable.class)))
-            .thenReturn(new PageImpl<>(List.of()));
-        when(contratRepository.findAllByOrderByCreatedAtDesc(any(Pageable.class)))
-            .thenReturn(new PageImpl<>(List.of()));
+        // --- Activités récentes (retournent List, pas Page) ---
+        when(annonceRepository.findByIsArchivedFalseOrderByCreatedAtDesc(any(Pageable.class)))
+            .thenReturn(List.of());
+        when(visiteRepository.findRecentForDashboard(any(Pageable.class)))
+            .thenReturn(List.of());
+        when(contratRepository.findRecentForDashboard(any(Pageable.class)))
+            .thenReturn(List.of());
+        when(signalementRepository.findRecentForDashboard(any(Pageable.class)))
+            .thenReturn(List.of());
+        when(discussionRepository.findTopRecentForDashboard(any(Pageable.class)))
+            .thenReturn(List.of());
 
         // Exécution
         DashboardStatsDto stats = dashboardService.getStats();
@@ -101,10 +98,14 @@ class DashboardServiceTest {
         assertThat(stats.contratsActifs()).isEqualTo(5L);
         assertThat(stats.totalVisites()).isEqualTo(30L);
         assertThat(stats.visitesEnAttente()).isEqualTo(4L);
+        assertThat(stats.visitesAujourdhui()).isEqualTo(2L);
         assertThat(stats.totalSignalements()).isEqualTo(10L);
         assertThat(stats.signalementsOuverts()).isEqualTo(2L);
         assertThat(stats.totalLeads()).isEqualTo(15L);
         assertThat(stats.leadsEnCours()).isEqualTo(6L);
+        assertThat(stats.leadsConvertis()).isEqualTo(4L);
+        assertThat(stats.leadsAbandonnes()).isEqualTo(2L);
+        assertThat(stats.tauxConversionLeads()).isEqualTo(66.67);
         assertThat(stats.totalDiscussions()).isEqualTo(20L);
         assertThat(stats.activitesRecentes()).isNotNull();
     }

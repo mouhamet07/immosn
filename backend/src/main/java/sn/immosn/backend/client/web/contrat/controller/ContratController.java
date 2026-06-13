@@ -14,11 +14,14 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import sn.immosn.backend.client.web.contrat.dto.*;
 import sn.immosn.backend.contrat.data.entity.StatutContrat;
+import sn.immosn.backend.contrat.service.ContratHistoryService;
 import sn.immosn.backend.contrat.service.ContratService;
 import sn.immosn.backend.shared.response.PagedResponse;
 import sn.immosn.backend.shared.response.RestResponse;
@@ -32,7 +35,8 @@ import java.security.Principal;
 @SecurityRequirement(name = "bearerAuth")
 public class ContratController {
 
-    private final ContratService service;
+    private final ContratService        service;
+    private final ContratHistoryService historyService;
 
     @Operation(
         summary = "Créer un contrat",
@@ -42,9 +46,14 @@ public class ContratController {
             Le contrat est créé avec le statut **EN_ATTENTE** par défaut.
             Il peut optionnellement être lié à un lead et/ou une demande de visite.
 
+            **Chemin canonique :** dans le flux normal, un contrat est créé automatiquement
+            via la clôture d'une visite avec `type=AVEC_CONTRAT`
+            (`PUT /api/v1/visites/{id}/cloture`). Ce endpoint permet la création manuelle
+            par l'administrateur en dehors du flux visite.
+
             Statuts possibles : `EN_ATTENTE` → `ACTIF` → `EXPIRE` / `RESILIE`
 
-            **Accès : ADMIN uniquement**
+            **Accès : ADMIN ou SUPER_ADMIN**
             """
     )
     @ApiResponses({
@@ -68,9 +77,11 @@ public class ContratController {
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
             content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "404", description = "Client, annonce ou lead non trouvé",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "422", description = "Règle métier violée — le lead spécifié est lié à une visite : utiliser PUT /visites/{id}/cloture avec type=AVEC_CONTRAT",
             content = @Content(mediaType = "application/json"))
     })
     @PostMapping
@@ -120,7 +131,7 @@ public class ContratController {
 
             Peut être filtrée par statut pour faciliter le suivi.
 
-            **Accès : ADMIN uniquement**
+            **Accès : ADMIN ou SUPER_ADMIN**
             """
     )
     @ApiResponses({
@@ -128,7 +139,7 @@ public class ContratController {
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
             content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
             content = @Content(mediaType = "application/json"))
     })
     @GetMapping("/admin")
@@ -208,7 +219,7 @@ public class ContratController {
             Permet notamment de changer le statut, ajuster les dates, le montant
             ou associer un document contractuel.
 
-            **Accès : ADMIN uniquement**
+            **Accès : ADMIN ou SUPER_ADMIN**
             """
     )
     @ApiResponses({
@@ -218,7 +229,7 @@ public class ContratController {
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
             content = @Content(mediaType = "application/json")),
-        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN requis",
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "404", description = "Contrat non trouvé",
             content = @Content(mediaType = "application/json"))
@@ -233,6 +244,44 @@ public class ContratController {
                 .body(RestResponse.badRequest("Identifiant de contrat invalide", null));
         }
         return ResponseEntity.ok(RestResponse.success(service.update(id, request), HttpStatus.OK));
+    }
+
+    @Operation(
+        summary = "Uploader le document contractuel",
+        description = """
+            Permet à un administrateur d'uploader le document contractuel (PDF, PNG, JPG, JPEG)
+            associé à un contrat. Le fichier est stocké sur le serveur et son URL est mise à jour
+            dans le contrat. Si un document existant avait déjà été uploadé, il est supprimé.
+
+            **Formats acceptés :** PDF, PNG, JPG, JPEG (max 10 Mo)
+
+            **Accès : ADMIN ou SUPER_ADMIN**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Document uploadé avec succès",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Fichier invalide ou format non supporté",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Contrat non trouvé",
+            content = @Content(mediaType = "application/json"))
+    })
+    @PostMapping(value = "/{id}/document", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<RestResponse<ContratResponseDto>> uploadDocument(
+            @Parameter(description = "Identifiant du contrat", required = true, example = "8")
+            @PathVariable Long id,
+            @Parameter(description = "Fichier à uploader (PDF, PNG, JPG, JPEG — max 10 Mo)", required = true)
+            @RequestParam("file") MultipartFile file) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de contrat invalide", null));
+        }
+        return ResponseEntity.ok(RestResponse.success(service.uploadDocument(id, file), HttpStatus.OK));
     }
 
     @Operation(
@@ -318,6 +367,162 @@ public class ContratController {
         }
         return ResponseEntity.ok(RestResponse.success(
             service.demanderProlongation(id, dto, principal.getName()), HttpStatus.OK));
+    }
+
+    @Operation(
+        summary = "Accepter une demande de résiliation",
+        description = """
+            L'administrateur accepte la demande de résiliation du client.
+
+            Transition : `EN_ATTENTE_RESILIATION` → `RESILIE`
+
+            Un commentaire admin optionnel peut être fourni dans le corps de la requête (`motif`).
+
+            **Accès : ADMIN ou SUPER_ADMIN**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Résiliation acceptée — statut : RESILIE",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Transition invalide ou identifiant invalide",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Contrat non trouvé",
+            content = @Content(mediaType = "application/json"))
+    })
+    @PutMapping("/{id}/resiliation/accepter")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<RestResponse<ContratResponseDto>> accepterResiliation(
+            @PathVariable Long id, @RequestBody(required = false) ContratActionDto dto) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de contrat invalide", null));
+        }
+        return ResponseEntity.ok(RestResponse.success(service.accepterResiliation(id, dto), HttpStatus.OK));
+    }
+
+    @Operation(
+        summary = "Refuser une demande de résiliation",
+        description = """
+            L'administrateur refuse la demande de résiliation du client.
+
+            Transition : `EN_ATTENTE_RESILIATION` → `ACTIF`
+
+            Un commentaire admin optionnel peut être fourni dans le corps de la requête (`motif`).
+
+            **Accès : ADMIN ou SUPER_ADMIN**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Résiliation refusée — statut : ACTIF",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Transition invalide ou identifiant invalide",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Contrat non trouvé",
+            content = @Content(mediaType = "application/json"))
+    })
+    @PutMapping("/{id}/resiliation/refuser")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<RestResponse<ContratResponseDto>> refuserResiliation(
+            @PathVariable Long id, @RequestBody(required = false) ContratActionDto dto) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de contrat invalide", null));
+        }
+        return ResponseEntity.ok(RestResponse.success(service.refuserResiliation(id, dto), HttpStatus.OK));
+    }
+
+    @Operation(
+        summary = "Accepter une demande de prolongation",
+        description = """
+            L'administrateur accepte la demande de prolongation du client.
+
+            Transition : `PROLONGATION_EN_ATTENTE` → `ACTIF`
+
+            **Pour VENTE :** fournir `nouvelleDate` pour mettre à jour la date de fin.
+
+            **Pour LOCATION :** fournir `nouvelleDate` — la durée en mois et le montant total
+            sont recalculés automatiquement (`prix × nouvelleDurée`).
+            La nouvelle durée doit être strictement supérieure à la durée actuelle.
+
+            Si `nouvelleDate` est absent, seul le statut est mis à jour (ACTIF), sans modifier les dates.
+
+            **Accès : ADMIN ou SUPER_ADMIN**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Prolongation acceptée — statut : ACTIF",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Transition invalide, durée insuffisante ou identifiant invalide",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Contrat non trouvé",
+            content = @Content(mediaType = "application/json"))
+    })
+    @PutMapping("/{id}/prolongation/accepter")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<RestResponse<ContratResponseDto>> accepterProlongation(
+            @PathVariable Long id, @RequestBody(required = false) ContratActionDto dto) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de contrat invalide", null));
+        }
+        return ResponseEntity.ok(RestResponse.success(service.accepterProlongation(id, dto), HttpStatus.OK));
+    }
+
+    @Operation(
+        summary = "Refuser une demande de prolongation",
+        description = """
+            L'administrateur refuse la demande de prolongation du client.
+
+            Transition : `PROLONGATION_EN_ATTENTE` → `ACTIF`
+
+            Un commentaire admin optionnel peut être fourni dans le corps de la requête (`motif`).
+
+            **Accès : ADMIN ou SUPER_ADMIN**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Prolongation refusée — statut : ACTIF",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Transition invalide ou identifiant invalide",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Contrat non trouvé",
+            content = @Content(mediaType = "application/json"))
+    })
+    @PutMapping("/{id}/prolongation/refuser")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<RestResponse<ContratResponseDto>> refuserProlongation(
+            @PathVariable Long id, @RequestBody(required = false) ContratActionDto dto) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de contrat invalide", null));
+        }
+        return ResponseEntity.ok(RestResponse.success(service.refuserProlongation(id, dto), HttpStatus.OK));
+    }
+
+    @Operation(summary = "Historique d'un contrat", description = "Retourne l'historique complet des transitions et actions sur un contrat. **Accès : ADMIN ou SUPER_ADMIN**")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Historique du contrat",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Identifiant invalide",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Contrat non trouvé",
+            content = @Content(mediaType = "application/json"))
+    })
+    @GetMapping("/{id}/historique")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<PagedResponse<ContratHistoryDto>> getHistorique(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(PagedResponse.fromPage(historyService.getHistory(id, pageable)));
     }
 
     private boolean isAdmin(Principal principal) {

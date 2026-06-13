@@ -30,6 +30,15 @@ export default {
     return api.put(`/contrats/${id}`, data)
   },
 
+  // POST /api/v1/contrats/{id}/document — ADMIN (multipart)
+  uploadDocument(id, file) {
+    const form = new FormData()
+    form.append('file', file)
+    return api.post(`/contrats/${id}/document`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+
   // PUT /api/v1/contrats/{id}/resiliation — CLIENT
   demanderResiliation(id, motif) {
     return api.put(`/contrats/${id}/resiliation`, { motif })
@@ -38,5 +47,26 @@ export default {
   // PUT /api/v1/contrats/{id}/prolongation — CLIENT
   demanderProlongation(id, nouvelleDate, motif) {
     return api.put(`/contrats/${id}/prolongation`, { nouvelleDate, motif })
+  },
+
+  // PUT /api/v1/contrats/{id}/resiliation/accepter — ADMIN
+  accepterResiliation(id, motif = null) {
+    return api.put(`/contrats/${id}/resiliation/accepter`, motif ? { motif } : {})
+  },
+
+  // PUT /api/v1/contrats/{id}/resiliation/refuser — ADMIN
+  refuserResiliation(id, motif = null) {
+    return api.put(`/contrats/${id}/resiliation/refuser`, motif ? { motif } : {})
+  },
+
+  // PUT /api/v1/contrats/{id}/prolongation/accepter — ADMIN
+  // nouvelleDate : nouvelle date de fin (LocalDate ISO)
+  accepterProlongation(id, nouvelleDate = null, motif = null) {
+    return api.put(`/contrats/${id}/prolongation/accepter`, { nouvelleDate, motif })
+  },
+
+  // PUT /api/v1/contrats/{id}/prolongation/refuser — ADMIN
+  refuserProlongation(id, motif = null) {
+    return api.put(`/contrats/${id}/prolongation/refuser`, motif ? { motif } : {})
   },
 }

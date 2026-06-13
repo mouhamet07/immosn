@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import router from '@/router'
 import api from '@/services/api'
 import authService from '@/services/authService'
+import { useFavorisStore } from './favorisStore'
 
 // Décode le payload d'un JWT sans librairie externe
 function parseJwt(token) {
@@ -71,6 +72,9 @@ export const useAuthStore = defineStore('auth', () => {
     role.value = sanitizeRole(roles.length ? roles[0] : null)
     localStorage.setItem('role', role.value)
     user.value = data
+    if (role.value === 'CLIENT') {
+      useFavorisStore().loadFavoris()
+    }
     // Redirection : page demandée avant la connexion en priorité, sinon selon le rôle
     const redirect = localStorage.getItem('redirectAfterLogin')
     if (redirect) {
@@ -95,7 +99,8 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.removeItem('token')
       localStorage.removeItem('role')
       delete api.defaults.headers.common['Authorization']
-      router.push('/connexion')
+      useFavorisStore().reset()
+      router.push('/annonces')
     }
   }
 

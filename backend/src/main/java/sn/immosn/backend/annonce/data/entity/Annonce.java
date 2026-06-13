@@ -41,6 +41,9 @@ public class Annonce {
     private String description;
     @Column(nullable = false)
     private Integer nbrPieces;
+    // Nullable : les annonces existantes n'ont pas cette donnée — l'UI affiche "Non renseigné"
+    @Column(name = "nbr_salles_bain", nullable = true)
+    private Integer nbrSallesBain;
     @Column(nullable = false)
     private Double surface;
     @Column(nullable = false, precision = 10, scale = 2)
@@ -77,6 +80,10 @@ public class Annonce {
     )
     @Column(name = "image_url")
     private List<String> images = new ArrayList<>();
+
+    @Builder.Default
+    @Column(name = "is_exclusivite", nullable = false, columnDefinition = "boolean DEFAULT false")
+    private boolean isExclusivite = false;
 
     @Builder.Default
     @Column(name = "is_archived", nullable = false)

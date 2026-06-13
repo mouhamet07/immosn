@@ -2,6 +2,7 @@ package sn.immosn.backend.shared.exception;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -22,7 +23,7 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    // ── Entité introuvable ──────────────────────────────────────────────── 404
+    // 404 — Entité introuvable
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<RestResponse<Void>> handleEntityNotFound(EntityNotFoundException ex) {
         log.debug("EntityNotFoundException : {}", ex.getMessage());
@@ -31,7 +32,7 @@ public class GlobalExceptionHandler {
             .body(RestResponse.error(ex.getMessage(), HttpStatus.NOT_FOUND));
     }
 
-    // ── Entité déjà existante ───────────────────────────────────────────── 409
+    // 409 — Entité déjà existante
     @ExceptionHandler(EntityExistException.class)
     public ResponseEntity<RestResponse<Void>> handleEntityExist(EntityExistException ex) {
         log.debug("EntityExistException : {}", ex.getMessage());
@@ -40,7 +41,7 @@ public class GlobalExceptionHandler {
             .body(RestResponse.error(ex.getMessage(), HttpStatus.CONFLICT));
     }
 
-    // ── Règle métier violée ─────────────────────────────────────────────── 422
+    // 422 — Règle métier violée
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<RestResponse<Void>> handleIllegalState(IllegalStateException ex) {
         log.warn("IllegalStateException : {}", ex.getMessage());
@@ -49,7 +50,7 @@ public class GlobalExceptionHandler {
             .body(RestResponse.error(ex.getMessage(), HttpStatus.valueOf(422)));
     }
 
-    // ── Argument invalide (ex : mauvais type d'enum, valeur hors plage) ── 400
+    // 400 — Argument invalide
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<RestResponse<Void>> handleIllegalArgument(IllegalArgumentException ex) {
         log.debug("IllegalArgumentException : {}", ex.getMessage());
@@ -58,7 +59,7 @@ public class GlobalExceptionHandler {
             .body(RestResponse.error("Paramètre invalide : " + ex.getMessage(), HttpStatus.BAD_REQUEST));
     }
 
-    // ── Accès refusé (rôle insuffisant) ────────────────────────────────── 403
+    // 403 — Accès refusé
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<RestResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
         log.warn("Accès refusé : {}", ex.getMessage());
@@ -67,7 +68,7 @@ public class GlobalExceptionHandler {
             .body(RestResponse.error("Accès refusé : vous n'avez pas les permissions nécessaires", HttpStatus.FORBIDDEN));
     }
 
-    // ── Token absent ou invalide ────────────────────────────────────────── 401
+    // 401 — Token absent ou invalide
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<RestResponse<Void>> handleAuthentication(AuthenticationException ex) {
         log.debug("AuthenticationException : {}", ex.getMessage());
@@ -76,7 +77,7 @@ public class GlobalExceptionHandler {
             .body(RestResponse.error("Authentification requise", HttpStatus.UNAUTHORIZED));
     }
 
-    // ── Corps JSON invalide ou absent ───────────────────────────────────── 400
+    // 400 — Corps JSON invalide
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<RestResponse<Void>> handleUnreadableBody(HttpMessageNotReadableException ex) {
         log.debug("Corps de la requête illisible : {}", ex.getMessage());
@@ -85,7 +86,7 @@ public class GlobalExceptionHandler {
             .body(RestResponse.error("Corps de la requête invalide ou absent", HttpStatus.BAD_REQUEST));
     }
 
-    // ── Paramètre de requête manquant ───────────────────────────────────── 400
+    // 400 — Paramètre manquant
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<RestResponse<Void>> handleMissingParam(MissingServletRequestParameterException ex) {
         log.debug("Paramètre manquant : {}", ex.getParameterName());
@@ -94,7 +95,7 @@ public class GlobalExceptionHandler {
             .body(RestResponse.error("Paramètre requis manquant : " + ex.getParameterName(), HttpStatus.BAD_REQUEST));
     }
 
-    // ── Type de paramètre incorrect (ex : String au lieu de Long) ───────── 400
+    // 400 — Type incorrect
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<RestResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
         String msg = String.format("Valeur '%s' invalide pour le paramètre '%s'", ex.getValue(), ex.getName());
@@ -104,7 +105,7 @@ public class GlobalExceptionHandler {
             .body(RestResponse.error(msg, HttpStatus.BAD_REQUEST));
     }
 
-    // ── Validation Bean Validation (@Valid) ─────────────────────────────── 400
+    // 400 — Validation @Valid
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<RestResponse<Map<String, String>>> handleValidation(
             MethodArgumentNotValidException ex) {
@@ -118,7 +119,16 @@ public class GlobalExceptionHandler {
             .body(RestResponse.badRequest("Erreur de validation des données", errors));
     }
 
-    // ── Fallback générique ──────────────────────────────────────────────── 500
+    // 503 — DB indisponible
+    @ExceptionHandler(DataAccessException.class)
+    public ResponseEntity<RestResponse<Void>> handleDataAccess(DataAccessException ex) {
+        log.error("DataAccessException (connexion DB perdue) : {}", ex.getMessage());
+        return ResponseEntity
+            .status(HttpStatus.SERVICE_UNAVAILABLE)
+            .body(RestResponse.error("Service temporairement indisponible — veuillez réessayer dans quelques secondes", HttpStatus.SERVICE_UNAVAILABLE));
+    }
+
+    // 500 — Fallback générique
     @ExceptionHandler(Exception.class)
     public ResponseEntity<RestResponse<Void>> handleUnexpected(Exception ex) {
         log.error("Erreur interne non gérée [{}] : {}", ex.getClass().getSimpleName(), ex.getMessage(), ex);

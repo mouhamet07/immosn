@@ -71,7 +71,7 @@ class FavorisServiceTest {
         } catch (Exception ignored) {}
     }
 
-    // ── toggle : ajout ─────────────────────────────────────
+    // toggle : ajout
 
     @Test
     @DisplayName("toggle — ajoute le favori si absent")
@@ -88,7 +88,7 @@ class FavorisServiceTest {
         verify(favorisRepository).save(any(AnnonceFavoris.class));
     }
 
-    // ── toggle : retrait ───────────────────────────────────
+    // toggle : retrait
 
     @Test
     @DisplayName("toggle — retire le favori si déjà présent")
@@ -105,7 +105,7 @@ class FavorisServiceTest {
         verify(favorisRepository, never()).save(any());
     }
 
-    // ── toggle : annonce non trouvée ───────────────────────
+    // toggle : annonce non trouvée
 
     @Test
     @DisplayName("toggle — annonce inexistante → EntityNotFoundException")
@@ -117,13 +117,13 @@ class FavorisServiceTest {
             .isInstanceOf(EntityNotFoundException.class);
     }
 
-    // ── checkFavoris ───────────────────────────────────────
+    // checkFavoris
 
     @Test
     @DisplayName("checkFavoris — retourne true si présent")
     void checkFavoris_returnsTrue() {
         when(userRepository.findByEmail("client@test.sn")).thenReturn(Optional.of(client));
-        when(favorisRepository.existsByClientIdAndAnnonceId(1L, 2L)).thenReturn(true);
+        when(favorisRepository.existsActiveByClientIdAndAnnonceId(1L, 2L)).thenReturn(true);
 
         FavorisStatusDto result = favorisService.checkFavoris(2L, "client@test.sn");
 
@@ -134,14 +134,14 @@ class FavorisServiceTest {
     @DisplayName("checkFavoris — retourne false si absent")
     void checkFavoris_returnsFalse() {
         when(userRepository.findByEmail("client@test.sn")).thenReturn(Optional.of(client));
-        when(favorisRepository.existsByClientIdAndAnnonceId(1L, 2L)).thenReturn(false);
+        when(favorisRepository.existsActiveByClientIdAndAnnonceId(1L, 2L)).thenReturn(false);
 
         FavorisStatusDto result = favorisService.checkFavoris(2L, "client@test.sn");
 
         assertThat(result.isFavoris()).isFalse();
     }
 
-    // ── getClientFavoris ───────────────────────────────────
+    // getClientFavoris
 
     @Test
     @DisplayName("getClientFavoris — retourne une page de DTOs")
@@ -158,7 +158,7 @@ class FavorisServiceTest {
         } catch (Exception ignored) {}
 
         when(userRepository.findByEmail("client@test.sn")).thenReturn(Optional.of(client));
-        when(favorisRepository.findByClientIdOrderByCreatedAtDesc(eq(1L), any()))
+        when(favorisRepository.findActiveByClientId(eq(1L), any()))
             .thenReturn(new PageImpl<>(List.of(fav)));
 
         Page<FavorisResponseDto> result = favorisService.getClientFavoris(

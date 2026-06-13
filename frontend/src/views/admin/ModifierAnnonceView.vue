@@ -30,18 +30,20 @@ const newPhotoFiles    = ref([])
 const newPhotoPreviews = ref([])
 
 const form = reactive({
-  libelle:      '',
-  description:  '',
-  typeBienId:   null,
-  nbrPieces:    '',
-  surface:      '',
-  prix:         '',
-  adresse:      '',
-  departement:  '',
-  quartier:     '',
-  latitude:     null,
-  longitude:    null,
-  commoditeIds: [],
+  libelle:        '',
+  description:    '',
+  typeBienId:     null,
+  nbrPieces:      '',
+  nbrSallesBain:  '',
+  surface:        '',
+  prix:           '',
+  adresse:        '',
+  departement:    '',
+  quartier:       '',
+  latitude:       null,
+  longitude:      null,
+  commoditeIds:   [],
+  isExclusivite:  false,
 })
 
 function toggleCommodite(id) {
@@ -118,7 +120,7 @@ onMounted(async () => {
   loading.value = true
   try {
     const [resAnnonce, resTypes, resCommodites, resDepts] = await Promise.all([
-      annonceService.getAnnonceById(route.params.id),
+      annonceService.getAnnonceByIdAdmin(route.params.id),
       typeBienService.getAllTypesBien(),
       commoditeService.getAllCommodites(),
       locationService.getDepartements(),
@@ -129,6 +131,7 @@ onMounted(async () => {
     form.description  = a.description  || ''
     form.typeBienId   = a.typeBien?.id || null
     form.nbrPieces    = a.nbrPieces    || ''
+    form.nbrSallesBain = a.nbrSallesBain || ''
     form.surface      = a.surface      || ''
     form.prix         = a.prix         || ''
     form.adresse      = a.adresse      || ''
@@ -136,7 +139,8 @@ onMounted(async () => {
     form.quartier     = a.quartier     || ''
     form.latitude     = a.latitude     ?? null
     form.longitude    = a.longitude    ?? null
-    form.commoditeIds = a.commodites?.map(c => c.id) || []
+    form.commoditeIds   = a.commodites?.map(c => c.id) || []
+    form.isExclusivite  = !!a.isExclusivite
     existingImages.value = a.images ? [...a.images] : []
 
     typesBien.value    = resTypes.data.data       || []
@@ -175,17 +179,19 @@ async function handleSubmit() {
     const finalImages = [...existingImages.value, ...newUrls]
 
     await annonceService.updateAnnonce(route.params.id, {
-      libelle:      form.libelle,
-      description:  form.description,
-      nbrPieces:    parseInt(form.nbrPieces),
-      surface:      parseFloat(form.surface),
-      prix:         parseFloat(form.prix),
-      adresse:      form.adresse || null,
-      departement:  form.departement,
-      quartier:     form.quartier,
-      typeBienId:   form.typeBienId,
-      commoditeIds: form.commoditeIds,
-      images:       finalImages,
+      libelle:       form.libelle,
+      description:   form.description,
+      nbrPieces:     parseInt(form.nbrPieces),
+      nbrSallesBain: form.nbrSallesBain ? parseInt(form.nbrSallesBain) : null,
+      surface:       parseFloat(form.surface),
+      prix:          parseFloat(form.prix),
+      adresse:       form.adresse || null,
+      departement:   form.departement,
+      quartier:      form.quartier,
+      typeBienId:    form.typeBienId,
+      commoditeIds:  form.commoditeIds,
+      images:        finalImages,
+      isExclusivite: form.isExclusivite,
     })
 
     toast.value?.show('Annonce modifiée avec succès ✓', 'success')
@@ -226,6 +232,20 @@ async function handleSubmit() {
           <textarea v-model="form.description" class="field__input field__textarea" rows="4" placeholder="Décrivez le bien..."></textarea>
         </div>
 
+        <div class="field">
+          <label class="field__label">EXCLUSIVITÉ</label>
+          <div class="ma-commodites">
+            <button
+              type="button"
+              class="ma-commodite"
+              :class="{ 'ma-commodite--selected': form.isExclusivite }"
+              @click="form.isExclusivite = !form.isExclusivite"
+            >
+              Exclusivité
+            </button>
+          </div>
+        </div>
+
         <div class="field-row">
           <div class="field">
             <label class="field__label">TYPE DE BIEN <span class="req">*</span></label>
@@ -236,18 +256,22 @@ async function handleSubmit() {
           </div>
           <div class="field">
             <label class="field__label">PRIX (FCFA) <span class="req">*</span></label>
-            <input v-model="form.prix" type="number" class="field__input" placeholder="ex. 50000000" />
+            <input v-model.number="form.prix" type="number" min="0" step="1" class="field__input" placeholder="ex. 50000000" @input="form.prix = Math.max(0, form.prix)" />
           </div>
         </div>
 
         <div class="field-row">
           <div class="field">
             <label class="field__label">NOMBRE DE PIÈCES <span class="req">*</span></label>
-            <input v-model="form.nbrPieces" type="number" class="field__input" placeholder="ex. 4" />
+            <input v-model.number="form.nbrPieces" type="number" min="0" step="1" class="field__input" placeholder="ex. 4" @input="form.nbrPieces = Math.max(0, form.nbrPieces)" />
+          </div>
+          <div class="field">
+            <label class="field__label">SALLES DE BAINS <span class="req">*</span></label>
+            <input v-model.number="form.nbrSallesBain" type="number" min="1" step="1" class="field__input" placeholder="ex. 2" @input="form.nbrSallesBain = Math.max(1, form.nbrSallesBain)" />
           </div>
           <div class="field">
             <label class="field__label">SURFACE (m²) <span class="req">*</span></label>
-            <input v-model="form.surface" type="number" class="field__input" placeholder="ex. 150" />
+            <input v-model.number="form.surface" type="number" min="0" step="0.01" class="field__input" placeholder="ex. 150" @input="form.surface = Math.max(0, form.surface)" />
           </div>
         </div>
       </div>
@@ -395,9 +419,10 @@ async function handleSubmit() {
 .field__input {
   padding: .7rem .9rem; border: 1.5px solid var(--color-border);
   border-radius: var(--radius-sm); font-size: .9rem; color: var(--color-text);
-  background: #fff; transition: border-color .2s; width: 100%;
+  background: var(--color-card); transition: border-color .2s; width: 100%;
 }
 .field__input:focus { border-color: var(--color-primary); outline: none; }
+select.field__input { padding-right: 2.5rem; }
 .field__textarea { resize: vertical; min-height: 100px; }
 
 /* Commodités */

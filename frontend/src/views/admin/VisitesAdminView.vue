@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import visiteService from '@/services/visiteService'
 import FilterSelect from '@/components/FilterSelect.vue'
+import StatusBadge from '@/components/StatusBadge.vue'
 
 const visites     = ref([])
 const loading     = ref(false)
@@ -35,14 +36,14 @@ const STATUT_LABELS = {
   CLOTUREE_AVEC_CONTRAT: 'Clôturée avec contrat',
   TERMINEE:              'Terminée',
 }
-const STATUT_COLORS = {
-  EN_ATTENTE:            'badge--warning',
-  ACCEPTEE:              'badge--success',
-  REFUSEE:               'badge--danger',
-  ANNULEE:               'badge--neutral',
-  CLOTUREE_SANS_SUITE:   'badge--neutral',
-  CLOTUREE_AVEC_CONTRAT: 'badge--info',
-  TERMINEE:              'badge--info',
+const STATUT_VARIANTS = {
+  EN_ATTENTE:            'warning',
+  ACCEPTEE:              'success',
+  REFUSEE:               'danger',
+  ANNULEE:               'neutral',
+  CLOTUREE_SANS_SUITE:   'neutral',
+  CLOTUREE_AVEC_CONTRAT: 'info',
+  TERMINEE:              'info',
 }
 const filterOptions = STATUTS.map(s => ({ value: s, label: s ? STATUT_LABELS[s] : 'Toutes les visites' }))
 
@@ -142,38 +143,40 @@ onMounted(() => fetchVisites(0))
       <table class="va-table">
         <thead>
           <tr>
-            <th>#</th><th>Client</th><th>Annonce</th><th>Date souhaitée</th>
-            <th>Statut</th><th>Commentaire</th><th>Actions</th>
+            <th>Client</th><th>Annonce</th><th>Date souhaitée</th>
+            <th>Statut</th><th>Actions</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="v in visites" :key="v.id">
-            <td class="va-td-id">{{ v.id }}</td>
+            <td class="table-client">{{ v.clientNom }}</td>
             <td>
-              <p class="va-td-name">{{ v.clientNom }}</p>
-            </td>
-            <td>
-              <RouterLink :to="`/annonces/${v.annonceId}`" class="va-td-link">{{ v.annonceLibelle }}</RouterLink>
+              <RouterLink :to="`/admin/annonces/${v.annonceId}`" class="va-td-link">{{ v.annonceLibelle }}</RouterLink>
               <p class="va-td-sub">{{ v.annonceAdresse }}</p>
             </td>
             <td>
-              <p>{{ formatDate(v.dateVisite) }}</p>
+              <p class="table-date">{{ formatDate(v.dateVisite) }}</p>
               <button class="va-edit-date" @click="openDateModal(v.id, v.dateVisite)">✎ Modifier</button>
             </td>
-            <td><span :class="['badge', STATUT_COLORS[v.statut] ?? 'badge--neutral']">{{ STATUT_LABELS[v.statut] ?? v.statut }}</span></td>
-            <td class="va-td-comment">{{ v.commentaire || '–' }}</td>
+            <td><StatusBadge :label="STATUT_LABELS[v.statut] ?? v.statut" :variant="STATUT_VARIANTS[v.statut] ?? 'neutral'" /></td>
             <td>
-              <!-- Visite EN_ATTENTE : accepter ou refuser -->
-              <div class="va-actions" v-if="v.statut === 'EN_ATTENTE'">
-                <button class="va-btn va-btn--accept" :disabled="updating === v.id"
-                  @click="changeStatut(v.id, 'ACCEPTEE')">Accepter</button>
-                <button class="va-btn va-btn--refuse" :disabled="updating === v.id"
-                  @click="changeStatut(v.id, 'REFUSEE')">Refuser</button>
+              <div class="td-actions">
+                <RouterLink :to="`/admin/visites/${v.id}`" class="action-btn" title="Voir le détail">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </RouterLink>
+                <template v-if="v.statut === 'EN_ATTENTE'">
+                  <button class="action-btn" :disabled="updating === v.id" title="Accepter"
+                    @click="changeStatut(v.id, 'ACCEPTEE')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  </button>
+                  <button class="action-btn danger" :disabled="updating === v.id" title="Refuser"
+                    @click="changeStatut(v.id, 'REFUSEE')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </template>
+                <button v-else-if="v.statut === 'ACCEPTEE'" class="va-btn va-btn--cloture" :disabled="updating === v.id"
+                  @click="openCloture(v.id)">Clôturer</button>
               </div>
-              <!-- Visite ACCEPTEE : clôturer (ouvre modal) -->
-              <button v-else-if="v.statut === 'ACCEPTEE'" class="va-btn va-btn--cloture" :disabled="updating === v.id"
-                @click="openCloture(v.id)">Clôturer</button>
-              <span v-else class="va-td-sub">–</span>
             </td>
           </tr>
         </tbody>
@@ -291,31 +294,18 @@ onMounted(() => fetchVisites(0))
 .va-table tr:last-child td { border-bottom: none; }
 .va-table tr:hover td { background: rgba(0,0,0,.02); }
 
-.va-td-id { font-size: .78rem; opacity: .45; }
-.va-td-name { font-weight: 600; }
 .va-td-link { color: var(--color-primary); font-weight: 600; text-decoration: none; }
 .va-td-sub { font-size: .75rem; opacity: .5; margin-top: .15rem; }
-.va-td-comment { font-size: .8rem; max-width: 180px; }
 .va-edit-date { font-size: .72rem; color: var(--color-primary); background: none; border: none; cursor: pointer; padding: 0; margin-top: .15rem; }
 
-.va-actions { display: flex; gap: .4rem; }
-.va-btn { padding: .3rem .7rem; border-radius: 6px; font-size: .78rem; font-weight: 600; border: none; cursor: pointer; transition: opacity .15s; }
+.va-btn { padding: .3rem .7rem; border-radius: 6px; font-size: .78rem; font-weight: 600; border: none; cursor: pointer; transition: opacity .15s; text-decoration: none; display: inline-block; }
 .va-btn:disabled { opacity: .4; cursor: not-allowed; }
-.va-btn--accept  { background: #d1fae5; color: #059669; }
-.va-btn--refuse  { background: #fee2e2; color: #dc2626; }
-.va-btn--cloture { background: #ede9fe; color: #7c3aed; }
+.va-btn--cloture { background: var(--color-primary); color: #fff; }
+.action-btn:disabled { opacity: .4; cursor: not-allowed; }
 
 .va-pager { display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1.25rem; font-size: .88rem; }
 .va-pager button { padding: .4rem .9rem; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-card); cursor: pointer; }
 .va-pager button:disabled { opacity: .4; cursor: not-allowed; }
-
-/* Badges */
-.badge { padding: .25rem .65rem; border-radius: 12px; font-size: .75rem; font-weight: 700; }
-.badge--warning { background: #fef3c7; color: #d97706; }
-.badge--success { background: #d1fae5; color: #059669; }
-.badge--danger  { background: #fee2e2; color: #dc2626; }
-.badge--neutral { background: #f3f4f6; color: #6b7280; }
-.badge--info    { background: #dbeafe; color: #2563eb; }
 
 /* Modal générique */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1rem; }

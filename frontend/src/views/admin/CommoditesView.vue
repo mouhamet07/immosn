@@ -1,13 +1,14 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight, Pencil, Archive, RotateCcw } from 'lucide-vue-next'
 import commoditeService from '@/services/commoditeService'
 import FilterTabs from '@/components/FilterTabs.vue'
+import StatusBadge from '@/components/StatusBadge.vue'
 
 const allItems     = ref([])
 const loading      = ref(false)
 const activeFilter = ref('toutes')
-const ITEMS_PER_PAGE = 10
+const ITEMS_PER_PAGE = 8
 const currentPage  = ref(1)
 
 const showModal    = ref(false)
@@ -150,38 +151,48 @@ onMounted(() => fetchItems())
       <div v-if="loading" class="cm-loading"><div class="spinner"></div></div>
       <div v-else-if="!paginatedItems.length" class="cm-empty">Aucune commodité enregistrée.</div>
 
-      <table v-else class="cm-table">
+      <div v-else class="cm-table-wrap">
+      <table class="cm-table">
         <thead>
-          <tr><th>#</th><th>Libellé</th><th>Statut</th><th>Actions</th></tr>
+          <tr><th>ID</th><th>Libellé</th><th>Statut</th><th>Actions</th></tr>
         </thead>
         <tbody>
           <tr v-for="item in paginatedItems" :key="item.id">
             <td class="cm-id">{{ item.id }}</td>
             <td class="cm-label">{{ item.libelle }}</td>
             <td>
-              <span class="badge" :class="item.isArchived ? 'badge--neutral' : 'badge--success'">
-                {{ item.isArchived ? 'Archivée' : 'Active' }}
-              </span>
+              <StatusBadge :label="item.isArchived ? 'Archivée' : 'Active'" :variant="item.isArchived ? 'neutral' : 'success'" />
             </td>
             <td class="cm-actions">
               <template v-if="!item.isArchived">
-                <button class="btn-edit" @click="openEdit(item)">Modifier</button>
-                <button class="btn-delete" @click="confirmDelete(item.id)">Archiver</button>
+                <button class="action-btn" title="Modifier" @click="openEdit(item)"><Pencil :size="15" /></button>
+                <button class="action-btn danger" title="Archiver" @click="confirmDelete(item.id)"><Archive :size="15" /></button>
               </template>
-              <button v-else class="btn-restore" @click="restaurer(item.id)">Restaurer</button>
+              <button v-else class="action-btn" title="Restaurer" @click="restaurer(item.id)"><RotateCcw :size="15" /></button>
             </td>
           </tr>
         </tbody>
       </table>
+      </div>
 
       <div v-if="totalPages > 1" class="cm-pagination">
-        <button :disabled="currentPage === 1" @click="currentPage--"><ChevronLeft :size="16" /></button>
-        <button
-          v-for="p in totalPages" :key="p"
-          class="cm-page-btn" :class="{ 'cm-page-btn--active': p === currentPage }"
-          @click="currentPage = p"
-        >{{ p }}</button>
-        <button :disabled="currentPage === totalPages" @click="currentPage++"><ChevronRight :size="16" /></button>
+        <button class="pagination-nav" :disabled="currentPage === 1" @click="currentPage--">
+          <ChevronLeft :size="16" />
+          <span>Précédent</span>
+        </button>
+
+        <div class="pagination-pages">
+          <button
+            v-for="p in totalPages" :key="p"
+            class="pagination-page" :class="{ 'pagination-page--active': p === currentPage }"
+            @click="currentPage = p"
+          >{{ p }}</button>
+        </div>
+
+        <button class="pagination-nav" :disabled="currentPage === totalPages" @click="currentPage++">
+          <span>Suivant</span>
+          <ChevronRight :size="16" />
+        </button>
       </div>
     </div>
 
@@ -230,25 +241,54 @@ onMounted(() => fetchItems())
 
 .cm-card { background: var(--color-card); border-radius: var(--radius); box-shadow: var(--shadow-card); overflow: hidden; }
 
-.cm-table { width: 100%; border-collapse: collapse; }
-.cm-table th { padding: 0.75rem 1rem; text-align: left; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; background: var(--color-background); border-bottom: 1px solid var(--color-border); }
-.cm-table td { padding: 0.85rem 1rem; border-bottom: 1px solid var(--color-border); font-size: 0.88rem; color: var(--color-text); }
+.cm-table-wrap { overflow-x: auto; width: 100%; }
+.cm-table { width: 100%; min-width: 480px; border-collapse: collapse; table-layout: fixed; }
+.cm-table th { padding: 0.5rem 0.65rem; text-align: center; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; background: var(--color-background); border-bottom: 1px solid var(--color-border); }
+.cm-table th:first-child { width: 10%; }
+.cm-table th:nth-child(2) { width: 34%; }
+.cm-table th:nth-child(3) { width: 22%; }
+.cm-table th:nth-child(4) { width: 34%; }
+.cm-table td { padding: 0.5rem 0.65rem; border-bottom: 1px solid var(--color-border); font-size: 0.88rem; color: var(--color-text); text-align: center; line-height: 1.2; }
 .cm-table tbody tr:last-child td { border-bottom: none; }
 .cm-table tbody tr:hover { background: var(--color-hover-row); }
-.cm-id    { color: #9ca3af; font-size: 0.8rem; }
-.cm-label { font-weight: 600; }
-.cm-actions { display: flex; gap: 0.5rem; }
+.cm-id, .cm-label { text-align: center; }
+.cm-actions { display: flex; gap: 0.5rem; justify-content: center; }
 
-.badge { padding: 0.25rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
-.badge--success { background: #dcfce7; color: #16a34a; }
-.badge--neutral { background: #f3f4f6; color: #6b7280; }
 
-.cm-pagination { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 1rem; border-top: 1px solid var(--color-border); }
-.cm-pagination button { width: 32px; height: 32px; border: 1px solid var(--color-border); border-radius: 6px; background: var(--color-card); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.82rem; transition: background .15s; }
-.cm-pagination button:hover:not(:disabled) { background: var(--color-hover-row); }
-.cm-pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
-.cm-page-btn { font-weight: 600; color: var(--color-text); }
-.cm-page-btn--active { background: var(--color-primary) !important; color: #fff !important; border-color: var(--color-primary) !important; }
+.cm-pagination { display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 1rem; border-top: 1px solid var(--color-border); }
+.cm-pagination .pagination-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: transparent;
+  transition: background 0.2s, color 0.2s;
+}
+.cm-pagination .pagination-nav:hover:not(:disabled) {
+  background: var(--color-border);
+  color: var(--color-text);
+}
+.cm-pagination .pagination-nav:disabled { opacity: 0.35; cursor: not-allowed; }
+.cm-pagination .pagination-pages { display: flex; gap: 0.25rem; }
+.cm-pagination .pagination-page {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: transparent;
+  transition: background 0.2s, color 0.2s;
+}
+.cm-pagination .pagination-page:hover { background: var(--color-border); color: var(--color-text); }
+.cm-pagination .pagination-page--active {
+  background: var(--color-primary);
+  color: #fff;
+}
 
 .cm-loading, .cm-empty { display: flex; align-items: center; justify-content: center; padding: 3rem; color: #6b7280; font-size: 0.9rem; }
 .spinner { width: 32px; height: 32px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin .7s linear infinite; }
@@ -267,12 +307,6 @@ onMounted(() => fetchItems())
 .btn-primary { padding: 0.55rem 1.1rem; background: var(--color-primary); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: background .15s; }
 .btn-primary:hover:not(:disabled) { background: var(--color-primary-hover); }
 .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
-.btn-edit    { padding: 0.35rem 0.75rem; background: transparent; border: 1px solid var(--color-primary); color: var(--color-primary); border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
-.btn-edit:hover { background: rgba(74,124,111,.1); }
-.btn-delete  { padding: 0.35rem 0.75rem; background: transparent; border: 1px solid #ef4444; color: #ef4444; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
-.btn-delete:hover:not(:disabled) { background: rgba(239,68,68,.1); }
-.btn-delete:disabled { opacity: .6; cursor: not-allowed; }
-.btn-restore { padding: 0.35rem 0.75rem; background: transparent; border: 1px solid var(--color-primary); color: var(--color-primary); border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
 .btn-cancel  { padding: 0.55rem 1rem; background: transparent; border: 1px solid var(--color-border); color: var(--color-text); border-radius: var(--radius-sm); font-size: 0.88rem; cursor: pointer; }
 .btn-cancel:hover { background: var(--color-hover-row); }
 </style>

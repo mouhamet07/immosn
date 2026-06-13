@@ -13,9 +13,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import sn.immosn.backend.client.web.dashboard.dto.DashboardStatsDto;
+import sn.immosn.backend.client.web.dashboard.dto.RecentActivityDto;
 import sn.immosn.backend.dashboard.service.DashboardService;
+import sn.immosn.backend.shared.response.PagedResponse;
 import sn.immosn.backend.shared.response.RestResponse;
 
 @RestController
@@ -94,6 +97,28 @@ public class DashboardController {
     public ResponseEntity<RestResponse<DashboardStatsDto>> getStats() {
         return ResponseEntity.ok(
             RestResponse.success(dashboardService.getStats(), HttpStatus.OK)
+        );
+    }
+
+    @Operation(
+        summary = "Activités récentes paginées et filtrées",
+        description = """
+            Retourne les activités récentes paginées avec priorité aux items en attente d'action.
+
+            Tri appliqué : EN_ATTENTE / OUVERT en premier, puis createdAt DESC dans chaque groupe.
+
+            Filtres `type` supportés : ALL | VISITE | CONTRAT | SIGNALEMENT | BIEN | MESSAGE
+
+            **Accès : ADMIN ou SUPER_ADMIN**
+            """
+    )
+    @GetMapping("/activities")
+    public ResponseEntity<RestResponse<PagedResponse<RecentActivityDto>>> getActivities(
+            @RequestParam(defaultValue = "0")   int    page,
+            @RequestParam(defaultValue = "5")   int    size,
+            @RequestParam(defaultValue = "ALL") String type) {
+        return ResponseEntity.ok(
+            RestResponse.success(dashboardService.getActivities(page, size, type), HttpStatus.OK)
         );
     }
 }

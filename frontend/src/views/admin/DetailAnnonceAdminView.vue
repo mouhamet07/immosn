@@ -1,9 +1,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Edit, Archive, RotateCcw, MapPin, Bed, Maximize, CheckCircle } from 'lucide-vue-next'
+import { Edit, Archive, RotateCcw, MapPin, Bed, Droplet, Maximize, CheckCircle } from 'lucide-vue-next'
 import annonceService from '@/services/annonceService'
-import placeholderImg from '@/assets/Penthouse.png'
+import StatusBadge from '@/components/StatusBadge.vue'
+import ImageGallery from '@/components/ImageGallery.vue'
 import LocationMap from '@/components/LocationMap.vue'
 
 const route  = useRoute()
@@ -12,7 +13,6 @@ const router = useRouter()
 const annonce  = ref(null)
 const loading  = ref(false)
 const error    = ref('')
-const imageActive = ref(0)
 
 // Confirmation archivage
 const showConfirm = ref(false)
@@ -21,7 +21,7 @@ const confirming  = ref(false)
 async function fetchAnnonce() {
   loading.value = true
   try {
-    const res = await annonceService.getAnnonceById(route.params.id)
+    const res = await annonceService.getAnnonceByIdAdmin(route.params.id)
     annonce.value = res.data.data
   } catch {
     error.value = 'Annonce introuvable.'
@@ -52,10 +52,6 @@ async function handleRestore() {
   }
 }
 
-function getImage(index) {
-  return annonce.value?.images?.[index] || placeholderImg
-}
-
 function formatPrix(prix) {
   return new Intl.NumberFormat('fr-SN').format(prix) + ' FCFA'
 }
@@ -76,9 +72,7 @@ onMounted(fetchAnnonce)
         <div>
           <button class="daa-back" @click="router.push('/admin/annonces')">← Retour aux annonces</button>
           <h1 class="daa-header__title">{{ annonce.libelle }}</h1>
-          <span class="badge" :class="annonce.archived ? 'badge--neutral' : 'badge--success'">
-            {{ annonce.archived ? 'Archivée' : 'Active' }}
-          </span>
+          <StatusBadge :label="annonce.archived ? 'Archivée' : 'Active'" :variant="annonce.archived ? 'neutral' : 'success'" />
         </div>
         <!-- Actions admin -->
         <div class="daa-actions">
@@ -96,14 +90,7 @@ onMounted(fetchAnnonce)
 
       <!-- Galerie -->
       <div class="daa-gallery">
-        <div class="daa-gallery__main">
-          <img :src="getImage(imageActive)" :alt="annonce.libelle" />
-        </div>
-        <div class="daa-gallery__side">
-          <div v-for="i in 2" :key="i" class="daa-gallery__thumb" @click="imageActive = i">
-            <img :src="getImage(i)" :alt="`Photo ${i+1}`" />
-          </div>
-        </div>
+        <ImageGallery :images="annonce.images" :alt="annonce.libelle" height="400px" />
       </div>
 
       <!-- Corps -->
@@ -119,6 +106,7 @@ onMounted(fetchAnnonce)
           <!-- Stats -->
           <div class="daa-stats">
             <div class="daa-stat"><Bed :size="20" /><span>{{ annonce.nbrPieces }} pièces</span></div>
+            <div class="daa-stat"><Droplet :size="20" /><span>{{ annonce.nbrSallesBain >= 1 ? `${annonce.nbrSallesBain} salle(s) de bains` : 'SDB : non renseigné' }}</span></div>
             <div class="daa-stat"><Maximize :size="20" /><span>{{ annonce.surface }} m²</span></div>
             <div class="daa-stat"><CheckCircle :size="20" /><span>{{ annonce.typeBien?.libelle }}</span></div>
           </div>
@@ -164,9 +152,7 @@ onMounted(fetchAnnonce)
             <div class="daa-info-row"><span>ID</span><span>#{{ annonce.id }}</span></div>
             <div class="daa-info-row"><span>Type</span><span>{{ annonce.typeBien?.libelle || '–' }}</span></div>
             <div class="daa-info-row"><span>Statut</span>
-              <span class="badge" :class="annonce.archived ? 'badge--neutral' : 'badge--success'">
-                {{ annonce.archived ? 'Archivée' : 'Active' }}
-              </span>
+              <StatusBadge :label="annonce.archived ? 'Archivée' : 'Active'" :variant="annonce.archived ? 'neutral' : 'success'" />
             </div>
             <div class="daa-info-row"><span>Créée le</span><span>{{ new Date(annonce.createdAt).toLocaleDateString('fr-FR') }}</span></div>
           </div>
@@ -216,12 +202,7 @@ onMounted(fetchAnnonce)
 .daa-btn:hover { opacity: .85; }
 
 /* Galerie */
-.daa-gallery { display: grid; grid-template-columns: 2fr 1fr; gap: .5rem; height: 400px; border-radius: var(--radius); overflow: hidden; margin-bottom: 2rem; }
-.daa-gallery__main img { width: 100%; height: 100%; object-fit: cover; }
-.daa-gallery__side { display: grid; grid-template-rows: 1fr 1fr; gap: .5rem; }
-.daa-gallery__thumb { overflow: hidden; cursor: pointer; }
-.daa-gallery__thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform .3s; }
-.daa-gallery__thumb:hover img { transform: scale(1.05); }
+.daa-gallery { margin-bottom: 2rem; }
 
 /* Corps */
 .daa-body { display: grid; grid-template-columns: 1fr 280px; gap: 2rem; align-items: start; }
@@ -249,10 +230,6 @@ onMounted(fetchAnnonce)
 .daa-info-row span:first-child { color: var(--color-text-muted); }
 .daa-info-row span:last-child { font-weight: 600; color: var(--color-text); }
 
-/* Badges */
-.badge { padding: .2rem .6rem; border-radius: 12px; font-size: .75rem; font-weight: 700; }
-.badge--success { background: #d1fae5; color: #059669; }
-.badge--neutral { background: #f3f4f6; color: #6b7280; }
 
 /* Modal */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1rem; }
@@ -268,8 +245,6 @@ onMounted(fetchAnnonce)
 @keyframes spin { to { transform: rotate(360deg); } }
 
 @media (max-width: 900px) {
-  .daa-gallery { grid-template-columns: 1fr; height: 280px; }
-  .daa-gallery__side { display: none; }
   .daa-body { grid-template-columns: 1fr; }
 }
 </style>

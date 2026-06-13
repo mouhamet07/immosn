@@ -4,6 +4,7 @@ import { Wrench } from 'lucide-vue-next'
 import signalementService from '@/services/signalementService'
 import contratService from '@/services/contratService'
 import FilterSelect from '@/components/FilterSelect.vue'
+import StatusBadge from '@/components/StatusBadge.vue'
 
 const signalements = ref([])
 const loading      = ref(false)
@@ -22,7 +23,7 @@ const formError  = ref('')
 const STATUTS = ['', 'OUVERT', 'EN_COURS', 'RESOLU', 'FERME']
 const STATUT_LABELS = { OUVERT: 'Ouvert', EN_COURS: 'En cours', RESOLU: 'Résolu', FERME: 'Fermé' }
 const filterOptions = STATUTS.map(s => ({ value: s, label: s ? STATUT_LABELS[s] : 'Tous les statuts' }))
-const STATUT_COLORS = { OUVERT: 'badge--warning', EN_COURS: 'badge--info', RESOLU: 'badge--success', FERME: 'badge--neutral' }
+const STATUT_VARIANTS = { OUVERT: 'warning', EN_COURS: 'info', RESOLU: 'success', FERME: 'neutral' }
 
 async function fetchSignalements(page = 0) {
   loading.value = true; error.value = ''
@@ -96,7 +97,7 @@ onMounted(() => fetchSignalements(0))
       <div v-else class="ms-list">
         <div v-for="s in signalements" :key="s.id" class="ms-card">
           <div class="ms-card__header">
-            <span :class="['badge', STATUT_COLORS[s.statut]]">{{ STATUT_LABELS[s.statut] }}</span>
+            <StatusBadge :label="STATUT_LABELS[s.statut]" :variant="STATUT_VARIANTS[s.statut]" />
             <span class="ms-card__date">{{ formatDate(s.createdAt) }}</span>
           </div>
           <div class="ms-card__body">
@@ -169,7 +170,8 @@ onMounted(() => fetchSignalements(0))
 
 .ms-list { display: flex; flex-direction: column; gap: 1rem; }
 .ms-card { background: var(--color-card); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow-card); }
-.ms-card__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: .75rem; }
+.ms-card__header { display: flex; justify-content: space-between; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: .75rem; }
+.ms-card__contenu, .ms-card__reponse-text { overflow-wrap: break-word; }
 .ms-card__date { font-size: .75rem; color: var(--color-text); opacity: .45; }
 .ms-card__annonce { font-size: .82rem; color: var(--color-text); opacity: .65; margin-bottom: .5rem; }
 .ms-card__contenu { font-size: .9rem; color: var(--color-text); line-height: 1.6; }
@@ -195,12 +197,12 @@ onMounted(() => fetchSignalements(0))
 .modal-box__submit { padding: .5rem 1.25rem; background: var(--color-primary); color: #fff; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; font-size: .88rem; }
 .modal-box__submit:disabled { opacity: .5; cursor: not-allowed; }
 
-.badge { padding: .25rem .65rem; border-radius: 12px; font-size: .75rem; font-weight: 700; }
-.badge--warning { background: #fef3c7; color: #d97706; }
-.badge--info    { background: #dbeafe; color: #2563eb; }
-.badge--success { background: #d1fae5; color: #059669; }
-.badge--neutral { background: #f3f4f6; color: #6b7280; }
 
 .spinner { width: 36px; height: 36px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 640px) {
+  .ms-container { padding: 1.5rem 1rem; }
+  .ms-header__btn { width: 100%; }
+}
 </style>

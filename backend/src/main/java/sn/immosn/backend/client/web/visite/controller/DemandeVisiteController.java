@@ -23,6 +23,7 @@ import sn.immosn.backend.shared.response.PagedResponse;
 import sn.immosn.backend.shared.response.RestResponse;
 import sn.immosn.backend.visite.data.entity.StatutDemandeVisite;
 import sn.immosn.backend.visite.service.DemandeVisiteService;
+import sn.immosn.backend.visite.service.VisiteHistoryService;
 
 import java.security.Principal;
 
@@ -34,6 +35,7 @@ import java.security.Principal;
 public class DemandeVisiteController {
 
     private final DemandeVisiteService service;
+    private final VisiteHistoryService historyService;
 
     @Operation(
         summary = "Demander une visite",
@@ -43,7 +45,7 @@ public class DemandeVisiteController {
             La demande est créée avec le statut **EN_ATTENTE**.
             L'administrateur peut ensuite l'accepter ou la refuser.
 
-            Statuts possibles : `EN_ATTENTE` → `ACCEPTEE` / `REFUSEE` / `ANNULEE` → `TERMINEE`
+            Statuts possibles : `EN_ATTENTE` → `ACCEPTEE` / `REFUSEE` / `ANNULEE` → `CLOTUREE_SANS_SUITE` / `CLOTUREE_AVEC_CONTRAT`
 
             **Accès : CLIENT uniquement**
             """
@@ -93,7 +95,7 @@ public class DemandeVisiteController {
             triée par date de création décroissante.
 
             Peut être filtrée par statut :
-            `EN_ATTENTE` | `ACCEPTEE` | `REFUSEE` | `ANNULEE` | `TERMINEE`
+            `EN_ATTENTE` | `ACCEPTEE` | `REFUSEE` | `ANNULEE` | `CLOTUREE_SANS_SUITE` | `CLOTUREE_AVEC_CONTRAT` | `TERMINEE` (historique)
 
             **Accès : CLIENT uniquement**
             """
@@ -148,15 +150,53 @@ public class DemandeVisiteController {
     }
 
     @Operation(
+        summary = "Détail d'une demande de visite",
+        description = """
+            Retourne les informations complètes d'une demande de visite.
+
+            - Un **CLIENT** ne peut consulter que ses propres demandes.
+            - Un **ADMIN** peut consulter toutes les demandes.
+
+            **Accès : CLIENT (ses demandes) ou ADMIN/SUPER_ADMIN (toutes)**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Détail de la demande de visite",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Demande de visite non trouvée",
+            content = @Content(mediaType = "application/json"))
+    })
+    @GetMapping("/{id}")
+    public ResponseEntity<RestResponse<DemandeVisiteResponseDto>> getById(
+            @Parameter(description = "Identifiant de la demande de visite", required = true, example = "12")
+            @PathVariable Long id, Principal principal) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant invalide", null));
+        }
+        if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(RestResponse.error("Vous devez être connecté", HttpStatus.UNAUTHORIZED));
+        }
+        boolean isAdmin = isAdmin(principal);
+        return ResponseEntity.ok(RestResponse.success(
+            service.getById(id, principal.getName(), isAdmin), HttpStatus.OK));
+    }
+
+    @Operation(
         summary = "Changer le statut d'une demande de visite",
         description = """
             Met à jour le statut d'une demande de visite.
 
             **Règles selon le rôle :**
-            - **ADMIN/SUPER_ADMIN** : peut passer à `ACCEPTEE`, `REFUSEE`, `TERMINEE`
-            - **CLIENT** : peut seulement passer à `ANNULEE` (sa propre demande)
+            - **ADMIN/SUPER_ADMIN** : `EN_ATTENTE` → `ACCEPTEE` ou `EN_ATTENTE` → `REFUSEE` uniquement. Pour clôturer une visite ACCEPTEE, utiliser `PUT /{id}/cloture`.
+            - **CLIENT** : `EN_ATTENTE` → `ANNULEE` ou `ACCEPTEE` → `ANNULEE` (sa propre demande uniquement).
 
-            **Accès : CLIENT (annulation) ou ADMIN/SUPER_ADMIN (acceptation/refus/termination)**
+            `TERMINEE` est un statut historique en lecture seule — il ne peut plus être défini via l'API.
+
+            **Accès : CLIENT (annulation) ou ADMIN/SUPER_ADMIN (acceptation/refus)**
             """
     )
     @ApiResponses({
@@ -225,6 +265,47 @@ public class DemandeVisiteController {
                 .body(RestResponse.badRequest("Identifiant de demande de visite invalide", null));
         }
         return ResponseEntity.ok(RestResponse.success(service.updateDate(id, dto), HttpStatus.OK));
+    }
+
+    @Operation(
+        summary = "Modifier une demande de visite (client)",
+        description = """
+            Permet au client de modifier la date souhaitée et/ou le commentaire
+            de sa demande de visite, **uniquement si elle est EN_ATTENTE**.
+
+            Une visite déjà acceptée, refusée ou clôturée ne peut plus être modifiée par le client.
+
+            **Accès : CLIENT uniquement (sa propre demande)**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Demande de visite modifiée avec succès",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Statut incompatible avec une modification",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Demande de visite non trouvée",
+            content = @Content(mediaType = "application/json"))
+    })
+    @PutMapping("/{id}/modifier")
+    @PreAuthorize("hasRole('CLIENT')")
+    public ResponseEntity<RestResponse<DemandeVisiteResponseDto>> modifierParClient(
+            @PathVariable Long id,
+            @RequestBody @Valid UpdateDateVisiteDto dto,
+            Principal principal) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant invalide", null));
+        }
+        if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(RestResponse.error("Vous devez être connecté", HttpStatus.UNAUTHORIZED));
+        }
+        return ResponseEntity.ok(RestResponse.success(
+            service.modifierParClient(id, dto, principal.getName()), HttpStatus.OK));
     }
 
     @Operation(
@@ -307,6 +388,32 @@ public class DemandeVisiteController {
         }
         ContratResponseDto contrat = service.cloturerVisite(id, dto);
         return ResponseEntity.ok(RestResponse.success(contrat, HttpStatus.OK));
+    }
+
+    @Operation(summary = "Historique d'une visite", description = "Retourne l'historique complet des transitions et reprogrammations d'une visite. **Accès : ADMIN ou SUPER_ADMIN**")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Historique de la visite",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Identifiant invalide",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Visite non trouvée",
+            content = @Content(mediaType = "application/json"))
+    })
+    @GetMapping("/{id}/historique")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<PagedResponse<VisiteHistoryDto>> getHistorique(
+            @Parameter(description = "Identifiant de la visite", required = true) @PathVariable Long id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(PagedResponse.fromPage(historyService.getHistory(id, pageable)));
     }
 
     private boolean isAdmin(Principal principal) {

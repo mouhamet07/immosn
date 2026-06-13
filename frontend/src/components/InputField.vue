@@ -87,7 +87,7 @@ function togglePassword() {
   align-items: center;
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-sm);
-  background: #fff;
+  background: var(--color-card);
   transition: border-color 0.2s;
 }
 
@@ -114,10 +114,10 @@ function togglePassword() {
 
 .field__input {
   flex: 1;
-  padding: 0.75rem 0.75rem 0.75rem 0;
+  padding: 0.7rem 0.9rem;
   border: none;
   background: transparent;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   color: var(--color-text);
 }
 

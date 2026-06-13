@@ -45,6 +45,7 @@ services:
         VITE_API_URL: ${VITE_API_URL:-/api/v1}
         VITE_CLOUDINARY_CLOUD_NAME: ${VITE_CLOUDINARY_CLOUD_NAME:-}
         VITE_CLOUDINARY_UPLOAD_PRESET: ${VITE_CLOUDINARY_UPLOAD_PRESET:-}
+        NGINX_CONF: nginx.vps.conf
     container_name: immosn-nginx
     restart: unless-stopped
     ports:

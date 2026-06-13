@@ -1,5 +1,6 @@
 package sn.immosn.backend.client.web.annonce.mapper;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -28,6 +29,7 @@ public class AnnonceMapper {
             a.getLibelle(),
             a.getDescription(),
             a.getNbrPieces(),
+            a.getNbrSallesBain(),
             a.getSurface(),
             a.getPrix(),
             a.getAdresse(),
@@ -42,6 +44,8 @@ public class AnnonceMapper {
                 .collect(Collectors.toList()),
             a.getImages() != null ? new ArrayList<>(a.getImages()) : new ArrayList<>(),
             a.isArchived(),
+            a.getCreatedAt() != null && a.getCreatedAt().isAfter(LocalDateTime.now().minusDays(30)),
+            a.isExclusivite(),
             a.getCreatedAt(),
             a.getUpdatedAt()
         );
@@ -61,10 +65,14 @@ public class AnnonceMapper {
             a.getLongitude(),
             typeBienAnnonceMapper.toResponseDto(a.getTypeBien()),
             a.getNbrPieces(),
+            a.getNbrSallesBain(),
             a.getSurface(),
+            a.getDescription(),
             firstImage,
             a.getCreatedAt(),
-            a.isArchived()
+            a.isArchived(),
+            a.getCreatedAt() != null && a.getCreatedAt().isAfter(LocalDateTime.now().minusDays(30)),
+            a.isExclusivite()
         );
     }
 
@@ -73,6 +81,7 @@ public class AnnonceMapper {
             .libelle(dto.libelle())
             .description(dto.description())
             .nbrPieces(dto.nbrPieces())
+            .nbrSallesBain(dto.nbrSallesBain())
             .surface(dto.surface())
             .prix(dto.prix())
             .region(dto.region())
@@ -80,6 +89,7 @@ public class AnnonceMapper {
             .quartier(dto.quartier())
             .typeBien(typeBien)
             .images(dto.images())
+            .isExclusivite(dto.isExclusivite() != null && dto.isExclusivite())
             .isArchived(false)
             .build();
 

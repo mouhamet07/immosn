@@ -14,9 +14,13 @@ public record AnnonceListDto (
     Double longitude,
     TypeBienResponseDto typeBien,
     Integer nbrPieces,
+    Integer nbrSallesBain,
     Double surface,
+    String description,
     String imagePrincipale,
     LocalDateTime createdAt,
-    Boolean archived
+    Boolean archived,
+    Boolean isNew,
+    Boolean isExclusivite
 ) {
 }

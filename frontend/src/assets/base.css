@@ -7,14 +7,15 @@
   --color-accent-hover: #c0613a;
 
   /* Surfaces */
-  --color-background:   #F9FAF7;
-  --color-card:         #fdfcfa;
+  --color-background:   #F7F3EE;
+  --color-card:         #FDFCFA;
   --color-card-hover:   #f9f7f4;
 
   /* Texte */
-  --color-text:         #1e2532;
-  --color-text-muted:   #6b7280;
-  --color-text-light:   #9ca3af;
+  --color-text:          #2D3748;
+  --color-text-muted:    #6b7280;
+  --color-text-secondary:#6b7280;
+  --color-text-light:    #9ca3af;
 
   /* Bordures */
   --color-border:       rgba(30, 37, 50, 0.1);
@@ -120,6 +121,31 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(74, 124, 111, 0.15);
 }
 
+/* Charte ImmoSN : selects stylisés selon la palette */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--color-card);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%232D3748' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 12px 8px;
+  color: var(--color-text);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 2.5rem 0.65rem 0.75rem;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+select:hover {
+  border-color: var(--color-border-hover);
+}
+
+select:focus {
+  border-color: var(--color-primary);
+}
+
 /* ── Scrollbar personnalisée ──────────────────────────────── */
 ::-webkit-scrollbar            { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track      { background: transparent; }
@@ -131,3 +157,46 @@ textarea:focus {
   background: rgba(74, 124, 111, 0.18);
   color: var(--color-text);
 }
+
+/* ── Utilitaires layout ───────────────────────────────────── */
+.buttons-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ── Utilitaires typographie table ───────────────────────── */
+.table-annonce-title { font-weight: 600; color: var(--color-text); }
+.table-price         { color: var(--color-accent); font-weight: 600; }
+.table-client        { font-weight: 500; color: var(--color-text); }
+.table-date          { color: var(--color-text-secondary); font-size: 12px; }
+
+/* ── Action buttons — tables admin (centralisé) ───────────── */
+.action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 150ms ease;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.action-btn svg { width: 15px; height: 15px; }
+.action-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: #E8F2EF;
+}
+.action-btn.danger:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: #FEF3EE;
+}
+
+.td-actions { display: flex; gap: 0.5rem; align-items: center; }

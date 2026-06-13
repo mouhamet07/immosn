@@ -1,5 +1,5 @@
 <script setup>
-import placeholderImg from '@/assets/Penthouse.png'
+const placeholderImg = 'data:image/svg+xml,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 width%3D%22400%22 height%3D%22300%22%3E%3Crect width%3D%22400%22 height%3D%22300%22 fill%3D%22%23e5e7eb%22%2F%3E%3C%2Fsvg%3E'
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import SvgIcon from './SvgIcon.vue'
@@ -11,11 +11,12 @@ const props = defineProps({
   title:        { type: String, required: true },
   prix:         { type: Number, required: true },
   images:       { type: Array,  default: () => [] },
-  nbrChambres:  { type: Number, default: 0 },
-  nbrSallesBain:{ type: Number, default: 0 },
+  nbrPieces:    { type: Number, default: 0 },
+  nbrSallesBain:{ type: Number, default: null },
   surface:      { type: Number, default: 0 },
   badge:        { type: String, default: '' },
   adresse:      { type: String, default: '' },
+  description:  { type: String, default: '' },
   isNew:        { type: Boolean, default: false },
 })
 
@@ -25,7 +26,7 @@ const authStore    = useAuthStore()
 
 const normalizedId = computed(() => Number(props.id))
 const isFavori      = computed(() => favorisStore.isFavori(normalizedId.value))
-const showFavBtn    = computed(() => authStore.isAuthenticated)
+const showFavBtn    = computed(() => authStore.isAuthenticated && authStore.role === 'CLIENT')
 
 function formatPrix(prix) {
   return new Intl.NumberFormat('fr-SN').format(prix) + ' FCFA'
@@ -66,14 +67,21 @@ function goToDetail() {
       <h3 class="card__title">{{ title }}</h3>
       <p class="card__prix">{{ formatPrix(prix) }}</p>
 
+      <p v-if="adresse" class="card__adresse">
+        <SvgIcon name="map-pin" :size="13" />
+        {{ adresse }}
+      </p>
+
+      <p v-if="description" class="card__desc">{{ description }}</p>
+
       <div class="card__stats">
         <span class="card__stat">
           <SvgIcon name="bed" :size="14" />
-          {{ nbrChambres }} Chambres
+          {{ nbrPieces }} Pièces
         </span>
         <span class="card__stat">
           <SvgIcon name="droplet" :size="14" />
-          {{ nbrSallesBain }} Bains
+          {{ nbrSallesBain != null && nbrSallesBain >= 1 ? `${nbrSallesBain} Bains` : 'Non renseigné' }}
         </span>
         <span class="card__stat">
           <SvgIcon name="maximize" :size="14" />
@@ -173,7 +181,32 @@ function goToDetail() {
   font-size: 1.05rem;
   font-weight: 800;
   color: var(--color-accent);
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.card__adresse {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.4rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.card__adresse svg { flex-shrink: 0; }
+
+.card__desc {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin-bottom: 0.65rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* Stats */

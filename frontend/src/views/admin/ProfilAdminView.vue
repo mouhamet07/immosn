@@ -1,14 +1,31 @@
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { MessageSquare, BookOpen, Camera, Eye, EyeOff } from 'lucide-vue-next'
+import { computed, ref, reactive, onMounted } from 'vue'
+import { Camera, Eye, EyeOff } from 'lucide-vue-next'
 import PhoneInput from '@/components/PhoneInput.vue'
 import { useAuthStore } from '@/stores/authStore'
 import { useToastStore } from '@/stores/toastStore'
 import { uploadImage } from '@/services/cloudinaryService'
 import api from '@/services/api'
+import { getErrorMessage } from '@/utils/messages'
 
 const authStore = useAuthStore()
 const toast     = useToastStore()
+
+const lastConnexionRaw = computed(() => authStore.user?.dernierConnexion ?? authStore.user?.lastLogin)
+const sessionsActives = computed(() => authStore.user?.sessionsActives ?? authStore.user?.activeSessions ?? 0)
+
+function formatLastConnexion(value) {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value)
+  return date.toLocaleString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
 
 // Avatar
 const previewUrl = ref(null)
@@ -40,13 +57,14 @@ const uploadAvatar = async () => {
 }
 
 const formInfo     = reactive({ nomComplet: '', email: '', telephone: '' })
-const formSecurite = reactive({ motDePasseActuel: '', nouveauMotDePasse: '' })
+const formSecurite = reactive({ motDePasseActuel: '', nouveauMotDePasse: '', confirmationMotDePasse: '' })
 const loadingInfo      = ref(false)
 const loadingSecurite  = ref(false)
 
 // Toggle visibilité mot de passe
-const showCurrentPwd = ref(false)
-const showNewPwd     = ref(false)
+const showCurrentPwd  = ref(false)
+const showNewPwd      = ref(false)
+const showConfirmPwd  = ref(false)
 
 onMounted(() => {
   if (authStore.user) {
@@ -68,28 +86,39 @@ async function saveInfo() {
     await authStore.fetchProfile()
     toast.success('Informations mises à jour.')
   } catch (err) {
-    toast.error(err.response?.data?.message || 'Erreur lors de la mise à jour.')
+    toast.error(getErrorMessage(err))
   } finally {
     loadingInfo.value = false
   }
 }
 
 async function saveSecurite() {
-  if (!formSecurite.motDePasseActuel || !formSecurite.nouveauMotDePasse) {
-    toast.error('Veuillez remplir les deux champs.')
+  if (!formSecurite.motDePasseActuel || !formSecurite.nouveauMotDePasse || !formSecurite.confirmationMotDePasse) {
+    toast.error('Veuillez remplir les trois champs.')
     return
   }
+  if (formSecurite.nouveauMotDePasse.length < 8) {
+    toast.error('Le nouveau mot de passe doit contenir au moins 8 caractères.')
+    return
+  }
+  if (formSecurite.nouveauMotDePasse !== formSecurite.confirmationMotDePasse) {
+    toast.error('La confirmation du mot de passe ne correspond pas.')
+    return
+  }
+
   loadingSecurite.value = true
   try {
     await api.put('/auth/profile', {
-      motDePasseActuel:  formSecurite.motDePasseActuel,
-      nouveauMotDePasse: formSecurite.nouveauMotDePasse,
+      motDePasseActuel:      formSecurite.motDePasseActuel,
+      nouveauMotDePasse:     formSecurite.nouveauMotDePasse,
+      confirmationMotDePasse: formSecurite.confirmationMotDePasse,
     })
-    formSecurite.motDePasseActuel  = ''
-    formSecurite.nouveauMotDePasse = ''
+    formSecurite.motDePasseActuel      = ''
+    formSecurite.nouveauMotDePasse     = ''
+    formSecurite.confirmationMotDePasse = ''
     toast.success('Mot de passe mis à jour.')
   } catch (err) {
-    toast.error(err.response?.data?.message || 'Erreur lors de la mise à jour.')
+    toast.error(getErrorMessage(err))
   } finally {
     loadingSecurite.value = false
   }
@@ -164,6 +193,22 @@ async function saveSecurite() {
                 </button>
               </div>
             </div>
+            <div class="field">
+              <label class="field__label">CONFIRMER LE NOUVEAU MOT DE PASSE</label>
+              <div class="pwd-field">
+                <input
+                  :type="showConfirmPwd ? 'text' : 'password'"
+                  v-model="formSecurite.confirmationMotDePasse"
+                  class="field__input"
+                  placeholder="••••••••"
+                  autocomplete="new-password"
+                />
+                <button type="button" class="pwd-toggle" @click="showConfirmPwd = !showConfirmPwd">
+                  <EyeOff v-if="showConfirmPwd" :size="16" />
+                  <Eye v-else :size="16" />
+                </button>
+              </div>
+            </div>
             <button type="submit" class="btn-update" :disabled="loadingSecurite">
               {{ loadingSecurite ? 'Mise à jour...' : 'Mettre à jour' }}
             </button>
@@ -193,20 +238,26 @@ async function saveSecurite() {
             </div>
             <div class="avatar-info">
               <p class="avatar-name">{{ authStore.user?.nomComplet }}</p>
-              <p class="avatar-hint">JPG, PNG ou WebP — max 2 Mo</p>
+              
             </div>
           </div>
           <p class="profil-user__email">{{ authStore.user?.email }}</p>
           <p class="profil-user__phone">{{ authStore.user?.telephone }}</p>
-          <span class="profil-user__role">{{ authStore.user?.role }}</span>
+          <span class="profil-user__role">{{ authStore.user?.roles?.[0] }}</span>
         </section>
 
         <section class="profil-card">
-          <h2 class="profil-card__title">Besoin d'aide ?</h2>
-          <ul class="profil-help">
-            <li><a href="#" class="profil-help__link"><MessageSquare :size="14" /> Contacter le support</a></li>
-            <li><a href="#" class="profil-help__link"><BookOpen :size="14" /> Guide d'utilisation</a></li>
-          </ul>
+          <h2 class="profil-card__title">Activité du compte</h2>
+          <div class="profil-activity">
+            <div class="profil-activity__item">
+              <span class="profil-activity__label">Dernière connexion</span>
+              <span class="profil-activity__value">{{ formatLastConnexion(lastConnexionRaw) ?? 'Non disponible' }}</span>
+            </div>
+            <div class="profil-activity__item">
+              <span class="profil-activity__label">Sessions actives</span>
+              <span class="profil-activity__value">{{ sessionsActives }}</span>
+            </div>
+          </div>
         </section>
       </div>
     </div>
@@ -255,6 +306,11 @@ async function saveSecurite() {
 .profil-help { list-style: none; display: flex; flex-direction: column; gap: 0.75rem; }
 .profil-help__link { color: var(--color-primary); font-size: 0.88rem; font-weight: 500; display: flex; align-items: center; gap: 0.4rem; transition: opacity 0.15s; }
 .profil-help__link:hover { text-decoration: underline; }
+
+.profil-activity { display: grid; gap: 1rem; }
+.profil-activity__item { display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 1rem; background: rgba(245, 247, 249, 0.95); border: 1px solid rgba(0, 0, 0, 0.06); border-radius: 12px; }
+.profil-activity__label { color: #4f4f4f; font-size: 0.92rem; font-weight: 600; }
+.profil-activity__value { color: var(--color-primary); font-size: 0.92rem; font-weight: 700; white-space: nowrap; }
 
 @media (max-width: 900px) { .profil-grid { grid-template-columns: 1fr; } }
 </style>

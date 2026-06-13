@@ -9,6 +9,7 @@ public record AnnonceResponseDto(
     String libelle,
     String description,
     Integer nbrPieces,
+    Integer nbrSallesBain,
     Double surface,
     BigDecimal prix,
     String adresse,
@@ -21,6 +22,8 @@ public record AnnonceResponseDto(
     List<CommoditeResponseDto> commodites,
     List<String> images,
     Boolean archived,
+    Boolean isNew,
+    Boolean isExclusivite,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
 ) {

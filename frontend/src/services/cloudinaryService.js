@@ -66,6 +66,39 @@ export async function uploadImages(files, onProgress = null) {
 }
 
 /**
+ * Upload un fichier PDF (ou tout fichier brut) vers Cloudinary via l'endpoint /raw/upload.
+ *
+ * @param {File} file - Fichier PDF sélectionné par l'utilisateur
+ * @returns {Promise<string>} URL sécurisée Cloudinary (secure_url)
+ */
+export async function uploadPdf(file) {
+  if (!CLOUD_NAME || !UPLOAD_PRESET) {
+    throw new Error(
+      'Configuration Cloudinary manquante. ' +
+      'Vérifiez VITE_CLOUDINARY_CLOUD_NAME et VITE_CLOUDINARY_UPLOAD_PRESET dans votre .env'
+    )
+  }
+
+  const formData = new FormData()
+  formData.append('file',          file)
+  formData.append('upload_preset', UPLOAD_PRESET)
+  formData.append('folder',        'immosn/contrats')
+
+  const response = await fetch(
+    `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/raw/upload`,
+    { method: 'POST', body: formData }
+  )
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.error?.message ?? `Erreur Cloudinary : ${response.status}`)
+  }
+
+  const data = await response.json()
+  return data.secure_url
+}
+
+/**
  * Valide qu'une URL provient bien de Cloudinary.
  * Utilisé côté frontend avant d'envoyer au backend.
  *
@@ -76,4 +109,4 @@ export function isCloudinaryUrl(url) {
   return /^https:\/\/res\.cloudinary\.com\/.+/.test(url)
 }
 
-export default { uploadImage, uploadImages, isCloudinaryUrl }
+export default { uploadImage, uploadImages, uploadPdf, isCloudinaryUrl }

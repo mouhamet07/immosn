@@ -20,19 +20,21 @@ const currentStep = ref(0)
 const progress = computed(() => Math.round((currentStep.value / (STEPS.length - 1)) * 100))
 
 const form = reactive({
-  libelle:      '',
-  description:  '',
-  typeBienId:   null,
-  nbrPieces:    '',
-  surface:      '',
-  prix:         '',
-  adresse:      '',
-  departement:  '',
-  quartier:     '',
-  latitude:     null,
-  longitude:    null,
-  commoditeIds: [],
-  images:       [],
+  libelle:       '',
+  description:   '',
+  typeBienId:    null,
+  nbrPieces:     '',
+  nbrSallesBain: '',
+  surface:       '',
+  prix:          '',
+  adresse:       '',
+  departement:   '',
+  quartier:      '',
+  latitude:      null,
+  longitude:     null,
+  commoditeIds:  [],
+  images:        [],
+  isExclusivite: false,
 })
 
 const commodites       = ref([])
@@ -157,6 +159,10 @@ async function submit() {
     toast.value.show('Le département et le quartier sont obligatoires.', 'error')
     return
   }
+  if (!form.nbrSallesBain || parseInt(form.nbrSallesBain) < 1) {
+    toast.value.show('Le nombre de salles de bains est obligatoire (minimum 1).', 'error')
+    return
+  }
   loading.value = true
   try {
     // Upload photo principale en premier (index 0 = principal)
@@ -173,17 +179,19 @@ async function submit() {
       imageUrls.push(...subUrls)
     }
     await annonceService.createAnnonce({
-      libelle:      form.libelle,
-      description:  form.description,
-      nbrPieces:    parseInt(form.nbrPieces),
-      surface:      parseFloat(form.surface),
-      prix:         parseFloat(form.prix),
-      adresse:      form.adresse || null,
-      departement:  form.departement,
-      quartier:     form.quartier,
-      typeBienId:   form.typeBienId,
-      commoditeIds: form.commoditeIds,
-      images:       imageUrls,
+      libelle:       form.libelle,
+      description:   form.description,
+      nbrPieces:     parseInt(form.nbrPieces),
+      nbrSallesBain: parseInt(form.nbrSallesBain),
+      surface:       parseFloat(form.surface),
+      prix:          parseFloat(form.prix),
+      adresse:       form.adresse || null,
+      departement:   form.departement,
+      quartier:      form.quartier,
+      typeBienId:    form.typeBienId,
+      commoditeIds:  form.commoditeIds,
+      images:        imageUrls,
+      isExclusivite: form.isExclusivite,
     })
     toast.value.show('Annonce publiée avec succès', 'success')
     setTimeout(() => router.push('/admin/annonces'), 1200)
@@ -244,18 +252,36 @@ async function submit() {
           </div>
           <div class="field">
             <label class="field__label">PRIX (FCFA) <span class="req">*</span></label>
-            <input v-model="form.prix" type="number" class="field__input" placeholder="ex. 150000000" />
+            <input v-model.number="form.prix" type="number" min="0" step="1" class="field__input" placeholder="ex. 150000000" @input="form.prix = Math.max(0, form.prix)" />
           </div>
         </div>
 
         <div class="field-row">
           <div class="field">
             <label class="field__label">NOMBRE DE PIÈCES <span class="req">*</span></label>
-            <input v-model="form.nbrPieces" type="number" class="field__input" placeholder="ex. 4" />
+            <input v-model.number="form.nbrPieces" type="number" min="0" step="1" class="field__input" placeholder="ex. 4" @input="form.nbrPieces = Math.max(0, form.nbrPieces)" />
+          </div>
+          <div class="field">
+            <label class="field__label">SALLES DE BAINS <span class="req">*</span></label>
+            <input v-model.number="form.nbrSallesBain" type="number" min="1" step="1" class="field__input" placeholder="ex. 2" @input="form.nbrSallesBain = Math.max(1, form.nbrSallesBain)" />
           </div>
           <div class="field">
             <label class="field__label">SURFACE (m²) <span class="req">*</span></label>
-            <input v-model="form.surface" type="number" class="field__input" placeholder="ex. 150" />
+            <input v-model.number="form.surface" type="number" min="0" step="0.01" class="field__input" placeholder="ex. 150" @input="form.surface = Math.max(0, form.surface)" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field__label">EXCLUSIVITÉ</label>
+          <div class="equipements-grid">
+            <button
+              type="button"
+              class="equip-card"
+              :class="{ 'equip-card--selected': form.isExclusivite }"
+              @click="form.isExclusivite = !form.isExclusivite"
+            >
+              <span class="equip-card__label">Exclusivité</span>
+            </button>
           </div>
         </div>
       </section>
@@ -423,8 +449,9 @@ async function submit() {
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .field__label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text); }
 .req { color: var(--color-accent); }
-.field__input { padding: 0.7rem 0.9rem; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); font-size: 0.9rem; color: var(--color-text); background: #fff; transition: border-color 0.2s; width: 100%; }
+.field__input { padding: 0.7rem 0.9rem; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); font-size: 0.9rem; color: var(--color-text); background: var(--color-card); transition: border-color 0.2s; width: 100%; }
 .field__input:focus { border-color: var(--color-primary); outline: none; }
+select.field__input { padding-right: 2.5rem; }
 .field__textarea { resize: vertical; min-height: 100px; }
 .field__optional { font-weight: 400; text-transform: none; font-size: 0.72rem; color: var(--color-text-muted); letter-spacing: 0; }
 .field__hint { font-size: 0.78rem; color: var(--color-text-muted); margin-top: 0.15rem; }

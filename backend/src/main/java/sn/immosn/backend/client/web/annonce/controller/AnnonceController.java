@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import sn.immosn.backend.annonce.service.AnnonceService;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceCreateRequestDto;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceListDto;
@@ -343,6 +344,45 @@ public class AnnonceController {
     }
 
     @Operation(
+        summary = "Détail d'une annonce (vue admin)",
+        description = """
+            Retourne les informations complètes d'une annonce, **qu'elle soit archivée ou non**.
+
+            Contrairement à `GET /api/v1/annonces/{id}` (vue publique), cet endpoint ignore
+            le statut d'archivage pour permettre à l'administrateur d'inspecter et modifier
+            toute annonce, y compris les annonces archivées.
+
+            **Accès : ADMIN ou SUPER_ADMIN**
+            """,
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Détail de l'annonce retourné avec succès",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Identifiant invalide",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Annonce non trouvée",
+            content = @Content(mediaType = "application/json"))
+    })
+    @GetMapping("/admin/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<RestResponse<AnnonceResponseDto>> getByIdAdmin(
+            @Parameter(description = "Identifiant de l'annonce", required = true, example = "15")
+            @PathVariable Long id) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant d'annonce invalide", null));
+        }
+        return ResponseEntity
+            .status(HttpStatus.OK)
+            .body(RestResponse.success(annonceService.getAnnonceByIdAdmin(id), HttpStatus.OK));
+    }
+
+    @Operation(
         summary = "Lister toutes les annonces (vue admin)",
         description = """
             Retourne la liste paginée de **toutes** les annonces — actives et archivées.
@@ -363,6 +403,7 @@ public class AnnonceController {
             content = @Content(mediaType = "application/json"))
     })
     @GetMapping("/admin")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<PagedResponse<AnnonceListDto>> getAllAdmin(
         @Parameter(description = "Numéro de page (commence à 0)", example = "0")
         @RequestParam(defaultValue = "0") int page,

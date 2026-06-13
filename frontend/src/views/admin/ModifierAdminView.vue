@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, RotateCcw, UserX } from 'lucide-vue-next'
 import { useToastStore } from '@/stores/toastStore'
 import authService from '@/services/authService'
+import StatusBadge from '@/components/StatusBadge.vue'
 
 const route  = useRoute()
 const router = useRouter()
@@ -127,9 +128,7 @@ function formatDate(d) {
           </div>
           <div class="ma-field">
             <span class="ma-field__label">Statut</span>
-            <span class="badge" :class="admin.archived ? 'badge--neutral' : 'badge--active'">
-              {{ admin.archived ? 'Archivé' : 'Actif' }}
-            </span>
+            <StatusBadge :label="admin.archived ? 'Archivé' : 'Actif'" :variant="admin.archived ? 'neutral' : 'success'" />
           </div>
         </div>
       </div>
@@ -249,10 +248,6 @@ function formatDate(d) {
 }
 .ma-field__value { font-size: 0.9rem; color: var(--color-text); font-weight: 500; }
 
-/* Badges */
-.badge { padding: 0.25rem 0.65rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
-.badge--active  { background: #d1fae5; color: #059669; }
-.badge--neutral { background: #f3f4f6; color: #6b7280; }
 
 /* Actions */
 .ma-actions-card { display: flex; flex-direction: column; gap: 0.75rem; }
@@ -281,10 +276,10 @@ function formatDate(d) {
 .ma-btn--archive:hover:not(:disabled) { opacity: 0.85; }
 
 .ma-btn--revoke {
-  background: transparent; color: #dc2626;
-  border: 1.5px solid #dc2626;
+  background: transparent; color: var(--color-accent);
+  border: 1.5px solid var(--color-accent);
 }
-.ma-btn--revoke:hover:not(:disabled) { background: #fee2e2; }
+.ma-btn--revoke:hover:not(:disabled) { background: rgba(var(--color-accent-rgb), 0.1); }
 
 .ma-btn--cancel {
   background: transparent; color: var(--color-text);

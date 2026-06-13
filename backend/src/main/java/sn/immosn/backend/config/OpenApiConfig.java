@@ -75,12 +75,13 @@ public class OpenApiConfig {
                     Les listes paginées utilisent `PagedResponse<T>` :
                     ```json
                     {
-                        "content": [ ],
-                        "page": 0,
-                        "size": 12,
+                        "data": [ ],
                         "totalElements": 48,
                         "totalPages": 4,
-                        "last": false
+                        "currentPage": 0,
+                        "pageSize": 12,
+                        "isFirst": true,
+                        "isLast": false
                     }
                     ```
                     """)

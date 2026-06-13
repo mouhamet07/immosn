@@ -1,6 +1,7 @@
 package sn.immosn.backend.client.web.annonce.dto;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
@@ -18,6 +19,9 @@ public record AnnonceUpdateRequestDto(
 
     @Positive(message = "Le nombre de pièces doit être positif")
     Integer nbrPieces,
+
+    @Min(value = 1, message = "Le nombre de salles de bains doit être au minimum 1")
+    Integer nbrSallesBain,
 
     @Positive(message = "La surface doit être positive")
     Double surface,
@@ -46,5 +50,7 @@ public record AnnonceUpdateRequestDto(
     List<@Pattern(
         regexp = "^https://res\\.cloudinary\\.com/.+",
         message = "Les images doivent être des URLs Cloudinary valides"
-    ) String> images
+    ) String> images,
+
+    Boolean isExclusivite
 ) {}
