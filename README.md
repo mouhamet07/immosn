@@ -72,9 +72,9 @@ ImmoSN est une application web full-stack organisée en deux services :
 - **Linting** : ESLint + oxlint + Prettier
 
 ### Infrastructure
-- **Conteneurisation** : Docker + Docker Compose
+- **Conteneurisation** : Docker 
 - **Proxy** : Nginx (reverse proxy + SPA)
-- **Orchestration** : Kubernetes (configs présentes)
+- **Orchestration** : Docker Compose
 - **Stockage images** : Cloudinary CDN
 - **Base prod** : PostgreSQL Neon (serverless, SSL)
 
