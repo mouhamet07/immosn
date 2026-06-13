@@ -90,7 +90,7 @@ onMounted(fetchAnnonce)
 
       <!-- Galerie -->
       <div class="daa-gallery">
-        <ImageGallery :images="annonce.images" :alt="annonce.libelle" height="400px" />
+        <ImageGallery :images="annonce.images" :alt="annonce.libelle" height="460px" />
       </div>
 
       <!-- Corps -->
