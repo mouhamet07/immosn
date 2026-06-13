@@ -1,20 +1,62 @@
-name: Deploy ImmoSN
+name: CI/CD ImmoSN
 
 on:
   push:
-    branches:
-      - master
+    branches: [master]
+  pull_request:
+    branches: [master]
 
 concurrency:
-  group: deploy-production
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  deploy:
+  test:
+    name: Tests unitaires & SonarQube
     runs-on: ubuntu-latest
+    env:
+      SUPER_ADMIN_PASSWORD: ci-test-password
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # requis par SonarQube pour l'analyse blame/historique
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+      - name: Tests unitaires (backend)
+        working-directory: backend
+        run: mvn test -B
+      - name: Upload rapport de couverture
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: backend/target/site/jacoco/
+          retention-days: 7
+      - name: Analyse SonarQube
+        if: ${{ env.SONAR_TOKEN != '' }}
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}
+        run: |
+          cd backend && mvn sonar:sonar \
+            -Dsonar.host.url="${SONAR_HOST_URL}" \
+            -Dsonar.token="${SONAR_TOKEN}" \
+            -Dsonar.projectBaseDir="${{ github.workspace }}" \
+            -B
+
+  deploy:
+    name: Déploiement VPS
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
