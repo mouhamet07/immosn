@@ -140,7 +140,7 @@ onMounted(() => fetchVisites(0))
             <p v-if="v.commentaire" class="mv-card__comment">{{ v.commentaire }}</p>
           </div>
           <div class="mv-card__actions">
-            <RouterLink :to="`/visites/${v.id}`" class="mv-card__detail">Voir le détail</RouterLink>
+            <RouterLink :to="`/visites/${v.id}`" class="mv-card__detail">Voir détails</RouterLink>
             <button
               v-if="v.statut === 'EN_ATTENTE' || v.statut === 'ACCEPTEE'"
               class="mv-card__cancel"
