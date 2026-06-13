@@ -25,7 +25,7 @@ jobs:
         env:
           SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_KEY }}
           SSH_HOST: ${{ secrets.VPS_HOST }}
-          SSH_PORT: ${{ secrets.VPS_SSH_PORT }}
+          SSH_PORT: ${{ secrets.VPS_SSH_PORT || '22' }}
           SSH_USER: ${{ secrets.VPS_USER }}
         run: |
           mkdir -p ~/.ssh
