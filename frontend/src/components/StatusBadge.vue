@@ -17,6 +17,12 @@ defineProps({
 .status-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  /* Largeur = contenu, même si le parent est en flex-direction: column
+     (où align-items vaut stretch par défaut et étirerait le badge). */
+  width: fit-content;
+  max-width: max-content;
+  align-self: flex-start;
   padding: 0.25rem 0.65rem;
   border-radius: 12px;
   font-size: 0.75rem;

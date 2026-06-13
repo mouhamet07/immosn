@@ -12,6 +12,27 @@ const props = defineProps({
 const activeIndex = ref(0)
 const imgs = computed(() => props.images?.length ? props.images : [PLACEHOLDER])
 
+/**
+ * Optimisation Cloudinary à l'affichage (aucune modif d'upload/stockage).
+ * Insère f_auto (WebP/AVIF), q_auto (qualité optimale), c_limit + largeur
+ * cible : sert une variante nette sans upscaler une source trop petite.
+ * Toute URL non-Cloudinary (placeholder, etc.) est renvoyée telle quelle.
+ */
+function cldOptimize(url, width) {
+  if (typeof url !== 'string') return url
+  const marker = '/image/upload/'
+  const i = url.indexOf(marker)
+  if (i === -1) return url
+  // Évite la double transformation si l'URL en contient déjà une.
+  const after = url.slice(i + marker.length)
+  if (/^(f_|q_|w_|c_|dpr_)/.test(after)) return url
+  const t = `f_auto,q_auto,c_limit,w_${width},dpr_auto`
+  return `${url.slice(0, i + marker.length)}${t}/${after}`
+}
+
+const mainImg  = computed(() => cldOptimize(imgs.value[activeIndex.value], 1280))
+const thumbSrc = (src) => cldOptimize(src, 200)
+
 function setActive(i) { activeIndex.value = i }
 function prev() { activeIndex.value = (activeIndex.value - 1 + imgs.value.length) % imgs.value.length }
 function next() { activeIndex.value = (activeIndex.value + 1) % imgs.value.length }
@@ -34,9 +55,11 @@ function onTouchEnd(e) {
       @touchend.passive="onTouchEnd"
     >
       <img
-        :src="imgs[activeIndex]"
+        :src="mainImg"
         :alt="`${alt} — photo ${activeIndex + 1}`"
         class="ig-main__img"
+        loading="lazy"
+        decoding="async"
       />
 
       <!-- Nav arrows (> 1 image) -->
@@ -70,7 +93,7 @@ function onTouchEnd(e) {
         @click="setActive(i)"
         :aria-label="`Voir photo ${i + 1}`"
       >
-        <img :src="src" :alt="`${alt} miniature ${i + 1}`" />
+        <img :src="thumbSrc(src)" :alt="`${alt} miniature ${i + 1}`" loading="lazy" decoding="async" />
       </button>
     </div>
 
@@ -95,7 +118,8 @@ function onTouchEnd(e) {
   overflow: hidden;
   border-radius: var(--radius);
   background: #e5e7eb;
-  height: var(--ig-h, 480px);
+  /* Desktop : compact (500–600px) pour éviter l'upscale et le vide vertical. */
+  height: min(var(--ig-h, 480px), 560px);
 }
 
 .ig-main__img {
@@ -196,14 +220,17 @@ function onTouchEnd(e) {
 }
 
 /* Responsive height caps */
-@media (max-width: 900px) {
-  .ig-main { height: min(var(--ig-h, 480px), 300px); }
+/* Tablette (768–1199px) : 420–500px */
+@media (max-width: 1199px) {
+  .ig-main { height: min(var(--ig-h, 480px), 480px); }
 }
 @media (max-width: 768px) {
   .ig-thumbs { display: none; }
   .ig-dots   { display: flex; }
+  .ig-main   { height: min(var(--ig-h, 480px), 360px); }
 }
+/* Mobile (≤480px) : 250–320px */
 @media (max-width: 480px) {
-  .ig-main { height: min(var(--ig-h, 480px), 220px); }
+  .ig-main { height: min(var(--ig-h, 480px), 300px); }
 }
 </style>
