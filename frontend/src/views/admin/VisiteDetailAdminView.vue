@@ -448,10 +448,10 @@ onMounted(() => fetchVisite())
   font-weight: 600; cursor: pointer; border: none; transition: opacity .15s;
 }
 .vda-btn:disabled { opacity: .4; cursor: not-allowed; }
-.vda-btn--accept  { background:none; border: 1.5px solid var(--color-primary); color: #fff; }
-.vda-btn--accept:hover:not(:disabled)  { background: var(--color-primary); opacity: 1; }
-.vda-btn--refuse  { background: none; border: 1.5px solid var(--color-accent); color: #fff; }
-.vda-btn--refuse:hover:not(:disabled)  { background: var(--color-accent); opacity: 1; }
+.vda-btn--accept  { background:none; border: 1.5px solid var(--color-primary); color: var(--color-primary); }
+.vda-btn--accept:hover:not(:disabled)  { background: var(--color-primary); opacity: 1; color: #fff;}
+.vda-btn--refuse  { background: none; border: 1.5px solid var(--color-accent); color: var(--color-accent); }
+.vda-btn--refuse:hover:not(:disabled)  { background: var(--color-accent); opacity: 1; color: #fff; }
 .vda-btn--cloture { background: var(--color-primary); color: #fff; }
 .vda-btn--cloture:hover:not(:disabled) { background: var(--color-primary-hover); opacity: 1; }
 .vda-btn--outline { background: none; border: 1.5px solid var(--color-primary); color: var(--color-primary); }
