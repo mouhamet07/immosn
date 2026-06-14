@@ -137,6 +137,10 @@ onMounted(() => fetchVisites(0))
             </div>
             <RouterLink :to="`/annonces/${v.annonceId}`" class="mv-card__title">{{ v.annonceLibelle }}</RouterLink>
             <p class="mv-card__addr"><MapPin :size="12" /> {{ v.annonceAdresse }}</p>
+            <div v-if="v.dateVisite" class="mv-card__visite mv-card__visite--hide-mobile">
+              <span class="mv-card__visite-label">Date souhaitée :</span>
+              <span class="mv-card__visite-val">{{ formatDate(v.dateVisite) }}</span>
+            </div>
             <p v-if="v.commentaire" class="mv-card__comment">{{ v.commentaire }}</p>
           </div>
           <div class="mv-card__actions">
@@ -293,5 +297,7 @@ onMounted(() => fetchVisites(0))
     align-items: center;
   }
   .mv-card__actions > * { flex: 1; text-align: center; }
+  /* Date souhaitée masquée sur mobile pour alléger la carte */
+  .mv-card__visite--hide-mobile { display: none; }
 }
 </style>
