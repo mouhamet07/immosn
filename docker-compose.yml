@@ -4,6 +4,10 @@ services:
     build: ./backend
     container_name: immosn-backend
     restart: unless-stopped
+    # Publié UNIQUEMENT sur le loopback de l'hôte : Prometheus (systemd) scrape
+    # http://127.0.0.1:8080/actuator/prometheus. Inaccessible depuis l'extérieur.
+    ports:
+      - "127.0.0.1:8080:8080"
     env_file:
       - .env
     environment:
