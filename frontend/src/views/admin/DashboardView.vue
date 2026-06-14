@@ -191,16 +191,28 @@ const statCards = computed(() => {
 
 const ACTIVITY_ICONS  = { BIEN: 'building', ANNONCE: 'building', VISITE: 'calendar', CONTRAT: 'document', SIGNALEMENT: 'alert', MESSAGE: 'chat', CLIENT: 'user' }
 const STATUT_VARIANTS = {
-  ACTIVE: 'success', EN_ATTENTE: 'warning', ACCEPTEE: 'success',
-  REFUSEE: 'danger', ACTIF: 'success', RESILIE: 'danger',
-  EXPIRE: 'neutral', OUVERT: 'warning', EN_COURS: 'info',
-  RESOLU: 'success', FERME: 'neutral',
+  // Annonces / contrats
+  ACTIVE: 'success', ACTIF: 'success', RESILIE: 'danger', EXPIRE: 'neutral',
+  // Visites
+  EN_ATTENTE: 'warning', ACCEPTEE: 'success', REFUSEE: 'danger',
+  ANNULEE: 'neutral', TERMINEE: 'info',
+  CLOTUREE_SANS_SUITE: 'neutral', CLOTUREE_AVEC_CONTRAT: 'info',
+  // Leads
+  EN_COURS: 'info', CONVERTI: 'success', ABANDONNE: 'neutral',
+  // Signalements
+  OUVERT: 'warning', RESOLU: 'success', FERME: 'neutral',
 }
 const STATUT_LABELS   = {
-  ACTIVE: 'Actif', EN_ATTENTE: 'En attente', ACCEPTEE: 'Acceptée',
-  REFUSEE: 'Refusée', ACTIF: 'Actif', RESILIE: 'Résilié',
-  EXPIRE: 'Expiré', OUVERT: 'Ouvert', EN_COURS: 'En cours',
-  RESOLU: 'Résolu', FERME: 'Fermé',
+  // Annonces / contrats
+  ACTIVE: 'Actif', ACTIF: 'Actif', RESILIE: 'Résilié', EXPIRE: 'Expiré',
+  // Visites
+  EN_ATTENTE: 'En attente', ACCEPTEE: 'Acceptée', REFUSEE: 'Refusée',
+  ANNULEE: 'Annulée', TERMINEE: 'Terminée',
+  CLOTUREE_SANS_SUITE: 'Clôturée sans suite', CLOTUREE_AVEC_CONTRAT: 'Clôturée avec contrat',
+  // Leads
+  EN_COURS: 'En cours', CONVERTI: 'Converti', ABANDONNE: 'Abandonné',
+  // Signalements
+  OUVERT: 'Ouvert', RESOLU: 'Résolu', FERME: 'Fermé',
 }
 
 function formatDate(dt) {
