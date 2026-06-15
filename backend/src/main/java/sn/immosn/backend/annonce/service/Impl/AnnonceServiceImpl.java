@@ -38,12 +38,12 @@ public class AnnonceServiceImpl implements AnnonceService {
 
     private static final Logger log = LoggerFactory.getLogger(AnnonceServiceImpl.class);
 
-    private final AnnonceRepository         annonceRepository;
-    private final CommoditeRepository       commoditeRepository;
+    private final AnnonceRepository annonceRepository;
+    private final CommoditeRepository commoditeRepository;
     private final TypeBienAnnonceRepository typeBienAnnonceRepository;
-    private final AnnonceMapper             annonceMapper;
-    private final ContratRepository         contratRepository;
-    private final GeoCodingService          geoCodingService;
+    private final AnnonceMapper annonceMapper;
+    private final ContratRepository contratRepository;
+    private final GeoCodingService geoCodingService;
 
     @Override
     @Transactional
@@ -67,7 +67,7 @@ public class AnnonceServiceImpl implements AnnonceService {
         Annonce saved = annonceRepository.save(annonce);
 
         if (geoOk) geoCodingService.logGeolocation(saved.getId());
-        else        geoCodingService.logGeolocationFailed(saved.getId());
+        else geoCodingService.logGeolocationFailed(saved.getId());
         log.info("Annonce créée : id={}", saved.getId());
         return annonceMapper.toResponse(saved);
     }
@@ -94,19 +94,19 @@ public class AnnonceServiceImpl implements AnnonceService {
         Annonce annonce = annonceRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée : id=" + id));
 
-        if (requestDto.libelle()       != null) annonce.setLibelle(requestDto.libelle());
-        if (requestDto.description()   != null) annonce.setDescription(requestDto.description());
-        if (requestDto.nbrPieces()     != null) annonce.setNbrPieces(requestDto.nbrPieces());
+        if (requestDto.libelle() != null) annonce.setLibelle(requestDto.libelle());
+        if (requestDto.description() != null) annonce.setDescription(requestDto.description());
+        if (requestDto.nbrPieces() != null) annonce.setNbrPieces(requestDto.nbrPieces());
         if (requestDto.nbrSallesBain() != null) annonce.setNbrSallesBain(requestDto.nbrSallesBain());
-        if (requestDto.surface()       != null) annonce.setSurface(requestDto.surface());
-        if (requestDto.prix()          != null) annonce.setPrix(requestDto.prix());
-        if (requestDto.images()        != null) annonce.setImages(requestDto.images());
+        if (requestDto.surface() != null) annonce.setSurface(requestDto.surface());
+        if (requestDto.prix() != null) annonce.setPrix(requestDto.prix());
+        if (requestDto.images() != null) annonce.setImages(requestDto.images());
         if (requestDto.isExclusivite() != null) annonce.setExclusivite(requestDto.isExclusivite());
 
         boolean locationChanged = requestDto.adresseExacte() != null
             || requestDto.departement() != null
-            || requestDto.quartier()    != null
-            || requestDto.region()      != null;
+            || requestDto.quartier() != null
+            || requestDto.region() != null;
 
         if (requestDto.departement() != null) {
             if (requestDto.departement().isBlank()) {
@@ -161,7 +161,7 @@ public class AnnonceServiceImpl implements AnnonceService {
         Annonce updated = annonceRepository.save(annonce);
         if (locationChanged) {
             if (geoOk) geoCodingService.logGeolocation(updated.getId());
-            else        geoCodingService.logGeolocationFailed(updated.getId());
+            else geoCodingService.logGeolocationFailed(updated.getId());
         }
         log.info("Annonce modifiée : id={}", updated.getId());
         return annonceMapper.toResponse(updated);
@@ -211,16 +211,16 @@ public class AnnonceServiceImpl implements AnnonceService {
     @Transactional(readOnly = true)
     public AnnonceResponseDto getAnnonceByIdAdmin(Long id) {
         Annonce annonce = annonceRepository.findById(id)
-            .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée : id=" + id));
+            .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée"));
         return annonceMapper.toResponse(annonce);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<AnnonceListDto> searchAnnonces(SearchAnnonceRequestDto request) {
-        int    page  = request.page()   != null ? request.page()   : 0;
-        int    size  = request.size()   != null ? request.size()   : 9;
-        String sort  = (request.sortBy() != null && !request.sortBy().isBlank()) ? request.sortBy() : "createdAt";
+        int page = request.page() != null ? request.page() : 0;
+        int size = request.size() != null ? request.size() : 9;
+        String sort = (request.sortBy() != null && !request.sortBy().isBlank()) ? request.sortBy() : "createdAt";
         Sort.Direction dir = "ASC".equalsIgnoreCase(request.sortDir()) ? Sort.Direction.ASC : Sort.Direction.DESC;
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(dir, sort));

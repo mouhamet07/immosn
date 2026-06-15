@@ -174,7 +174,7 @@ onMounted(fetchLead)
             <h2 class="ld-section__title">Annonce</h2>
             <div class="ld-section__body">
               <div class="ld-annonce-img">
-                <ImageGallery :images="lead.imagePrincipale ? [lead.imagePrincipale] : []" :alt="lead.annonceLibelle" height="180px" />
+                <ImageGallery :images="lead.imagePrincipale ? [lead.imagePrincipale] : []" :alt="lead.annonceLibelle" aspect="16 / 9" max-height="300px" />
               </div>
               <dl class="ld-dl">
                 <dt>Libellé</dt>

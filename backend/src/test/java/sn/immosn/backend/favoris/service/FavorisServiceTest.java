@@ -36,13 +36,13 @@ import static org.mockito.Mockito.*;
 class FavorisServiceTest {
 
     @Mock AnnonceFavorisRepository favorisRepository;
-    @Mock AnnonceRepository        annonceRepository;
-    @Mock UserRepository           userRepository;
+    @Mock AnnonceRepository annonceRepository;
+    @Mock UserRepository userRepository;
 
     @InjectMocks
     FavorisServiceImpl favorisService;
 
-    private User    client;
+    private User client;
     private Annonce annonce;
 
     @BeforeEach

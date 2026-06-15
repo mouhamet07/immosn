@@ -26,7 +26,7 @@ public class ContratExpirationJob {
 
     private static final Logger log = LoggerFactory.getLogger(ContratExpirationJob.class);
 
-    private final ContratRepository     contratRepository;
+    private final ContratRepository contratRepository;
     private final ContratHistoryService contratHistoryService;
 
     /**

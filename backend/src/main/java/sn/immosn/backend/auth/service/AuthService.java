@@ -36,15 +36,15 @@ public class AuthService {
 
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
-    private final AuthUserDetailService        authUserDetailService;
-    private final RoleRepository               roleRepository;
-    private final UserRepository               userRepository;
-    private final AuthenticationManager        authenticationManager;
-    private final PasswordEncoder              passwordEncoder;
-    private final AuthMapper                   authMapper;
-    private final JwtTokenProvider             jwtTokenProvider;
-    private final BlacklistedTokenRepository   blacklistedTokenRepository;
-    private final UserSessionRepository        userSessionRepository;
+    private final AuthUserDetailService authUserDetailService;
+    private final RoleRepository roleRepository;
+    private final UserRepository userRepository;
+    private final AuthenticationManager authenticationManager;
+    private final PasswordEncoder passwordEncoder;
+    private final AuthMapper authMapper;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final BlacklistedTokenRepository blacklistedTokenRepository;
+    private final UserSessionRepository userSessionRepository;
 
     // Déconnexion
 

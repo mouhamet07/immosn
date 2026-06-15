@@ -119,7 +119,7 @@ onMounted(() => fetchContrat())
 
         <!-- Image annonce -->
         <div class="cd-image">
-          <ImageGallery :images="contrat.imagePrincipale ? [contrat.imagePrincipale] : []" :alt="contrat.annonceLibelle" height="240px" />
+          <ImageGallery :images="contrat.imagePrincipale ? [contrat.imagePrincipale] : []" :alt="contrat.annonceLibelle" aspect="16 / 9" max-height="380px" />
         </div>
 
         <!-- Grille d'informations -->

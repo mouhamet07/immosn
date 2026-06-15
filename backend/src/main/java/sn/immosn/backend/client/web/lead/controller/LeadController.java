@@ -32,7 +32,7 @@ import sn.immosn.backend.shared.response.RestResponse;
 @SecurityRequirement(name = "bearerAuth")
 public class LeadController {
 
-    private final LeadService        service;
+    private final LeadService service;
     private final LeadHistoryService historyService;
 
     @Operation(

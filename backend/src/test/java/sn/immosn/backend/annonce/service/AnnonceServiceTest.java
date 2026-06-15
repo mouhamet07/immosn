@@ -53,7 +53,7 @@ class AnnonceServiceTest {
     AnnonceServiceImpl annonceService;
     private Annonce annonceActive;
     private AnnonceResponseDto responseDto;
-    private AnnonceListDto     listDto;
+    private AnnonceListDto listDto;
     @BeforeEach
     void setUp() {
         TypeBienAnnonce type = new TypeBienAnnonce();

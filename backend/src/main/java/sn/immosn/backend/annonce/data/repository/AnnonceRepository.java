@@ -34,9 +34,9 @@ public interface AnnonceRepository extends JpaRepository<Annonce, Long>, JpaSpec
         """)
     Page<Annonce> searchActive(
         @Param("typeBienId") Long typeBienId,
-        @Param("prixMin")    Double prixMin,
-        @Param("prixMax")    Double prixMax,
-        @Param("adresse")    String adresse,
+        @Param("prixMin") Double prixMin,
+        @Param("prixMax") Double prixMax,
+        @Param("adresse") String adresse,
         Pageable pageable
     );
 

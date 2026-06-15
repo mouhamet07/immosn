@@ -210,7 +210,7 @@ onMounted(() => fetchVisite())
         <div v-show="tab === 'detail'">
         <!-- Image -->
         <div class="vda-image">
-          <ImageGallery :images="visite.imagePrincipale ? [visite.imagePrincipale] : []" :alt="visite.annonceLibelle" height="220px" />
+          <ImageGallery :images="visite.imagePrincipale ? [visite.imagePrincipale] : []" :alt="visite.annonceLibelle" aspect="16 / 9" max-height="380px" />
         </div>
 
         <!-- Grille -->

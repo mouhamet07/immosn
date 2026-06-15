@@ -29,7 +29,7 @@ import static org.mockito.Mockito.*;
 class AuthControllerTest {
 
     @Mock AuthService authService;
-    @Mock AuthMapper  authMapper;
+    @Mock AuthMapper authMapper;
     @InjectMocks AuthController authController;
 
     private AuthResponseDto buildResponse(String email) {

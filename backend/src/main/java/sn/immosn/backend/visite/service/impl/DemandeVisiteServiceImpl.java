@@ -37,13 +37,13 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
     private static final Logger log = LoggerFactory.getLogger(DemandeVisiteServiceImpl.class);
 
     private final DemandeVisiteRepository visiteRepository;
-    private final AnnonceRepository       annonceRepository;
-    private final UserRepository          userRepository;
-    private final LeadRepository          leadRepository;
-    private final DemandeVisiteMapper     mapper;
-    private final ContratService          contratService;
-    private final VisiteHistoryService    visiteHistoryService;
-    private final LeadHistoryService      leadHistoryService;
+    private final AnnonceRepository annonceRepository;
+    private final UserRepository userRepository;
+    private final LeadRepository leadRepository;
+    private final DemandeVisiteMapper mapper;
+    private final ContratService contratService;
+    private final VisiteHistoryService visiteHistoryService;
+    private final LeadHistoryService leadHistoryService;
 
     /**
      * Crée une demande de visite ET un lead automatiquement.
@@ -140,7 +140,7 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
     public DemandeVisiteResponseDto updateStatut(Long id, UpdateStatutVisiteDto dto, String userEmail, boolean isAdmin) {
         DemandeVisite visite = loadVisite(id);
         StatutDemandeVisite actuel = visite.getStatut();
-        StatutDemandeVisite cible  = dto.statut();
+        StatutDemandeVisite cible = dto.statut();
 
         // TERMINEE est en lecture seule — interdit en tant que cible via l'API
         if (cible == StatutDemandeVisite.TERMINEE) {
@@ -185,9 +185,9 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
 
         String action = switch (cible) {
             case ACCEPTEE -> "ACCEPTATION";
-            case REFUSEE  -> "REFUS";
-            case ANNULEE  -> "ANNULATION";
-            default       -> "CHANGEMENT_STATUT";
+            case REFUSEE -> "REFUS";
+            case ANNULEE -> "ANNULATION";
+            default -> "CHANGEMENT_STATUT";
         };
         visiteHistoryService.record(saved, actuel, cible, action, dto.commentaire(), null, null);
 

@@ -11,7 +11,7 @@ public class AnnonceFavorisId implements Serializable {
     public AnnonceFavorisId() {}
 
     public AnnonceFavorisId(Long client, Long annonce) {
-        this.client  = client;
+        this.client = client;
         this.annonce = annonce;
     }
 

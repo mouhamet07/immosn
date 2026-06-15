@@ -278,7 +278,7 @@ onMounted(() => fetchContrat())
         <div v-show="tab === 'detail'">
         <!-- Image -->
         <div class="cda-image">
-          <ImageGallery :images="contrat.imagePrincipale ? [contrat.imagePrincipale] : []" :alt="contrat.annonceLibelle" height="220px" />
+          <ImageGallery :images="contrat.imagePrincipale ? [contrat.imagePrincipale] : []" :alt="contrat.annonceLibelle" aspect="16 / 9" max-height="380px" />
         </div>
 
         <!-- Grille -->

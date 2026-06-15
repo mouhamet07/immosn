@@ -45,7 +45,7 @@ public class ContratHistoryServiceImpl implements ContratHistoryService {
     private ContratHistoryDto toDto(ContratHistory h) {
         return new ContratHistoryDto(
             h.getId(),
-            h.getAncienStatut()  != null ? h.getAncienStatut().name()  : null,
+            h.getAncienStatut() != null ? h.getAncienStatut().name() : null,
             h.getNouveauStatut() != null ? h.getNouveauStatut().name() : null,
             h.getAuteurId(),
             h.getAuteurEmail(),

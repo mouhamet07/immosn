@@ -120,7 +120,7 @@ onMounted(() => fetchVisite())
 
         <!-- Image annonce -->
         <div class="vd-image">
-          <ImageGallery :images="visite.imagePrincipale ? [visite.imagePrincipale] : []" :alt="visite.annonceLibelle" height="220px" />
+          <ImageGallery :images="visite.imagePrincipale ? [visite.imagePrincipale] : []" :alt="visite.annonceLibelle" aspect="16 / 9" max-height="380px" />
         </div>
 
         <!-- Informations -->
