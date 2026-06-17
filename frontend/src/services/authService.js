@@ -42,9 +42,10 @@ export default {
     return api.patch(`/auth/admins/${id}/restore`)
   },
 
-  // PATCH /api/v1/auth/admins/{id}/revoke — révoquer le rôle ADMIN (SUPER_ADMIN uniquement)
-  revokeAdmin(id) {
-    return api.patch(`/auth/admins/${id}/revoke`)
+  // PUT /api/v1/auth/admins/{id} — modifier un admin (SUPER_ADMIN uniquement)
+  // Champs optionnels: nomComplet, email, telephone, nouveauMotDePasse
+  updateAdmin(id, data) {
+    return api.put(`/auth/admins/${id}`, data)
   },
 
   // PUT /api/v1/auth/profile — mise à jour informations (nomComplet, email, telephone, photo)

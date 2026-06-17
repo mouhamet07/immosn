@@ -149,7 +149,7 @@ onMounted(fetchAnnonce)
         <aside class="daa-sidebar">
           <div class="daa-info-card">
             <h3 class="daa-info-card__title">Informations</h3>
-            <div class="daa-info-row"><span>ID</span><span>#{{ annonce.id }}</span></div>
+            <div class="daa-info-row"><span>ID</span><span>{{ annonce.id }}</span></div>
             <div class="daa-info-row"><span>Type</span><span>{{ annonce.typeBien?.libelle || '–' }}</span></div>
             <div class="daa-info-row"><span>Statut</span>
               <StatusBadge :label="annonce.archived ? 'Archivée' : 'Active'" :variant="annonce.archived ? 'neutral' : 'success'" />

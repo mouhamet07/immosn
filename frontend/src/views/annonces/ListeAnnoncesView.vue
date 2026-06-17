@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import AnnonceCard from '@/components/AnnonceCard.vue'
 import annonceService from '@/services/annonceService'
 import typeBienService from '@/services/typeBienService'
@@ -51,7 +51,7 @@ function resetFiltres() {
   filtres.adresse    = ''
   filtres.piecesMin  = null
   selectedCommoditeIds.value = []
-  fetchAnnonces(0)
+  // La recherche est relancée automatiquement par le watcher des filtres
 }
 
 async function fetchAnnonces(page = 0) {
@@ -86,6 +86,21 @@ function goToPage(page) {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 }
+
+// Recherche automatique : tout changement de filtre relance la recherche
+// avec un debounce pour éviter les appels API excessifs (saisie texte/prix).
+// La pagination est réinitialisée à la première page à chaque changement.
+let debounceTimer = null
+function scheduleSearch() {
+  clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => fetchAnnonces(0), 400)
+}
+
+watch(
+  [filtres, selectedCommoditeIds],
+  scheduleSearch,
+  { deep: true },
+)
 
 onMounted(async () => {
   const [resTypes, resCommodites] = await Promise.all([
@@ -143,12 +158,7 @@ onMounted(async () => {
           </select>
         </div>
 
-        <button class="filters-btn" @click="fetchAnnonces(0)">
-          <SvgIcon name="search" :size="14" />
-          Rechercher
-        </button>
-
-        <button v-if="filtres.adresse || filtres.typeBienId || filtres.prixMin || filtres.prixMax || filtres.piecesMin || selectedCommoditeIds.length" class="filters-reset" @click="resetFiltres">
+        <button v-if="filtres.adresse || filtres.typeBienId || filtres.prixMin || filtres.prixMax || filtres.piecesMin || selectedCommoditeIds.length" class="filters-reset" title="Effacer les filtres" @click="resetFiltres">
           <SvgIcon name="x" :size="14" />
         </button>
 

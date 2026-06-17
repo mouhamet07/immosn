@@ -21,12 +21,10 @@ public record AnnonceCreateRequestDto(
     @Size(max = 5000, message = "La description ne peut pas dépasser 5000 caractères")
     String description,
 
-    // Autorisé à 0 : un terrain / une parcelle n'a pas de pièces
     @NotNull(message = "Le nombre de pièces est obligatoire")
     @PositiveOrZero(message = "Le nombre de pièces ne peut pas être négatif")
     Integer nbrPieces,
 
-    // Autorisé à 0 : un terrain / une parcelle n'a pas de salle de bain
     @NotNull(message = "Le nombre de salles de bains est obligatoire")
     @Min(value = 0, message = "Le nombre de salles de bains ne peut pas être négatif")
     Integer nbrSallesBain,

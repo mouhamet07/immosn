@@ -193,7 +193,7 @@ onMounted(() => fetchVisite())
         <div class="vda-header">
           <div>
             <StatusBadge :label="STATUT_LABELS[visite.statut]" :variant="STATUT_VARIANTS[visite.statut]" />
-            <h1 class="vda-header__title">Demande de visite #{{ visite.id }}</h1>
+            <h1 class="vda-header__title">Demande de visite {{ visite.id }}</h1>
             <p class="vda-header__sub">{{ visite.clientNom }}</p>
           </div>
           <div class="vda-header__actions" v-if="visite.statut === 'ACCEPTEE'">
@@ -219,7 +219,7 @@ onMounted(() => fetchVisite())
             <h2 class="vda-card__title">Client</h2>
             <dl class="vda-dl">
               <div class="vda-dl__row"><dt>Nom</dt><dd>{{ visite.clientNom }}</dd></div>
-              <div class="vda-dl__row"><dt>ID client</dt><dd>#{{ visite.clientId }}</dd></div>
+              <div class="vda-dl__row"><dt>ID client</dt><dd>{{ visite.clientId }}</dd></div>
             </dl>
           </div>
 
@@ -339,7 +339,7 @@ onMounted(() => fetchVisite())
     <Teleport to="body">
       <div v-if="showCloture" class="modal-overlay" @click.self="showCloture = false">
         <div class="modal-box modal-box--lg">
-          <h2 class="modal-box__title">Clôturer la visite #{{ visite?.id }}</h2>
+          <h2 class="modal-box__title">Clôturer la visite {{ visite?.id }}</h2>
           <p class="modal-box__desc">La visite a été effectuée. Quelle est l'issue ?</p>
 
           <div class="cloture-options">

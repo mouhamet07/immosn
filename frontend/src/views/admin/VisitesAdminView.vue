@@ -217,7 +217,7 @@ onMounted(() => fetchVisites(0))
     <Teleport to="body">
       <div v-if="showCloture" class="modal-overlay" @click.self="showCloture = false">
         <div class="modal-box modal-box--lg">
-          <h2 class="modal-box__title">Clôturer la visite #{{ clotureVisiteId }}</h2>
+          <h2 class="modal-box__title">Clôturer la visite {{ clotureVisiteId }}</h2>
           <p class="modal-box__desc">La visite a été effectuée. Quelle est l'issue ?</p>
 
           <!-- Choix du type de clôture -->

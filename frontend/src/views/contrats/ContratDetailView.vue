@@ -109,7 +109,7 @@ onMounted(() => fetchContrat())
         <div class="cd-header">
           <div class="cd-header__left">
             <StatusBadge :label="STATUT_LABELS[contrat.statut]" :variant="STATUT_VARIANTS[contrat.statut]" />
-            <h1 class="cd-header__title">Contrat #{{ contrat.id }}</h1>
+            <h1 class="cd-header__title">Contrat {{ contrat.id }}</h1>
             <p class="cd-header__sub">{{ contrat.annonceLibelle }}</p>
           </div>
           <a v-if="contrat.documentUrl" :href="contrat.documentUrl" target="_blank" class="cd-download">

@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import sn.immosn.backend.auth.data.entity.User;
 import sn.immosn.backend.auth.service.AuthService;
+import sn.immosn.backend.client.web.auth.dto.AdminUpdateRequestDto;
 import sn.immosn.backend.client.web.auth.dto.AuthLoginRequestDto;
 import sn.immosn.backend.client.web.auth.dto.AuthRegisterRequestDto;
 import sn.immosn.backend.client.web.auth.dto.AuthResponseDto;
@@ -351,6 +352,51 @@ public class AuthController {
         User operator = (User) authentication.getPrincipal();
         return ResponseEntity.ok(
             RestResponse.success(authService.revokeAdmin(id, operator), HttpStatus.OK));
+    }
+
+    @Operation(
+        summary = "Modifier un administrateur",
+        description = """
+            Modifie les informations d'un compte administrateur (nom, email, téléphone)
+            et permet, en option, de réinitialiser son mot de passe.
+
+            - Seuls les champs fournis sont mis à jour
+            - L'email doit rester unique
+            - Pour réinitialiser le mot de passe : fournir `nouveauMotDePasse`
+              (soumis aux mêmes règles de complexité que l'inscription)
+
+            **Accès : SUPER_ADMIN uniquement**
+            """,
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Administrateur modifié avec succès",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Données invalides",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Administrateur non trouvé",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "409", description = "Email déjà utilisé par un autre compte",
+            content = @Content(mediaType = "application/json"))
+    })
+    @PutMapping("/admins/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<RestResponse<AuthResponseDto>> updateAdmin(
+            @Parameter(description = "Identifiant de l'administrateur à modifier", required = true, example = "10")
+            @PathVariable Long id,
+            @Valid @RequestBody AdminUpdateRequestDto request,
+            Authentication authentication) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant d'admin invalide", null));
+        }
+        User operator = (User) authentication.getPrincipal();
+        return ResponseEntity.ok(
+            RestResponse.success(authService.updateAdmin(id, request, operator), HttpStatus.OK));
     }
 
     @Operation(

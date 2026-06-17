@@ -125,7 +125,7 @@ onMounted(fetchLead)
       <!-- En-tête -->
       <div class="ld-header">
         <div class="ld-header__left">
-          <span class="ld-header__id">Lead #{{ lead.id }}</span>
+          <span class="ld-header__id">Lead {{ lead.id }}</span>
           <StatusBadge :label="STATUT_LABELS[lead.statut]" :variant="STATUT_VARIANTS[lead.statut]" />
         </div>
         <div class="ld-header__actions">
@@ -186,7 +186,7 @@ onMounted(fetchLead)
                 <dt>Adresse</dt>
                 <dd>{{ lead.annonceAdresse }}</dd>
                 <dt>ID annonce</dt>
-                <dd>#{{ lead.annonceId }}</dd>
+                <dd>{{ lead.annonceId }}</dd>
               </dl>
             </div>
           </section>
@@ -222,7 +222,7 @@ onMounted(fetchLead)
                 class="ld-nav-link ld-nav-link--visite"
               >
                 <span class="ld-nav-link__label">Visite associée</span>
-                <span class="ld-nav-link__id">#{{ lead.visiteId }} →</span>
+                <span class="ld-nav-link__id">{{ lead.visiteId }} →</span>
               </RouterLink>
               <p v-else class="ld-empty-note">Aucune visite liée.</p>
 
@@ -232,7 +232,7 @@ onMounted(fetchLead)
                 class="ld-nav-link ld-nav-link--contrat"
               >
                 <span class="ld-nav-link__label">Contrat généré</span>
-                <span class="ld-nav-link__id">#{{ lead.contratId }} →</span>
+                <span class="ld-nav-link__id">{{ lead.contratId }} →</span>
               </RouterLink>
               <p v-else-if="lead.statut !== 'CONVERTI'" class="ld-empty-note">Pas encore de contrat.</p>
             </div>
@@ -258,11 +258,11 @@ onMounted(fetchLead)
             <h2 class="ld-section__title">Identifiants</h2>
             <div class="ld-section__body">
               <dl class="ld-dl">
-                <dt>Lead</dt><dd>#{{ lead.id }}</dd>
-                <dt>Client</dt><dd>#{{ lead.clientId }}</dd>
-                <dt>Annonce</dt><dd>#{{ lead.annonceId }}</dd>
-                <dt v-if="lead.visiteId">Visite</dt><dd v-if="lead.visiteId">#{{ lead.visiteId }}</dd>
-                <dt v-if="lead.contratId">Contrat</dt><dd v-if="lead.contratId">#{{ lead.contratId }}</dd>
+                <dt>Lead</dt><dd>{{ lead.id }}</dd>
+                <dt>Client</dt><dd>{{ lead.clientId }}</dd>
+                <dt>Annonce</dt><dd>{{ lead.annonceId }}</dd>
+                <dt v-if="lead.visiteId">Visite</dt><dd v-if="lead.visiteId">{{ lead.visiteId }}</dd>
+                <dt v-if="lead.contratId">Contrat</dt><dd v-if="lead.contratId">{{ lead.contratId }}</dd>
               </dl>
             </div>
           </section>
@@ -302,7 +302,7 @@ onMounted(fetchLead)
       <div v-if="showNoteModal" class="modal-backdrop" @click.self="closeNoteModal">
         <div class="modal" role="dialog" aria-modal="true">
           <div class="modal__header">
-            <h2 class="modal__title">Note admin — Lead #{{ lead?.id }}</h2>
+            <h2 class="modal__title">Note admin — Lead {{ lead?.id }}</h2>
             <button class="modal__close" @click="closeNoteModal">✕</button>
           </div>
           <div class="modal__body">

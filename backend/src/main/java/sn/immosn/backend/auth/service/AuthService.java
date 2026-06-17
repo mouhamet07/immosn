@@ -22,6 +22,7 @@ import sn.immosn.backend.auth.data.repository.BlacklistedTokenRepository;
 import sn.immosn.backend.auth.data.repository.RoleRepository;
 import sn.immosn.backend.auth.data.repository.UserRepository;
 import sn.immosn.backend.auth.data.repository.UserSessionRepository;
+import sn.immosn.backend.client.web.auth.dto.AdminUpdateRequestDto;
 import sn.immosn.backend.client.web.auth.dto.AuthLoginRequestDto;
 import sn.immosn.backend.client.web.auth.dto.AuthRegisterRequestDto;
 import sn.immosn.backend.client.web.auth.dto.AuthResponseDto;
@@ -167,6 +168,44 @@ public class AuthService {
         target.setArchived(false);
         User saved = userRepository.save(target);
         log.info("[{}] USER:{} {} RESTORE_ADMIN TARGET:{}",
+            java.time.LocalDateTime.now(), operator.getId(),
+            operator.getRoles().stream().map(r -> r.getRole().name()).findFirst().orElse("?"), id);
+        return authMapper.toAuthResponseDto(saved, null);
+    }
+
+    // Modification d'un admin (SUPER_ADMIN)
+
+    @Transactional
+    public AuthResponseDto updateAdmin(Long id, AdminUpdateRequestDto request, User operator) {
+        User target = userRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Administrateur introuvable : id=" + id));
+
+        // Sécurité : on ne modifie via cet endpoint que des comptes ADMIN
+        boolean isAdmin = target.getRoles().stream()
+            .anyMatch(r -> r.getRole() == RoleType.ADMIN);
+        if (!isAdmin) {
+            throw new IllegalStateException("Cet utilisateur n'est pas un administrateur");
+        }
+
+        if (request.getNomComplet() != null && !request.getNomComplet().isBlank()) {
+            target.setNomComplet(request.getNomComplet());
+        }
+        if (request.getTelephone() != null && !request.getTelephone().isBlank()) {
+            target.setTelephone(request.getTelephone());
+        }
+        if (request.getEmail() != null && !request.getEmail().isBlank()
+                && !request.getEmail().equals(target.getEmail())) {
+            if (authUserDetailService.existsByEmail(request.getEmail())) {
+                throw new EntityExistException("Email déjà utilisé : " + request.getEmail());
+            }
+            target.setEmail(request.getEmail());
+        }
+        if (request.getNouveauMotDePasse() != null && !request.getNouveauMotDePasse().isBlank()) {
+            target.setPassword(passwordEncoder.encode(request.getNouveauMotDePasse()));
+        }
+
+        User saved = userRepository.save(target);
+        log.info("[{}] USER:{} {} UPDATE_ADMIN TARGET:{}",
             java.time.LocalDateTime.now(), operator.getId(),
             operator.getRoles().stream().map(r -> r.getRole().name()).findFirst().orElse("?"), id);
         return authMapper.toAuthResponseDto(saved, null);

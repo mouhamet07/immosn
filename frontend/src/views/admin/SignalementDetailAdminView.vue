@@ -97,7 +97,7 @@ onMounted(fetchSignalement)
       <!-- En-tête -->
       <div class="sd-header">
         <div class="sd-header__left">
-          <span class="sd-header__id">Signalement #{{ sig.id }}</span>
+          <span class="sd-header__id">Signalement {{ sig.id }}</span>
           <StatusBadge :label="STATUT_LABELS[sig.statut]" :variant="STATUT_VARIANTS[sig.statut]" />
           <span v-if="!sig.isRead" class="sd-new">Nouveau</span>
         </div>
@@ -143,7 +143,6 @@ onMounted(fetchSignalement)
                 <div class="sd-avatar">{{ sig.clientNom?.charAt(0)?.toUpperCase() || '?' }}</div>
                 <div>
                   <p class="sd-row__main">{{ sig.clientNom }}</p>
-                  <p class="sd-row__sub">#{{ sig.clientId }}</p>
                 </div>
               </div>
             </div>
@@ -159,7 +158,7 @@ onMounted(fetchSignalement)
                 <dt>Contrat lié</dt>
                 <dd>
                   <RouterLink v-if="sig.contratId" :to="`/admin/contrats/${sig.contratId}`" class="sd-link">
-                    Contrat #{{ sig.contratId }} →
+                    Contrat {{ sig.contratId }} →
                   </RouterLink>
                   <span v-else>—</span>
                 </dd>
@@ -189,7 +188,7 @@ onMounted(fetchSignalement)
     <Teleport to="body">
       <div v-if="showReply" class="modal-overlay" @click.self="showReply = false">
         <div class="modal-box">
-          <h2 class="modal-box__title">Traiter le signalement #{{ sig?.id }}</h2>
+          <h2 class="modal-box__title">Traiter le signalement {{ sig?.id }}</h2>
           <div class="modal-box__field">
             <label>Nouveau statut</label>
             <select v-model="replyStatut" class="modal-box__input">
