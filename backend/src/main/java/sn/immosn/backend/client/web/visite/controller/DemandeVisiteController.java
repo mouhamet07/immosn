@@ -15,14 +15,17 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import sn.immosn.backend.client.web.contrat.dto.ContratResponseDto;
 import sn.immosn.backend.client.web.visite.dto.*;
 import sn.immosn.backend.shared.response.PagedResponse;
 import sn.immosn.backend.shared.response.RestResponse;
 import sn.immosn.backend.visite.data.entity.StatutDemandeVisite;
 import sn.immosn.backend.visite.service.DemandeVisiteService;
+import sn.immosn.backend.visite.service.RapportVisiteService;
 import sn.immosn.backend.visite.service.VisiteHistoryService;
 
 import java.security.Principal;
@@ -36,6 +39,7 @@ public class DemandeVisiteController {
 
     private final DemandeVisiteService service;
     private final VisiteHistoryService historyService;
+    private final RapportVisiteService rapportService;
 
     @Operation(
         summary = "Demander une visite",
@@ -257,6 +261,14 @@ public class DemandeVisiteController {
                 .body(RestResponse.error("Vous devez être connecté", HttpStatus.UNAUTHORIZED));
         }
         boolean isAdmin = isAdmin(principal);
+        // Sprint 2 : l'acceptation et le refus d'une visite sont réservés au SUPER_ADMIN.
+        // L'annulation reste ouverte au CLIENT (sa propre demande).
+        if (isAdmin
+                && (dto.statut() == StatutDemandeVisite.ACCEPTEE || dto.statut() == StatutDemandeVisite.REFUSEE)
+                && !isSuperAdmin(principal)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(RestResponse.forbidden("Seul un SUPER_ADMIN peut accepter ou refuser une demande de visite."));
+        }
         return ResponseEntity.ok(RestResponse.success(
             service.updateStatut(id, dto, principal.getName(), isAdmin), HttpStatus.OK));
     }
@@ -445,10 +457,152 @@ public class DemandeVisiteController {
         return ResponseEntity.ok(PagedResponse.fromPage(historyService.getHistory(id, pageable)));
     }
 
+    // Sprint 2 — affectation, replanification, rapport de visite
+
+    @Operation(summary = "Affecter un administrateur responsable",
+        description = "Affecte un administrateur à une visite ACCEPTEE (→ AFFECTEE). **Accès : SUPER_ADMIN**")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Visite affectée",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Transition invalide ou utilisateur non admin",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Visite ou administrateur non trouvé",
+            content = @Content(mediaType = "application/json"))
+    })
+    @PutMapping("/{id}/affecter")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<RestResponse<DemandeVisiteResponseDto>> affecter(
+            @PathVariable Long id, @RequestBody @Valid AffecterAdminDto dto) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant invalide", null));
+        }
+        return ResponseEntity.ok(RestResponse.success(service.affecterAdmin(id, dto), HttpStatus.OK));
+    }
+
+    @Operation(summary = "Demander une replanification",
+        description = "Mémorise une nouvelle date proposée (→ REPLANIFICATION_DEMANDEE). **Accès : SUPER_ADMIN**")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Replanification demandée",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Transition invalide ou date passée",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Visite non trouvée",
+            content = @Content(mediaType = "application/json"))
+    })
+    @PutMapping("/{id}/replanification")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<RestResponse<DemandeVisiteResponseDto>> demanderReplanification(
+            @PathVariable Long id, @RequestBody @Valid ReplanificationDto dto) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant invalide", null));
+        }
+        return ResponseEntity.ok(RestResponse.success(service.demanderReplanification(id, dto), HttpStatus.OK));
+    }
+
+    @Operation(summary = "Accepter la replanification",
+        description = "Applique la date proposée et revient à l'état actif. **Accès : SUPER_ADMIN**")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Replanification acceptée",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Aucune replanification en attente",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Visite non trouvée",
+            content = @Content(mediaType = "application/json"))
+    })
+    @PutMapping("/{id}/replanification/accepter")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<RestResponse<DemandeVisiteResponseDto>> accepterReplanification(@PathVariable Long id) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant invalide", null));
+        }
+        return ResponseEntity.ok(RestResponse.success(service.accepterReplanification(id), HttpStatus.OK));
+    }
+
+    @Operation(summary = "Rédiger le rapport de visite",
+        description = "Crée le rapport et fait passer la visite à RAPPORT_REDIGE. **Accès : ADMIN ou SUPER_ADMIN**")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Rapport créé",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Statut incompatible ou rapport déjà existant",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Visite non trouvée",
+            content = @Content(mediaType = "application/json"))
+    })
+    @PostMapping("/{id}/rapport")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<RestResponse<RapportVisiteResponseDto>> creerRapport(
+            @PathVariable Long id,
+            @RequestBody @Valid RapportVisiteCreateRequestDto dto,
+            Principal principal) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant invalide", null));
+        }
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(RestResponse.success(rapportService.creerRapport(id, dto, principal.getName()), HttpStatus.CREATED));
+    }
+
+    @Operation(summary = "Consulter le rapport de visite",
+        description = "Retourne le rapport associé à la visite. **Accès : ADMIN ou SUPER_ADMIN**")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Rapport de la visite",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Aucun rapport pour cette visite",
+            content = @Content(mediaType = "application/json"))
+    })
+    @GetMapping("/{id}/rapport")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<RestResponse<RapportVisiteResponseDto>> consulterRapport(@PathVariable Long id) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant invalide", null));
+        }
+        return ResponseEntity.ok(RestResponse.success(rapportService.consulterRapport(id), HttpStatus.OK));
+    }
+
+    @Operation(summary = "Téléverser le document du rapport",
+        description = "Associe un document (PDF/PNG/JPG, max 10 Mo) au rapport. **Accès : ADMIN ou SUPER_ADMIN**")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Document téléversé",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Fichier invalide ou format non supporté",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Aucun rapport pour cette visite",
+            content = @Content(mediaType = "application/json"))
+    })
+    @PostMapping(value = "/{id}/rapport/document", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<RestResponse<RapportVisiteResponseDto>> uploadRapportDocument(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant invalide", null));
+        }
+        return ResponseEntity.ok(RestResponse.success(rapportService.uploadDocument(id, file), HttpStatus.OK));
+    }
+
     private boolean isAdmin(Principal principal) {
         var auth = (org.springframework.security.core.Authentication) principal;
         return auth.getAuthorities().stream()
             .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")
                         || a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+    }
+
+    private boolean isSuperAdmin(Principal principal) {
+        var auth = (org.springframework.security.core.Authentication) principal;
+        return auth.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
     }
 }

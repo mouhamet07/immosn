@@ -28,6 +28,17 @@ public interface DemandeVisiteService {
 
     DemandeVisiteResponseDto modifierParClient(Long id, UpdateDateVisiteDto dto, String clientEmail);
 
+    // Sprint 2 — processus commercial
+
+    /** Affecte un administrateur responsable à une visite ACCEPTEE → AFFECTEE. */
+    DemandeVisiteResponseDto affecterAdmin(Long id, AffecterAdminDto dto);
+
+    /** Demande une replanification de la date (ACCEPTEE/AFFECTEE → REPLANIFICATION_DEMANDEE). */
+    DemandeVisiteResponseDto demanderReplanification(Long id, ReplanificationDto dto);
+
+    /** Accepte la replanification : applique la date proposée et revient à l'état précédent (ACCEPTEE/AFFECTEE). */
+    DemandeVisiteResponseDto accepterReplanification(Long id);
+
     void annuler(Long id, String clientEmail);
 
     /**

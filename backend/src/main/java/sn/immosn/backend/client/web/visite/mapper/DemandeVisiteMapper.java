@@ -2,8 +2,10 @@ package sn.immosn.backend.client.web.visite.mapper;
 
 import org.springframework.stereotype.Component;
 import sn.immosn.backend.client.web.visite.dto.DemandeVisiteResponseDto;
+import sn.immosn.backend.client.web.visite.dto.RapportVisiteResponseDto;
 import sn.immosn.backend.client.web.visite.dto.VisiteInviteResponseDto;
 import sn.immosn.backend.visite.data.entity.DemandeVisite;
+import sn.immosn.backend.visite.data.entity.RapportVisite;
 
 @Component
 public class DemandeVisiteMapper {
@@ -14,6 +16,8 @@ public class DemandeVisiteMapper {
         // Le client est nullable depuis l'ouverture du parcours visiteur : pour une demande invité,
         // l'identité provient des champs invité (et du prénom). On expose alors clientId=null.
         Long clientId = v.getClient() != null ? v.getClient().getId() : null;
+        Long adminId = v.getAdminResponsable() != null ? v.getAdminResponsable().getId() : null;
+        String adminNom = v.getAdminResponsable() != null ? v.getAdminResponsable().getNomComplet() : null;
         return new DemandeVisiteResponseDto(
             v.getId(),
             clientId,
@@ -25,8 +29,24 @@ public class DemandeVisiteMapper {
             v.getDateVisite(),
             v.getStatut(),
             v.getCommentaire(),
+            adminId,
+            adminNom,
+            v.getDateReplanificationProposee(),
             v.getCreatedAt(),
             v.getUpdatedAt()
+        );
+    }
+
+    public RapportVisiteResponseDto toRapportDto(RapportVisite r) {
+        return new RapportVisiteResponseDto(
+            r.getId(),
+            r.getDemandeVisite().getId(),
+            r.getAuteurAdmin().getId(),
+            r.getAuteurAdmin().getNomComplet(),
+            r.getCompteRendu(),
+            r.getDocumentUrl(),
+            r.isAboutie(),
+            r.getCreatedAt()
         );
     }
 

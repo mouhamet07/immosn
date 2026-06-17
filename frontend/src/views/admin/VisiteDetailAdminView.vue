@@ -1,19 +1,36 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, MapPin, Pencil, Check, X } from 'lucide-vue-next'
 import visiteService from '@/services/visiteService'
+import authService from '@/services/authService'
 import historyService from '@/services/historyService'
+import { useAuthStore } from '@/stores/authStore'
 import StatusBadge from '@/components/StatusBadge.vue'
 import ImageGallery from '@/components/ImageGallery.vue'
 
 const route  = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
+const isSuperAdmin = computed(() => authStore.role === 'SUPER_ADMIN')
 
 const visite    = ref(null)
 const loading   = ref(false)
 const error     = ref('')
 const updating  = ref(false)
+
+// Sprint 2 — affectation
+const admins        = ref([])
+const selectedAdmin = ref('')
+const affecting     = ref(false)
+
+// Sprint 2 — rapport de visite
+const rapport         = ref(null)
+const rapportCR       = ref('')
+const rapportAboutie  = ref(true)
+const rapportSaving   = ref(false)
+const rapportDocFile  = ref(null)
+const rapportDocSaving = ref(false)
 
 // Modal modifier date
 const showDateModal = ref(false)
@@ -28,22 +45,28 @@ const clotureDuree       = ref(12)
 const cloturing          = ref(false)
 
 const STATUT_LABELS = {
-  EN_ATTENTE:            'En attente',
-  ACCEPTEE:              'Acceptée',
-  REFUSEE:               'Refusée',
-  ANNULEE:               'Annulée',
-  CLOTUREE_SANS_SUITE:   'Clôturée sans suite',
-  CLOTUREE_AVEC_CONTRAT: 'Clôturée avec contrat',
-  TERMINEE:              'Terminée',
+  EN_ATTENTE:               'En attente',
+  ACCEPTEE:                 'Acceptée',
+  AFFECTEE:                 'Affectée',
+  REPLANIFICATION_DEMANDEE: 'Replanification demandée',
+  RAPPORT_REDIGE:           'Rapport rédigé',
+  REFUSEE:                  'Refusée',
+  ANNULEE:                  'Annulée',
+  CLOTUREE_SANS_SUITE:      'Clôturée sans suite',
+  CLOTUREE_AVEC_CONTRAT:    'Clôturée avec contrat',
+  TERMINEE:                 'Terminée',
 }
 const STATUT_VARIANTS = {
-  EN_ATTENTE:            'warning',
-  ACCEPTEE:              'success',
-  REFUSEE:               'danger',
-  ANNULEE:               'neutral',
-  CLOTUREE_SANS_SUITE:   'neutral',
-  CLOTUREE_AVEC_CONTRAT: 'info',
-  TERMINEE:              'info',
+  EN_ATTENTE:               'warning',
+  ACCEPTEE:                 'success',
+  AFFECTEE:                 'info',
+  REPLANIFICATION_DEMANDEE: 'warning',
+  RAPPORT_REDIGE:           'info',
+  REFUSEE:                  'danger',
+  ANNULEE:                  'neutral',
+  CLOTUREE_SANS_SUITE:      'neutral',
+  CLOTUREE_AVEC_CONTRAT:    'info',
+  TERMINEE:                 'info',
 }
 
 async function fetchVisite() {
@@ -52,12 +75,93 @@ async function fetchVisite() {
   try {
     const res = await visiteService.getById(route.params.id)
     visite.value = res.data.data
+    rapportCR.value = ''
+    rapportAboutie.value = true
+    await fetchRapport()
   } catch (e) {
     error.value = e.response?.status === 404
       ? 'Demande de visite introuvable.'
       : 'Impossible de charger cette demande.'
   } finally {
     loading.value = false
+  }
+}
+
+// Charge le rapport existant (404 silencieux si absent)
+async function fetchRapport() {
+  rapport.value = null
+  try {
+    const res = await visiteService.getRapport(route.params.id)
+    rapport.value = res.data.data
+  } catch { /* pas encore de rapport */ }
+}
+
+// Liste des admins pour l'affectation (SUPER_ADMIN uniquement)
+async function fetchAdmins() {
+  if (!isSuperAdmin.value) return
+  try {
+    const res = await authService.getAdmins(0, 100)
+    admins.value = (res.data.content ?? res.data.data?.content ?? []).filter(a => !a.archived)
+  } catch { /* liste indisponible */ }
+}
+
+async function affecter() {
+  if (!selectedAdmin.value) { alert('Veuillez choisir un administrateur.'); return }
+  affecting.value = true
+  try {
+    await visiteService.affecter(visite.value.id, Number(selectedAdmin.value))
+    selectedAdmin.value = ''
+    await fetchVisite()
+  } catch (e) {
+    alert(e.response?.data?.message || "Erreur lors de l'affectation.")
+  } finally {
+    affecting.value = false
+  }
+}
+
+async function accepterReplanification() {
+  updating.value = true
+  try {
+    await visiteService.accepterReplanification(visite.value.id)
+    await fetchVisite()
+  } catch (e) {
+    alert(e.response?.data?.message || 'Erreur.')
+  } finally {
+    updating.value = false
+  }
+}
+
+async function submitRapport() {
+  if (!rapportCR.value.trim()) { alert('Le compte-rendu est obligatoire.'); return }
+  rapportSaving.value = true
+  try {
+    await visiteService.creerRapport(visite.value.id, {
+      compteRendu: rapportCR.value.trim(),
+      aboutie: rapportAboutie.value,
+    })
+    await fetchVisite()
+  } catch (e) {
+    alert(e.response?.data?.message || 'Erreur lors de l\'enregistrement du rapport.')
+  } finally {
+    rapportSaving.value = false
+  }
+}
+
+function onRapportFile(e) {
+  rapportDocFile.value = e.target.files?.[0] ?? null
+}
+
+async function uploadRapportDoc() {
+  if (!rapportDocFile.value) { alert('Veuillez sélectionner un fichier.'); return }
+  rapportDocSaving.value = true
+  try {
+    await visiteService.uploadRapportDocument(visite.value.id, rapportDocFile.value)
+    rapportDocFile.value = null
+    await fetchRapport()
+  } catch (e) {
+    alert(e.response?.data?.message || 'Erreur lors du téléversement.')
+  } finally {
+    rapportDocSaving.value = false
   }
 }
 
@@ -159,6 +263,10 @@ const ACTION_LABELS = {
   CLOTURE_AVEC_CONTRAT:  'Clôturée avec contrat',
   REPROGRAMMATION:       'Reprogrammation (admin)',
   REPROGRAMMATION_CLIENT:'Reprogrammation (client)',
+  AFFECTATION:              'Affectation à un responsable',
+  REPLANIFICATION_DEMANDEE: 'Replanification demandée',
+  REPLANIFICATION_ACCEPTEE: 'Replanification acceptée',
+  RAPPORT_REDIGE:           'Rapport rédigé',
 }
 
 async function fetchHistorique() {
@@ -174,7 +282,7 @@ function switchTab(t) {
   if (t === 'histoire') fetchHistorique()
 }
 
-onMounted(() => fetchVisite())
+onMounted(() => { fetchVisite(); fetchAdmins() })
 </script>
 
 <template>
@@ -216,10 +324,27 @@ onMounted(() => fetchVisite())
         <!-- Grille -->
         <div class="vda-grid">
           <div class="vda-card">
-            <h2 class="vda-card__title">Client</h2>
+            <h2 class="vda-card__title">{{ visite.clientId ? 'Client' : 'Prospect (visiteur)' }}</h2>
             <dl class="vda-dl">
-              <div class="vda-dl__row"><dt>Nom</dt><dd>{{ visite.clientNom }}</dd></div>
-              <div class="vda-dl__row"><dt>ID client</dt><dd>{{ visite.clientId }}</dd></div>
+              <div class="vda-dl__row"><dt>Nom</dt><dd>{{ visite.clientNom || '–' }}</dd></div>
+              <div class="vda-dl__row">
+                <dt>Type</dt>
+                <dd>{{ visite.clientId ? `Compte client #${visite.clientId}` : 'Visiteur non authentifié' }}</dd>
+              </div>
+            </dl>
+          </div>
+
+          <div class="vda-card">
+            <h2 class="vda-card__title">Responsable</h2>
+            <dl class="vda-dl">
+              <div class="vda-dl__row">
+                <dt>Administrateur</dt>
+                <dd>{{ visite.adminResponsableNom || 'Non affecté' }}</dd>
+              </div>
+              <div class="vda-dl__row" v-if="visite.dateReplanificationProposee">
+                <dt>Date proposée</dt>
+                <dd class="vda-date-val">{{ formatDate(visite.dateReplanificationProposee) }}</dd>
+              </div>
             </dl>
           </div>
 
@@ -264,14 +389,46 @@ onMounted(() => fetchVisite())
         <div class="vda-actions-section">
           <h2 class="vda-actions-section__title">Actions disponibles</h2>
 
-          <!-- EN_ATTENTE : accepter ou refuser -->
+          <!-- EN_ATTENTE : accepter ou refuser (SUPER_ADMIN) -->
           <div v-if="visite.statut === 'EN_ATTENTE'" class="vda-actions">
-            <button class="vda-btn vda-btn--accept" :disabled="updating" @click="accepter"><Check :size="14" /> Accepter</button>
-            <button class="vda-btn vda-btn--refuse" :disabled="updating" @click="refuser"><X :size="14" /> Refuser</button>
+            <template v-if="isSuperAdmin">
+              <button class="vda-btn vda-btn--accept" :disabled="updating" @click="accepter"><Check :size="14" /> Accepter</button>
+              <button class="vda-btn vda-btn--refuse" :disabled="updating" @click="refuser"><X :size="14" /> Refuser</button>
+            </template>
+            <p v-else class="vda-readonly">En attente de validation par un SUPER_ADMIN.</p>
           </div>
 
-          <!-- ACCEPTEE : clôturer -->
-          <div v-else-if="visite.statut === 'ACCEPTEE'" class="vda-actions">
+          <!-- ACCEPTEE / AFFECTEE : affecter (SUPER_ADMIN), clôturer, modifier date -->
+          <div v-else-if="visite.statut === 'ACCEPTEE' || visite.statut === 'AFFECTEE'" class="vda-actions vda-actions--col">
+            <div v-if="isSuperAdmin" class="vda-affect">
+              <label class="vda-affect__label">{{ visite.statut === 'AFFECTEE' ? 'Réaffecter à' : 'Affecter à un responsable' }}</label>
+              <div class="vda-affect__row">
+                <select v-model="selectedAdmin" class="vda-select">
+                  <option value="">— Choisir un administrateur —</option>
+                  <option v-for="a in admins" :key="a.id" :value="a.id">{{ a.nomComplet }} ({{ a.email }})</option>
+                </select>
+                <button class="vda-btn vda-btn--cloture" :disabled="affecting || !selectedAdmin" @click="affecter">
+                  {{ affecting ? '…' : 'Affecter' }}
+                </button>
+              </div>
+            </div>
+            <div class="vda-actions">
+              <button class="vda-btn vda-btn--cloture" @click="openCloture">Clôturer la visite</button>
+            </div>
+          </div>
+
+          <!-- REPLANIFICATION_DEMANDEE : accepter la nouvelle date (SUPER_ADMIN) -->
+          <div v-else-if="visite.statut === 'REPLANIFICATION_DEMANDEE'" class="vda-actions">
+            <template v-if="isSuperAdmin">
+              <button class="vda-btn vda-btn--accept" :disabled="updating" @click="accepterReplanification">
+                <Check :size="14" /> Accepter la replanification
+              </button>
+            </template>
+            <p v-else class="vda-readonly">Replanification en attente de validation par un SUPER_ADMIN.</p>
+          </div>
+
+          <!-- RAPPORT_REDIGE : clôturer -->
+          <div v-else-if="visite.statut === 'RAPPORT_REDIGE'" class="vda-actions">
             <button class="vda-btn vda-btn--cloture" @click="openCloture">Clôturer la visite</button>
           </div>
 
@@ -279,6 +436,50 @@ onMounted(() => fetchVisite())
           <div v-else class="vda-actions">
             <p class="vda-readonly">Ce dossier est en lecture seule (statut : {{ STATUT_LABELS[visite.statut] }}).</p>
           </div>
+        </div>
+
+        <!-- Rapport de visite (Sprint 2) -->
+        <div class="vda-actions-section" v-if="['ACCEPTEE','AFFECTEE','RAPPORT_REDIGE','CLOTUREE_SANS_SUITE','CLOTUREE_AVEC_CONTRAT'].includes(visite.statut)">
+          <h2 class="vda-actions-section__title">Rapport de visite</h2>
+
+          <!-- Rapport existant -->
+          <template v-if="rapport">
+            <dl class="vda-dl">
+              <div class="vda-dl__row"><dt>Auteur</dt><dd>{{ rapport.auteurAdminNom }}</dd></div>
+              <div class="vda-dl__row"><dt>Issue</dt><dd>{{ rapport.aboutie ? 'Visite aboutie' : 'Sans suite' }}</dd></div>
+              <div class="vda-dl__row"><dt>Rédigé le</dt><dd>{{ formatDatetime(rapport.createdAt) }}</dd></div>
+            </dl>
+            <p class="vda-rapport-cr">{{ rapport.compteRendu }}</p>
+            <div class="vda-rapport-doc">
+              <a v-if="rapport.documentUrl" :href="rapport.documentUrl" target="_blank" class="vda-link">Voir le document joint</a>
+              <span v-else class="vda-readonly">Aucun document joint.</span>
+              <div class="vda-affect__row">
+                <input type="file" accept=".pdf,.png,.jpg,.jpeg" @change="onRapportFile" />
+                <button class="vda-btn vda-btn--outline" :disabled="rapportDocSaving || !rapportDocFile" @click="uploadRapportDoc">
+                  {{ rapportDocSaving ? '…' : (rapport.documentUrl ? 'Remplacer' : 'Téléverser') }}
+                </button>
+              </div>
+            </div>
+          </template>
+
+          <!-- Formulaire de rédaction (si pas encore de rapport et état rapportable) -->
+          <template v-else-if="['ACCEPTEE','AFFECTEE'].includes(visite.statut)">
+            <div class="modal-box__field">
+              <label>Compte-rendu *</label>
+              <textarea v-model="rapportCR" class="modal-box__input" rows="4"
+                placeholder="Décrivez le déroulement de la visite, l'intérêt du client, les points abordés…" />
+            </div>
+            <div class="vda-affect__row">
+              <label class="vda-checkbox">
+                <input type="checkbox" v-model="rapportAboutie" /> Visite aboutie (le client souhaite poursuivre)
+              </label>
+              <button class="vda-btn vda-btn--cloture" :disabled="rapportSaving || !rapportCR.trim()" @click="submitRapport">
+                {{ rapportSaving ? 'Enregistrement…' : 'Enregistrer le rapport' }}
+              </button>
+            </div>
+          </template>
+
+          <p v-else class="vda-readonly">Aucun rapport pour cette visite.</p>
         </div>
         </div><!-- /tab-detail -->
 
@@ -441,7 +642,22 @@ onMounted(() => fetchVisite())
 .vda-actions-section { background: var(--color-card); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow-card); }
 .vda-actions-section__title { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--color-text); opacity: .5; margin: 0 0 1rem; }
 .vda-actions { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; }
+.vda-actions--col { flex-direction: column; align-items: stretch; gap: 1rem; }
 .vda-readonly { font-size: .88rem; color: var(--color-text); opacity: .55; font-style: italic; }
+
+/* Sprint 2 — affectation & rapport */
+.vda-affect { display: flex; flex-direction: column; gap: .5rem; }
+.vda-affect__label { font-size: .78rem; font-weight: 600; color: var(--color-text); opacity: .7; }
+.vda-affect__row { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; margin-top: .5rem; }
+.vda-select {
+  flex: 1; min-width: 220px; padding: .55rem .8rem;
+  border: 1.5px solid var(--color-border); border-radius: var(--radius-sm);
+  font-size: .88rem; background: var(--color-background); color: var(--color-text);
+}
+.vda-checkbox { display: inline-flex; align-items: center; gap: .45rem; font-size: .85rem; color: var(--color-text); cursor: pointer; }
+.vda-checkbox input { accent-color: var(--color-primary); }
+.vda-rapport-cr { font-size: .9rem; color: var(--color-text); line-height: 1.6; margin: .75rem 0; white-space: pre-wrap; }
+.vda-rapport-doc { display: flex; flex-direction: column; gap: .6rem; padding-top: .75rem; border-top: 1px solid var(--color-border); }
 
 .vda-btn {
   padding: .5rem 1.1rem; border-radius: var(--radius-sm); font-size: .85rem;

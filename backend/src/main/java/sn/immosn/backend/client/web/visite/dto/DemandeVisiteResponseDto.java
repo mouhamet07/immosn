@@ -15,6 +15,10 @@ public record DemandeVisiteResponseDto(
     LocalDateTime dateVisite,
     StatutDemandeVisite statut,
     String commentaire,
+    // Sprint 2 — affectation / replanification
+    Long adminResponsableId,
+    String adminResponsableNom,
+    LocalDateTime dateReplanificationProposee,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
 ) {}

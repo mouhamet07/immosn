@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.immosn.backend.annonce.data.entity.Annonce;
 import sn.immosn.backend.annonce.data.repository.AnnonceRepository;
+import sn.immosn.backend.auth.data.entity.RoleType;
 import sn.immosn.backend.auth.data.entity.User;
 import sn.immosn.backend.auth.data.repository.UserRepository;
 import sn.immosn.backend.client.web.contrat.dto.ContratResponseDto;
@@ -282,6 +283,91 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
         return mapper.toDto(saved);
     }
 
+    // Sprint 2 — processus commercial : affectation & replanification
+
+    /**
+     * Affecte un administrateur responsable à une visite ACCEPTEE.
+     * Transition : ACCEPTEE → AFFECTEE. L'administrateur ciblé doit avoir le rôle ADMIN ou SUPER_ADMIN.
+     */
+    @Override
+    @Transactional
+    public DemandeVisiteResponseDto affecterAdmin(Long id, AffecterAdminDto dto) {
+        DemandeVisite visite = loadVisite(id);
+        StatutDemandeVisite actuel = visite.getStatut();
+        if (actuel != StatutDemandeVisite.ACCEPTEE && actuel != StatutDemandeVisite.AFFECTEE) {
+            throw new IllegalStateException(
+                "Une visite doit être ACCEPTEE pour être affectée. Statut actuel : " + actuel);
+        }
+        User admin = userRepository.findById(dto.adminId())
+            .orElseThrow(() -> new EntityNotFoundException("Administrateur non trouvé : id=" + dto.adminId()));
+        boolean estAdmin = admin.getRoles().stream()
+            .anyMatch(r -> r.getRole() == RoleType.ADMIN || r.getRole() == RoleType.SUPER_ADMIN);
+        if (!estAdmin) {
+            throw new IllegalArgumentException("L'utilisateur ciblé n'est pas un administrateur.");
+        }
+
+        visite.setAdminResponsable(admin);
+        visite.setStatut(StatutDemandeVisite.AFFECTEE);
+        if (dto.commentaire() != null) visite.setCommentaire(dto.commentaire());
+        DemandeVisite saved = visiteRepository.save(visite);
+        visiteHistoryService.record(saved, actuel, StatutDemandeVisite.AFFECTEE,
+            "AFFECTATION", dto.commentaire(), null, null);
+        log.info("Visite #{} affectée à l'admin #{} ({})", id, admin.getId(), admin.getEmail());
+        return mapper.toDto(saved);
+    }
+
+    /**
+     * Demande de replanification : mémorise la nouvelle date proposée et passe en REPLANIFICATION_DEMANDEE.
+     * Autorisé depuis ACCEPTEE ou AFFECTEE.
+     */
+    @Override
+    @Transactional
+    public DemandeVisiteResponseDto demanderReplanification(Long id, ReplanificationDto dto) {
+        DemandeVisite visite = loadVisite(id);
+        StatutDemandeVisite actuel = visite.getStatut();
+        if (actuel != StatutDemandeVisite.ACCEPTEE && actuel != StatutDemandeVisite.AFFECTEE) {
+            throw new IllegalStateException(
+                "Une replanification ne peut être demandée que pour une visite ACCEPTEE ou AFFECTEE. "
+                + "Statut actuel : " + actuel);
+        }
+        visite.setDateReplanificationProposee(dto.nouvelleDate());
+        visite.setStatut(StatutDemandeVisite.REPLANIFICATION_DEMANDEE);
+        if (dto.commentaire() != null) visite.setCommentaire(dto.commentaire());
+        DemandeVisite saved = visiteRepository.save(visite);
+        visiteHistoryService.record(saved, actuel, StatutDemandeVisite.REPLANIFICATION_DEMANDEE,
+            "REPLANIFICATION_DEMANDEE", dto.commentaire(), visite.getDateVisite(), dto.nouvelleDate());
+        log.info("Replanification demandée pour visite #{} → {}", id, dto.nouvelleDate());
+        return mapper.toDto(saved);
+    }
+
+    /**
+     * Accepte la replanification : applique la date proposée et revient à l'état actif
+     * (AFFECTEE si un responsable est assigné, sinon ACCEPTEE).
+     */
+    @Override
+    @Transactional
+    public DemandeVisiteResponseDto accepterReplanification(Long id) {
+        DemandeVisite visite = loadVisite(id);
+        if (visite.getStatut() != StatutDemandeVisite.REPLANIFICATION_DEMANDEE) {
+            throw new IllegalStateException(
+                "Aucune replanification en attente. Statut actuel : " + visite.getStatut());
+        }
+        LocalDateTime ancienneDate = visite.getDateVisite();
+        LocalDateTime nouvelleDate = visite.getDateReplanificationProposee();
+        if (nouvelleDate != null) {
+            visite.setDateVisite(nouvelleDate);
+        }
+        visite.setDateReplanificationProposee(null);
+        StatutDemandeVisite cible = visite.getAdminResponsable() != null
+            ? StatutDemandeVisite.AFFECTEE : StatutDemandeVisite.ACCEPTEE;
+        visite.setStatut(cible);
+        DemandeVisite saved = visiteRepository.save(visite);
+        visiteHistoryService.record(saved, StatutDemandeVisite.REPLANIFICATION_DEMANDEE, cible,
+            "REPLANIFICATION_ACCEPTEE", null, ancienneDate, nouvelleDate);
+        log.info("Replanification acceptée pour visite #{} → {} (statut {})", id, nouvelleDate, cible);
+        return mapper.toDto(saved);
+    }
+
     /**
      * Annulation client : visite → ANNULEE + lead → ABANDONNE.
      * La visite reste accessible (isArchived inchangé) pour conserver l'historique.
@@ -314,9 +400,14 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
     public ContratResponseDto cloturerVisite(Long id, CloturerVisiteDto dto) {
         DemandeVisite visite = loadVisite(id);
 
-        if (visite.getStatut() != StatutDemandeVisite.ACCEPTEE) {
+        // Clôture possible depuis ACCEPTEE (flux Sprint 1), AFFECTEE ou RAPPORT_REDIGE (flux Sprint 2).
+        StatutDemandeVisite actuel = visite.getStatut();
+        if (actuel != StatutDemandeVisite.ACCEPTEE
+                && actuel != StatutDemandeVisite.AFFECTEE
+                && actuel != StatutDemandeVisite.RAPPORT_REDIGE) {
             throw new IllegalStateException(
-                "Seule une visite ACCEPTÉE peut être clôturée. Statut actuel : " + visite.getStatut()
+                "Seule une visite ACCEPTEE, AFFECTEE ou avec RAPPORT_REDIGE peut être clôturée. "
+                + "Statut actuel : " + actuel
             );
         }
 
@@ -324,7 +415,7 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
             case SANS_SUITE -> {
                 visite.setStatut(StatutDemandeVisite.CLOTUREE_SANS_SUITE);
                 visiteRepository.save(visite);
-                visiteHistoryService.record(visite, StatutDemandeVisite.ACCEPTEE,
+                visiteHistoryService.record(visite, actuel,
                     StatutDemandeVisite.CLOTUREE_SANS_SUITE,
                     "CLOTURE_SANS_SUITE", null, null, null);
                 abandonnerLeadsDeLaVisite(id);
@@ -345,7 +436,7 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
                 }
                 visite.setStatut(StatutDemandeVisite.CLOTUREE_AVEC_CONTRAT);
                 visiteRepository.save(visite);
-                visiteHistoryService.record(visite, StatutDemandeVisite.ACCEPTEE,
+                visiteHistoryService.record(visite, actuel,
                     StatutDemandeVisite.CLOTUREE_AVEC_CONTRAT,
                     "CLOTURE_AVEC_CONTRAT", null, null, null);
                 ContratResponseDto contrat = contratService.createFromVisite(visite, dto.typeContrat(), dto.dureeLocationMois());

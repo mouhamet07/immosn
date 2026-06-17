@@ -34,6 +34,18 @@ public class DemandeVisite {
     @JoinColumn(name = "prospect_id")
     private Prospect prospect;
 
+    /**
+     * Administrateur responsable de la visite (Sprint 2). Renseigné lors de l'affectation
+     * (ACCEPTEE → AFFECTEE). Nullable : null pour les visites historiques et non encore affectées.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "admin_responsable_id")
+    private User adminResponsable;
+
+    /** Nouvelle date proposée lors d'une demande de replanification (Sprint 2). Nullable. */
+    @Column(name = "date_replanification_proposee")
+    private LocalDateTime dateReplanificationProposee;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "annonce_id", nullable = false)
     private Annonce annonce;
