@@ -31,12 +31,26 @@ jobs:
           chmod 700 ~/.ssh
           printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -T 10 -t rsa,ecdsa,ed25519 -p "$SSH_PORT" "$SSH_HOST" > ~/.ssh/known_hosts 2>/dev/null
+          
+          # Retry logic pour ssh-keyscan avec timeout augmenté
+          echo "Tentative de connexion SSH..."
+          MAX_RETRIES=5
+          RETRY=0
+          while [ $RETRY -lt $MAX_RETRIES ]; do
+            ssh-keyscan -T 20 -t rsa,ecdsa,ed25519 -p "$SSH_PORT" "$SSH_HOST" > ~/.ssh/known_hosts 2>/dev/null && break
+            RETRY=$((RETRY + 1))
+            if [ $RETRY -lt $MAX_RETRIES ]; then
+              echo "Tentative $RETRY/$MAX_RETRIES échouée, nouvelle tentative dans 3s..."
+              sleep 3
+            fi
+          done
+          
           if [ ! -s ~/.ssh/known_hosts ]; then
-            echo "::error::known_hosts vide — VPS injoignable"
+            echo "::error::Impossible de joindre le VPS après $MAX_RETRIES tentatives"
             exit 1
           fi
           chmod 644 ~/.ssh/known_hosts
+          echo "✓ Clés SSH configurées"
 
       - name: Test SSH connection
         env:
@@ -47,6 +61,8 @@ jobs:
           ssh -i ~/.ssh/id_ed25519 \
             -o BatchMode=yes \
             -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=10 \
+            -o ServerAliveInterval=30 \
             -p "$SSH_PORT" \
             "$SSH_USER@$SSH_HOST" \
             'echo "SSH OK — $(hostname)"'
@@ -59,6 +75,8 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_ed25519 \
             -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=10 \
+            -o ServerAliveInterval=30 \
             -p "$SSH_PORT" \
             "$SSH_USER@$SSH_HOST" << 'EOF'
             set -euo pipefail
@@ -97,6 +115,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_ed25519 \
             -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=10 \
             -p "$SSH_PORT" \
             "$SSH_USER@$SSH_HOST" \
             'docker logs immosn-backend --tail 150 2>/dev/null || true' || true
