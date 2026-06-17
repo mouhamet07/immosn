@@ -6,6 +6,12 @@ export default {
     return api.post('/visites', { annonceId, dateVisite, commentaire })
   },
 
+  // POST /api/v1/visites/invite — PUBLIC : demande de visite d'un visiteur non authentifié
+  // payload : { annonceId, nom, prenom?, telephone, email, adresse?, dateVisite, heureVisite?, commentaire? }
+  createInvite(payload) {
+    return api.post('/visites/invite', payload)
+  },
+
   // GET /api/v1/visites/client?page&size&statut
   getClientVisites(page = 0, size = 10, statut = null) {
     const params = { page, size }

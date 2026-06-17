@@ -200,9 +200,6 @@ function formatDate(d) {
           <ShieldOff :size="16" />
           Révoquer l'accès administrateur
         </button>
-        <p v-if="!admin.archived" class="ma-action-hint">
-          Suspend l'accès : l'administrateur ne pourra plus se connecter. Opération réversible via « Restaurer ».
-        </p>
 
         <button class="ma-btn ma-btn--cancel" @click="router.push('/admin/administrateurs')">
           Retour à la liste

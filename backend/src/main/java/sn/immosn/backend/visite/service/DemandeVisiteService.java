@@ -10,6 +10,12 @@ public interface DemandeVisiteService {
 
     DemandeVisiteResponseDto create(DemandeVisiteCreateRequestDto request, String clientEmail);
 
+    /**
+     * Crée une demande de visite pour un visiteur non authentifié.
+     * Réutilise ou crée un Prospect (par email) et renvoie le token de suivi.
+     */
+    VisiteInviteResponseDto createInvite(VisiteInviteCreateRequestDto request);
+
     DemandeVisiteResponseDto getById(Long id, String userEmail, boolean isAdmin);
 
     Page<DemandeVisiteResponseDto> getClientVisites(String clientEmail, StatutDemandeVisite statut, Pageable pageable);

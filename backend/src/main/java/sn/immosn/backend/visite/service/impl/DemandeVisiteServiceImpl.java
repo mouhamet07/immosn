@@ -20,6 +20,8 @@ import sn.immosn.backend.lead.data.entity.Lead;
 import sn.immosn.backend.lead.data.entity.StatutLead;
 import sn.immosn.backend.lead.data.repository.LeadRepository;
 import sn.immosn.backend.lead.service.LeadHistoryService;
+import sn.immosn.backend.prospect.data.entity.Prospect;
+import sn.immosn.backend.prospect.data.repository.ProspectRepository;
 import sn.immosn.backend.shared.exception.EntityNotFoundException;
 import sn.immosn.backend.visite.data.entity.DemandeVisite;
 import sn.immosn.backend.visite.data.entity.StatutDemandeVisite;
@@ -29,6 +31,7 @@ import sn.immosn.backend.visite.service.VisiteHistoryService;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +42,7 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
     private final DemandeVisiteRepository visiteRepository;
     private final AnnonceRepository annonceRepository;
     private final UserRepository userRepository;
+    private final ProspectRepository prospectRepository;
     private final LeadRepository leadRepository;
     private final DemandeVisiteMapper mapper;
     private final ContratService contratService;
@@ -93,6 +97,54 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
         }
 
         return mapper.toDto(visite);
+    }
+
+    /**
+     * Demande de visite d'un visiteur non authentifié.
+     * Crée (ou réutilise par email) un Prospect, puis une DemandeVisite rattachée à ce prospect.
+     * Le lead n'est pas créé ici : l'entité Lead reste liée à un User (compat ascendante) —
+     * la conversion prospect → lead/contrat est traitée dans un sprint ultérieur.
+     */
+    @Override
+    @Transactional
+    public VisiteInviteResponseDto createInvite(VisiteInviteCreateRequestDto request) {
+        Annonce annonce = annonceRepository.findByIdAndIsArchivedFalse(request.annonceId())
+            .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée"));
+
+        Prospect prospect = findOrCreateProspect(request);
+
+        DemandeVisite visite = DemandeVisite.builder()
+            .prospect(prospect)
+            .annonce(annonce)
+            .nom(request.nom())
+            .prenom(request.prenom())
+            .telephone(request.telephone())
+            .email(request.email())
+            .adresse(request.adresse())
+            .dateVisite(request.dateVisite())
+            .heureVisite(request.heureVisite())
+            .commentaire(request.commentaire())
+            .build();
+
+        visite = visiteRepository.save(visite);
+        visiteHistoryService.record(visite, null, StatutDemandeVisite.EN_ATTENTE,
+            "CREATION_INVITE", request.commentaire(), null, null);
+        log.info("Demande de visite invité #{} créée (prospect={}, annonce={})",
+            visite.getId(), prospect.getEmail(), annonce.getId());
+
+        return mapper.toInviteDto(visite, prospect.getToken());
+    }
+
+    private Prospect findOrCreateProspect(VisiteInviteCreateRequestDto request) {
+        return prospectRepository.findFirstByEmailOrderByCreatedAtAsc(request.email())
+            .orElseGet(() -> prospectRepository.save(Prospect.builder()
+                .nom(request.nom())
+                .prenom(request.prenom())
+                .email(request.email())
+                .telephone(request.telephone())
+                .adresse(request.adresse())
+                .token(UUID.randomUUID().toString())
+                .build()));
     }
 
     @Override

@@ -115,6 +115,14 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/types-bien/paged").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/locations/**").permitAll()
 
+                //  Parcours visiteur non authentifié (Sprint 1) — endpoints invité publics.
+                //  Placés AVANT les règles génériques /visites/** et /discussions/** ci-dessous,
+                //  qui exigent une authentification : l'ordre est significatif.
+                .requestMatchers(HttpMethod.POST, "/api/v1/visites/invite").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/discussions/invite").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/discussions/token/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/discussions/token/**").permitAll()
+
                 //  ADMIN ou SUPER_ADMIN
                 .requestMatchers(HttpMethod.POST, "/api/v1/annonces").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/v1/annonces/**").hasAnyRole("ADMIN", "SUPER_ADMIN")

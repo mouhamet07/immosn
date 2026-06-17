@@ -89,6 +89,35 @@ public class DemandeVisiteController {
     }
 
     @Operation(
+        summary = "Demander une visite (visiteur non authentifié)",
+        description = """
+            Soumet une demande de visite sans compte. Le visiteur fournit son identité
+            (nom, prénom, téléphone, email, adresse) et le créneau souhaité.
+
+            La demande est créée avec le statut **EN_ATTENTE** et rattachée à un prospect
+            (créé ou réutilisé par email). La réponse contient un `prospectToken` de suivi
+            que le visiteur doit conserver.
+
+            **Accès : PUBLIC — aucun token requis**
+            """,
+        security = {}
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Demande de visite invité créée avec succès",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Données invalides",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Annonce non trouvée",
+            content = @Content(mediaType = "application/json"))
+    })
+    @PostMapping("/invite")
+    public ResponseEntity<RestResponse<VisiteInviteResponseDto>> createInvite(
+            @RequestBody @Valid VisiteInviteCreateRequestDto request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(RestResponse.success(service.createInvite(request), HttpStatus.CREATED));
+    }
+
+    @Operation(
         summary = "Mes demandes de visite (vue client)",
         description = """
             Retourne la liste paginée des demandes de visite du client connecté,

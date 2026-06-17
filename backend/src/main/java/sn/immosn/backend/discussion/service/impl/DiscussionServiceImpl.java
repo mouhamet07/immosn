@@ -20,9 +20,12 @@ import sn.immosn.backend.discussion.data.entity.SenderRole;
 import sn.immosn.backend.discussion.data.repository.DiscussionRepository;
 import sn.immosn.backend.discussion.data.repository.MessageRepository;
 import sn.immosn.backend.discussion.service.DiscussionService;
+import sn.immosn.backend.prospect.data.entity.Prospect;
+import sn.immosn.backend.prospect.data.repository.ProspectRepository;
 import sn.immosn.backend.shared.exception.EntityNotFoundException;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +37,7 @@ public class DiscussionServiceImpl implements DiscussionService {
     private final MessageRepository messageRepository;
     private final AnnonceRepository annonceRepository;
     private final UserRepository userRepository;
+    private final ProspectRepository prospectRepository;
     private final DiscussionMapper discussionMapper;
 
     /**
@@ -74,6 +78,84 @@ public class DiscussionServiceImpl implements DiscussionService {
 
         long unread = discussionRepository.countUnread(discussion.getId(), SenderRole.CLIENT);
         return discussionMapper.toResponseDto(discussion, unread);
+    }
+
+    /**
+     * Ouverture d'une discussion par un visiteur non authentifié.
+     * Crée (ou réutilise par email) un Prospect, ouvre une discussion invité (guestToken)
+     * et y dépose le premier message. Le visiteur conserve le guestToken pour la suite.
+     */
+    @Override
+    @Transactional
+    public DiscussionInviteResponseDto createInviteDiscussion(ContactInviteRequestDto request) {
+        Annonce annonce = annonceRepository.findByIdAndIsArchivedFalse(request.annonceId())
+            .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée : id=" + request.annonceId()));
+
+        Prospect prospect = prospectRepository.findFirstByEmailOrderByCreatedAtAsc(request.email())
+            .orElseGet(() -> prospectRepository.save(Prospect.builder()
+                .nom(request.nom())
+                .prenom(request.prenom())
+                .email(request.email())
+                .telephone(request.telephone())
+                .adresse(request.adresse())
+                .token(UUID.randomUUID().toString())
+                .build()));
+
+        Discussion discussion = Discussion.builder()
+            .prospect(prospect)
+            .annonce(annonce)
+            .guestToken(UUID.randomUUID().toString())
+            .guestEmail(request.email())
+            .build();
+        Discussion saved = discussionRepository.save(discussion);
+
+        // Le visiteur est la partie « non-admin » : on réutilise SenderRole.CLIENT
+        // pour rester compatible avec countUnread/markAsRead existants (ADMIN vs non-ADMIN).
+        Message message = Message.builder()
+            .contenu(request.premierMessage())
+            .senderRole(SenderRole.CLIENT)
+            .discussion(saved)
+            .build();
+        messageRepository.save(message);
+        saved.getMessages().add(message);
+
+        log.info("[{}] GUEST:{} CREATE_DISCUSSION DISCUSSION:{}",
+            LocalDateTime.now(), prospect.getEmail(), saved.getId());
+        return discussionMapper.toInviteDto(saved);
+    }
+
+    /**
+     * Poursuite d'une conversation invité via le guestToken.
+     */
+    @Override
+    @Transactional
+    public MessageResponseDto sendInviteMessage(String guestToken, MessageCreateRequestDto request) {
+        Discussion discussion = discussionRepository.findByGuestToken(guestToken)
+            .orElseThrow(() -> new EntityNotFoundException("Discussion introuvable"));
+
+        Message message = Message.builder()
+            .contenu(request.contenu())
+            .senderRole(SenderRole.CLIENT)
+            .discussion(discussion)
+            .build();
+        Message savedMsg = messageRepository.save(message);
+        log.info("[{}] GUEST_TOKEN:{} SEND_MESSAGE DISCUSSION:{}",
+            LocalDateTime.now(), guestToken, discussion.getId());
+        return discussionMapper.toMessageDto(savedMsg);
+    }
+
+    /**
+     * Relecture d'une discussion invité via le guestToken (marque les réponses admin comme lues).
+     */
+    @Override
+    @Transactional
+    public DiscussionInviteResponseDto getDiscussionByToken(String guestToken) {
+        Discussion discussion = discussionRepository.findByGuestToken(guestToken)
+            .orElseThrow(() -> new EntityNotFoundException("Discussion introuvable"));
+        messageRepository.markAsRead(discussion.getId(), SenderRole.ADMIN);
+        Discussion refreshed = discussionRepository.findByGuestToken(guestToken)
+            .orElseThrow(() -> new EntityNotFoundException("Discussion introuvable"));
+        return discussionMapper.toInviteDto(refreshed);
     }
 
     /**

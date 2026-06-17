@@ -40,7 +40,12 @@ public interface DiscussionRepository extends JpaRepository<Discussion, Long> {
     // Vérifier si une discussion existe déjà entre un client et une annonce
     Optional<Discussion> findByClientIdAndAnnonceId(Long clientId, Long annonceId);
 
-    // JOIN FETCH client + annonce pour le dashboard (évite le N+1)
+    // Retrouver une discussion invité par son token de suivi non devinable
+    Optional<Discussion> findByGuestToken(String guestToken);
+
+    // INNER JOIN FETCH client : volontaire. Le dashboard n'affiche que les discussions de clients
+    // authentifiés (il lit client.nomComplet). Les discussions invité (client_id NULL) sont
+    // naturellement exclues — le suivi invité passe par findByGuestToken, hors dashboard.
     @Query("""
         SELECT d FROM Discussion d
         JOIN FETCH d.client
