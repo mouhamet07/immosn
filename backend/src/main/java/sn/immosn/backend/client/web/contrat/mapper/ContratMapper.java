@@ -35,6 +35,8 @@ public class ContratMapper {
             c.getNotes(),
             c.getMotifResiliation(),
             c.getMotifProlongation(),
+            c.getValideParClientAt(),
+            c.getValideParSuperAdminAt(),
             c.getCreatedAt(),
             c.getUpdatedAt()
         );

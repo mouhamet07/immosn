@@ -51,6 +51,14 @@ public class User implements UserDetails {
     @Column(name = "dernier_connexion")
     protected LocalDateTime dernierConnexion;
 
+    /** Compte créé automatiquement lors de la conversion d'un prospect (Sprint 3). */
+    @Column(name = "compte_genere_auto", nullable = false)
+    protected boolean compteGenereAuto = false;
+
+    /** Le mot de passe temporaire doit être changé à la première connexion (Sprint 3). */
+    @Column(name = "mot_de_passe_a_changer", nullable = false)
+    protected boolean motDePasseAChanger = false;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "user_roles",

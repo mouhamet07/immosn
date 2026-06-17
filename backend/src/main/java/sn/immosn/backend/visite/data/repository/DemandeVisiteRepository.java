@@ -28,6 +28,9 @@ public interface DemandeVisiteRepository extends JpaRepository<DemandeVisite, Lo
 
     Optional<DemandeVisite> findByIdAndIsArchivedFalse(Long id);
 
+    // Toutes les demandes d'un prospect (pour le rattachement lors de la conversion — Sprint 3)
+    List<DemandeVisite> findByProspectId(Long prospectId);
+
     // Admin queries — no archived filter so admins can list all visits including archived ones
     Page<DemandeVisite> findByStatut(StatutDemandeVisite statut, Pageable pageable);
 

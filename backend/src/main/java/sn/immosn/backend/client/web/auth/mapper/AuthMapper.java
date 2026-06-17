@@ -42,7 +42,8 @@ public class AuthMapper {
                         .map(Enum::name)
                         .collect(Collectors.toSet()),
                 user.getDernierConnexion(),
-                sessionsActives
+                sessionsActives,
+                user.isMotDePasseAChanger()
         );
     }
 }

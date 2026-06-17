@@ -27,6 +27,8 @@ public record ContratResponseDto(
     String notes,
     String motifResiliation,
     String motifProlongation,
+    LocalDateTime valideParClientAt,
+    LocalDateTime valideParSuperAdminAt,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
 ) {}

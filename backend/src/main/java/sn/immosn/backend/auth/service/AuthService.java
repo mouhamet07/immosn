@@ -282,6 +282,33 @@ public class AuthService {
         return authMapper.toAuthResponseDto(saved, null, countActiveSessions(saved.getId()));
     }
 
+    // Changement de mot de passe (Sprint 3) — notamment pour un compte généré automatiquement
+
+    @Transactional
+    public AuthResponseDto changePassword(Long userId, sn.immosn.backend.client.web.auth.dto.ChangePasswordRequestDto request) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new EntityNotFoundException("Utilisateur introuvable"));
+
+        // Changement volontaire : mot de passe actuel exigé.
+        // Compte à mot de passe temporaire (motDePasseAChanger) : non exigé (1re connexion).
+        if (!user.isMotDePasseAChanger()) {
+            if (request.getMotDePasseActuel() == null
+                    || !passwordEncoder.matches(request.getMotDePasseActuel(), user.getPassword())) {
+                throw new IllegalStateException("Mot de passe actuel incorrect");
+            }
+        }
+        if (!request.getNouveauMotDePasse().equals(request.getConfirmationMotDePasse())) {
+            throw new IllegalStateException("La confirmation du mot de passe ne correspond pas");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNouveauMotDePasse()));
+        user.setMotDePasseAChanger(false);
+        User saved = userRepository.save(user);
+        log.info("[{}] USER:{} CHANGE_PASSWORD (indicateur motDePasseAChanger levé)",
+            LocalDateTime.now(), saved.getId());
+        return authMapper.toAuthResponseDto(saved, null, countActiveSessions(saved.getId()));
+    }
+
     // Helpers
 
     private void saveSession(User user, String jwt) {

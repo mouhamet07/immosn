@@ -476,4 +476,38 @@ public class AuthController {
         return ResponseEntity.ok(
             RestResponse.success(authService.updateProfile(user.getId(), request), HttpStatus.OK));
     }
+
+    @Operation(
+        summary = "Changer mon mot de passe",
+        description = """
+            Définit un nouveau mot de passe pour l'utilisateur connecté.
+
+            - Pour un compte à mot de passe temporaire (1re connexion après conversion de prospect),
+              le mot de passe actuel n'est pas exigé et l'indicateur `motDePasseAChanger` est levé.
+            - Pour un changement volontaire, `motDePasseActuel` est obligatoire.
+
+            **Accès : Tout utilisateur authentifié**
+            """,
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Mot de passe changé avec succès",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Données invalides ou mot de passe actuel incorrect",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json"))
+    })
+    @PostMapping("/change-password")
+    public ResponseEntity<RestResponse<AuthResponseDto>> changePassword(
+            @Valid @RequestBody sn.immosn.backend.client.web.auth.dto.ChangePasswordRequestDto request,
+            Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()
+                || !(authentication.getPrincipal() instanceof User user)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(RestResponse.error("Vous devez être connecté", HttpStatus.UNAUTHORIZED));
+        }
+        return ResponseEntity.ok(
+            RestResponse.success(authService.changePassword(user.getId(), request), HttpStatus.OK));
+    }
 }

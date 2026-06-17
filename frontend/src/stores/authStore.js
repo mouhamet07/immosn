@@ -51,6 +51,9 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('role')
   }
 
+  // Sprint 3 : indicateur de mot de passe temporaire à changer (1re connexion après conversion)
+  const mustChangePassword = ref(false)
+
   const isAuthenticated = computed(() => !!token.value)
   const isAdmin = computed(() => role.value === 'ADMIN' || role.value === 'SUPER_ADMIN')
 
@@ -72,8 +75,14 @@ export const useAuthStore = defineStore('auth', () => {
     role.value = sanitizeRole(roles.length ? roles[0] : null)
     localStorage.setItem('role', role.value)
     user.value = data
+    mustChangePassword.value = !!data.motDePasseAChanger
     if (role.value === 'CLIENT') {
       useFavorisStore().loadFavoris()
+    }
+    // Sprint 3 : mot de passe temporaire → forcer le changement avant tout
+    if (mustChangePassword.value) {
+      router.push('/first-login')
+      return
     }
     // Redirection : page demandée avant la connexion en priorité, sinon selon le rôle
     const redirect = localStorage.getItem('redirectAfterLogin')
@@ -96,6 +105,7 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = null
       token.value = null
       role.value = null
+      mustChangePassword.value = false
       localStorage.removeItem('token')
       localStorage.removeItem('role')
       delete api.defaults.headers.common['Authorization']
@@ -109,6 +119,7 @@ export const useAuthStore = defineStore('auth', () => {
       // Réponse: RestResponse<AuthResponseDto> → { data: { id, nomComplet, email, telephone, roles, accessToken, ... } }
       const response = await authService.getProfile()
       user.value = response.data.data
+      mustChangePassword.value = !!response.data.data?.motDePasseAChanger
       // roles est un Set<String> côté backend, sérialisé en array JSON
       const roles = Array.isArray(response.data.data?.roles) ? response.data.data.roles : []
       if (roles.length > 0) {
@@ -126,5 +137,5 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { user, token, role, isAuthenticated, isAdmin, login, logout, fetchProfile, init }
+  return { user, token, role, isAuthenticated, isAdmin, mustChangePassword, login, logout, fetchProfile, init }
 })

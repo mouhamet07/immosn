@@ -152,6 +152,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/contrats/**").authenticated()
                 .requestMatchers("/api/v1/signalements/**").authenticated()
                 .requestMatchers("/api/v1/favoris/**").authenticated()
+                // Conversion prospect → client (Sprint 3) : granularité SUPER_ADMIN via @PreAuthorize
+                .requestMatchers("/api/v1/prospects/**").authenticated()
 
                 //  Swagger UI + OpenAPI docs 
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()

@@ -71,6 +71,14 @@ public class Contrat {
     @Column(name = "motif_prolongation", columnDefinition = "TEXT")
     private String motifProlongation;
 
+    /** Horodatage de validation du pré-contrat par le client (Sprint 3). Null tant que non validé. */
+    @Column(name = "valide_par_client_at")
+    private LocalDateTime valideParClientAt;
+
+    /** Horodatage d'activation du contrat par le SUPER_ADMIN (Sprint 3). Null tant que non activé. */
+    @Column(name = "valide_par_super_admin_at")
+    private LocalDateTime valideParSuperAdminAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

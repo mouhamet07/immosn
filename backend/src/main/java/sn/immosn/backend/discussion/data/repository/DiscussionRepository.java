@@ -43,6 +43,9 @@ public interface DiscussionRepository extends JpaRepository<Discussion, Long> {
     // Retrouver une discussion invité par son token de suivi non devinable
     Optional<Discussion> findByGuestToken(String guestToken);
 
+    // Toutes les discussions d'un prospect (pour le rattachement lors de la conversion — Sprint 3)
+    List<Discussion> findByProspectId(Long prospectId);
+
     // INNER JOIN FETCH client : volontaire. Le dashboard n'affiche que les discussions de clients
     // authentifiés (il lit client.nomComplet). Les discussions invité (client_id NULL) sont
     // naturellement exclues — le suivi invité passe par findByGuestToken, hors dashboard.

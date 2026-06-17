@@ -69,4 +69,16 @@ export default {
   refuserProlongation(id, motif = null) {
     return api.put(`/contrats/${id}/prolongation/refuser`, motif ? { motif } : {})
   },
+
+  // ─── Sprint 3 : circuit pré-contrat ───
+
+  // PUT /api/v1/contrats/{id}/precontrat/valider — CLIENT valide son pré-contrat
+  validerPrecontrat(id) {
+    return api.put(`/contrats/${id}/precontrat/valider`)
+  },
+
+  // PUT /api/v1/contrats/{id}/activer — SUPER_ADMIN active le contrat validé
+  activer(id) {
+    return api.put(`/contrats/${id}/activer`)
+  },
 }

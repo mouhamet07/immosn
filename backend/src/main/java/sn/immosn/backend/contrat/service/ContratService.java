@@ -40,4 +40,19 @@ public interface ContratService {
     ContratResponseDto accepterProlongation(Long id, ContratActionDto dto);
 
     ContratResponseDto refuserProlongation(Long id, ContratActionDto dto);
+
+    // Sprint 3 — circuit pré-contrat
+
+    /**
+     * Le client valide son pré-contrat.
+     * Transition : BROUILLON ou EN_ATTENTE_VALIDATION_CLIENT → EN_ATTENTE_VALIDATION_SUPER_ADMIN.
+     * Vérifie que le contrat appartient bien au client connecté ; pose valideParClientAt.
+     */
+    ContratResponseDto validerParClient(Long id, String clientEmail);
+
+    /**
+     * Le SUPER_ADMIN active le contrat validé par le client.
+     * Transition : EN_ATTENTE_VALIDATION_SUPER_ADMIN → ACTIF ; pose valideParSuperAdminAt.
+     */
+    ContratResponseDto activerParSuperAdmin(Long id);
 }

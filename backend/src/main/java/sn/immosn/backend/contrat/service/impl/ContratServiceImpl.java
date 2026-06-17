@@ -53,15 +53,21 @@ public class ContratServiceImpl implements ContratService {
      * Le job ContratExpirationJob applique ACTIF → EXPIRE directement sur les entités
      * sans passer par cette validation (bypass assumé, cohérent avec la machine à états).
      */
-    private static final Map<StatutContrat, Set<StatutContrat>> TRANSITIONS_AUTORISEES = Map.of(
-        StatutContrat.EN_ATTENTE, Set.of(StatutContrat.ACTIF, StatutContrat.RESILIE),
-        StatutContrat.ACTIF, Set.of(StatutContrat.EXPIRE,
+    private static final Map<StatutContrat, Set<StatutContrat>> TRANSITIONS_AUTORISEES = Map.ofEntries(
+        Map.entry(StatutContrat.EN_ATTENTE, Set.of(StatutContrat.ACTIF, StatutContrat.RESILIE)),
+        // Sprint 3 — circuit pré-contrat : BROUILLON → validation client → validation super admin → ACTIF
+        Map.entry(StatutContrat.BROUILLON, Set.of(StatutContrat.EN_ATTENTE_VALIDATION_CLIENT, StatutContrat.RESILIE)),
+        Map.entry(StatutContrat.EN_ATTENTE_VALIDATION_CLIENT,
+                Set.of(StatutContrat.EN_ATTENTE_VALIDATION_SUPER_ADMIN, StatutContrat.RESILIE)),
+        Map.entry(StatutContrat.EN_ATTENTE_VALIDATION_SUPER_ADMIN,
+                Set.of(StatutContrat.ACTIF, StatutContrat.RESILIE)),
+        Map.entry(StatutContrat.ACTIF, Set.of(StatutContrat.EXPIRE,
                 StatutContrat.EN_ATTENTE_RESILIATION,
-                StatutContrat.PROLONGATION_EN_ATTENTE),
-        StatutContrat.EN_ATTENTE_RESILIATION, Set.of(StatutContrat.RESILIE, StatutContrat.ACTIF),
-        StatutContrat.PROLONGATION_EN_ATTENTE, Set.of(StatutContrat.ACTIF),
-        StatutContrat.EXPIRE, Set.of(),
-        StatutContrat.RESILIE, Set.of()
+                StatutContrat.PROLONGATION_EN_ATTENTE)),
+        Map.entry(StatutContrat.EN_ATTENTE_RESILIATION, Set.of(StatutContrat.RESILIE, StatutContrat.ACTIF)),
+        Map.entry(StatutContrat.PROLONGATION_EN_ATTENTE, Set.of(StatutContrat.ACTIF)),
+        Map.entry(StatutContrat.EXPIRE, Set.of()),
+        Map.entry(StatutContrat.RESILIE, Set.of())
     );
 
     private final ContratRepository contratRepository;
@@ -483,6 +489,49 @@ public class ContratServiceImpl implements ContratService {
         contrat.setDocumentUrl(url);
         Contrat saved = contratRepository.save(contrat);
         log.info("Document uploadé pour contrat #{} : {}", id, url);
+        return mapper.toDto(saved);
+    }
+
+    // Sprint 3 — circuit pré-contrat
+
+    @Override
+    @Transactional
+    public ContratResponseDto validerParClient(Long id, String clientEmail) {
+        Contrat contrat = loadClientContrat(id, clientEmail);
+        StatutContrat actuel = contrat.getStatut();
+        if (actuel != StatutContrat.BROUILLON && actuel != StatutContrat.EN_ATTENTE_VALIDATION_CLIENT) {
+            throw new IllegalStateException(
+                "Le pré-contrat ne peut être validé que depuis BROUILLON ou EN_ATTENTE_VALIDATION_CLIENT. "
+                + "Statut actuel : " + actuel);
+        }
+        validateTransition(actuel, StatutContrat.EN_ATTENTE_VALIDATION_SUPER_ADMIN);
+        contrat.setStatut(StatutContrat.EN_ATTENTE_VALIDATION_SUPER_ADMIN);
+        contrat.setValideParClientAt(LocalDateTime.now());
+        Contrat saved = contratRepository.save(contrat);
+        contratHistoryService.record(saved, actuel, StatutContrat.EN_ATTENTE_VALIDATION_SUPER_ADMIN,
+            "VALIDATION_CLIENT", "Pré-contrat validé par le client");
+        log.info("Pré-contrat #{} validé par le client", id);
+        return mapper.toDto(saved);
+    }
+
+    @Override
+    @Transactional
+    public ContratResponseDto activerParSuperAdmin(Long id) {
+        Contrat contrat = contratRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Contrat non trouvé : id=" + id));
+        StatutContrat actuel = contrat.getStatut();
+        if (actuel != StatutContrat.EN_ATTENTE_VALIDATION_SUPER_ADMIN) {
+            throw new IllegalStateException(
+                "Le contrat doit être validé par le client (EN_ATTENTE_VALIDATION_SUPER_ADMIN) avant activation. "
+                + "Statut actuel : " + actuel);
+        }
+        validateTransition(actuel, StatutContrat.ACTIF);
+        contrat.setStatut(StatutContrat.ACTIF);
+        contrat.setValideParSuperAdminAt(LocalDateTime.now());
+        Contrat saved = contratRepository.save(contrat);
+        contratHistoryService.record(saved, actuel, StatutContrat.ACTIF,
+            "ACTIVATION_SUPER_ADMIN", "Contrat activé par le SUPER_ADMIN");
+        log.info("Contrat #{} activé par le SUPER_ADMIN", id);
         return mapper.toDto(saved);
     }
 

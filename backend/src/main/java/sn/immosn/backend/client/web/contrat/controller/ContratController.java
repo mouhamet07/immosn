@@ -525,6 +525,59 @@ public class ContratController {
         return ResponseEntity.ok(PagedResponse.fromPage(historyService.getHistory(id, pageable)));
     }
 
+    // Sprint 3 — circuit pré-contrat
+
+    @Operation(summary = "Valider le pré-contrat (client)",
+        description = "Le client valide son pré-contrat → EN_ATTENTE_VALIDATION_SUPER_ADMIN. **Accès : CLIENT (son contrat)**")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Pré-contrat validé par le client",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Transition invalide",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle CLIENT requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Contrat non trouvé pour ce client",
+            content = @Content(mediaType = "application/json"))
+    })
+    @PutMapping("/{id}/precontrat/valider")
+    @PreAuthorize("hasRole('CLIENT')")
+    public ResponseEntity<RestResponse<ContratResponseDto>> validerPrecontrat(
+            @PathVariable Long id, Principal principal) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de contrat invalide", null));
+        }
+        if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(RestResponse.error("Vous devez être connecté", HttpStatus.UNAUTHORIZED));
+        }
+        return ResponseEntity.ok(
+            RestResponse.success(service.validerParClient(id, principal.getName()), HttpStatus.OK));
+    }
+
+    @Operation(summary = "Activer le contrat (super admin)",
+        description = "Le SUPER_ADMIN active un contrat validé par le client → ACTIF. **Accès : SUPER_ADMIN**")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Contrat activé",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Transition invalide",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Contrat non trouvé",
+            content = @Content(mediaType = "application/json"))
+    })
+    @PutMapping("/{id}/activer")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<RestResponse<ContratResponseDto>> activer(@PathVariable Long id) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de contrat invalide", null));
+        }
+        return ResponseEntity.ok(
+            RestResponse.success(service.activerParSuperAdmin(id), HttpStatus.OK));
+    }
+
     private boolean isAdmin(Principal principal) {
         var auth = (org.springframework.security.core.Authentication) principal;
         return auth.getAuthorities().stream()

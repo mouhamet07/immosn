@@ -11,6 +11,9 @@ const router = createRouter({
     { path: '/inscription', name: 'inscription', component: () => import('@/views/auth/InscriptionView.vue') },
     { path: '/connexion',   name: 'connexion',   component: () => import('@/views/auth/ConnexionView.vue') },
 
+    // Première connexion — changement de mot de passe temporaire forcé (Sprint 3)
+    { path: '/first-login', name: 'first-login', component: () => import('@/views/auth/FirstLoginView.vue'), meta: { requiresAuth: true } },
+
     // Interface CLIENT
     {
       path: '/',
@@ -24,6 +27,7 @@ const router = createRouter({
         { path: 'visites/:id',       name: 'detail-visite',     component: () => import('@/views/visites/VisiteDetailView.vue'),             meta: { requiresAuth: true, role: 'CLIENT' } },
         { path: 'mes-contrats',      name: 'mes-contrats',      component: () => import('@/views/contrats/MesContratsView.vue'),            meta: { requiresAuth: true, role: 'CLIENT' } },
         { path: 'contrats/:id',      name: 'detail-contrat',    component: () => import('@/views/contrats/ContratDetailView.vue'),           meta: { requiresAuth: true, role: 'CLIENT' } },
+        { path: 'precontrat/:id',    name: 'precontrat-validation', component: () => import('@/views/contrats/PreContratValidationView.vue'), meta: { requiresAuth: true, role: 'CLIENT' } },
         { path: 'mes-signalements',  name: 'mes-signalements',  component: () => import('@/views/signalements/MesSignalementsView.vue'),   meta: { requiresAuth: true, role: 'CLIENT' } },
         { path: 'favoris',           name: 'favoris',           component: () => import('@/views/favoris/FavorisView.vue'),                 meta: { requiresAuth: true, role: 'CLIENT' } },
       ],
@@ -64,6 +68,12 @@ const router = createRouter({
 // Guard de navigation
 router.beforeEach((to) => {
   const authStore = useAuthStore()
+
+  // Sprint 3 : tant qu'un mot de passe temporaire doit être changé, tout reste verrouillé
+  // sur /first-login (sauf la page elle-même). Vaut pour toutes les routes, y compris publiques.
+  if (authStore.isAuthenticated && authStore.mustChangePassword && to.name !== 'first-login') {
+    return { name: 'first-login' }
+  }
 
   if (!to.meta.requiresAuth) return true
 
