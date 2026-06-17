@@ -7,6 +7,14 @@ const props = defineProps({
   images: { type: Array,  default: () => [] },
   alt:    { type: String, default: 'Image' },
   height: { type: String, default: '480px' },
+  /**
+   * Ratio largeur/hauteur de l'image principale (ex. '16 / 9', '4 / 3').
+   * Quand il est fourni, il PRIME sur `height` : l'image reste proportionnelle
+   * à toutes les largeurs au lieu d'être écrasée par une hauteur fixe.
+   * `maxHeight` borne la hauteur sur très grand écran.
+   */
+  aspect:    { type: String, default: null },
+  maxHeight: { type: String, default: '520px' },
 })
 
 const activeIndex = ref(0)
@@ -50,7 +58,8 @@ function onTouchEnd(e) {
     <!-- Main image -->
     <div
       class="ig-main"
-      :style="{ '--ig-h': height }"
+      :class="{ 'ig-main--ratio': aspect }"
+      :style="{ '--ig-h': height, '--ig-ratio': aspect, '--ig-max-h': maxHeight }"
       @touchstart.passive="onTouchStart"
       @touchend.passive="onTouchEnd"
     >
@@ -120,6 +129,17 @@ function onTouchEnd(e) {
   background: #e5e7eb;
   /* Desktop : compact (500–600px) pour éviter l'upscale et le vide vertical. */
   height: min(var(--ig-h, 480px), 560px);
+}
+
+/*
+ * Variante ratio : l'image principale garde une proportion constante
+ * (ex. 16/9) au lieu d'une hauteur fixe qui l'écrase en largeur.
+ * On borne par max-height pour ne pas devenir géante sur grand écran.
+ */
+.ig-main--ratio {
+  height: auto;
+  aspect-ratio: var(--ig-ratio, 16 / 9);
+  max-height: var(--ig-max-h, 520px);
 }
 
 .ig-main__img {
@@ -219,18 +239,22 @@ function onTouchEnd(e) {
   transform: scale(1.3);
 }
 
-/* Responsive height caps */
+/*
+ * Responsive height caps — uniquement pour la variante hauteur fixe.
+ * La variante ratio (.ig-main--ratio) reste proportionnelle à toutes
+ * les largeurs : pas de hauteur imposée, juste son max-height de base.
+ */
 /* Tablette (768–1199px) : 420–500px */
 @media (max-width: 1199px) {
-  .ig-main { height: min(var(--ig-h, 480px), 480px); }
+  .ig-main:not(.ig-main--ratio) { height: min(var(--ig-h, 480px), 480px); }
 }
 @media (max-width: 768px) {
   .ig-thumbs { display: none; }
   .ig-dots   { display: flex; }
-  .ig-main   { height: min(var(--ig-h, 480px), 360px); }
+  .ig-main:not(.ig-main--ratio) { height: min(var(--ig-h, 480px), 360px); }
 }
 /* Mobile (≤480px) : 250–320px */
 @media (max-width: 480px) {
-  .ig-main { height: min(var(--ig-h, 480px), 300px); }
+  .ig-main:not(.ig-main--ratio) { height: min(var(--ig-h, 480px), 300px); }
 }
 </style>

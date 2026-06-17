@@ -115,7 +115,6 @@ onMounted(() => fetchContrats(0))
         <div v-for="c in contrats" :key="c.id" class="mc-card">
           <div class="mc-card__header">
             <StatusBadge :label="STATUT_LABELS[c.statut]" :variant="STATUT_VARIANTS[c.statut]" />
-            <span class="mc-card__id">#{{ c.id }}</span>
           </div>
           <div class="mc-card__thumb">
             <img v-if="c.imagePrincipale" :src="c.imagePrincipale" :alt="c.annonceLibelle" />

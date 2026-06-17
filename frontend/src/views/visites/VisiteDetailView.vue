@@ -114,13 +114,13 @@ onMounted(() => fetchVisite())
         <div class="vd-header">
           <div>
             <StatusBadge :label="STATUT_LABELS[visite.statut]" :variant="STATUT_VARIANTS[visite.statut]" />
-            <h1 class="vd-header__title">Demande de visite #{{ visite.id }}</h1>
+            <h1 class="vd-header__title">Demande de visite {{ visite.id }}</h1>
           </div>
         </div>
 
         <!-- Image annonce -->
         <div class="vd-image">
-          <ImageGallery :images="visite.imagePrincipale ? [visite.imagePrincipale] : []" :alt="visite.annonceLibelle" height="220px" />
+          <ImageGallery :images="visite.imagePrincipale ? [visite.imagePrincipale] : []" :alt="visite.annonceLibelle" aspect="16 / 9" max-height="380px" />
         </div>
 
         <!-- Informations -->

@@ -54,31 +54,31 @@ public class ContratServiceImpl implements ContratService {
      * sans passer par cette validation (bypass assumé, cohérent avec la machine à états).
      */
     private static final Map<StatutContrat, Set<StatutContrat>> TRANSITIONS_AUTORISEES = Map.of(
-        StatutContrat.EN_ATTENTE,              Set.of(StatutContrat.ACTIF, StatutContrat.RESILIE),
-        StatutContrat.ACTIF,                   Set.of(StatutContrat.EXPIRE,
-                                                      StatutContrat.EN_ATTENTE_RESILIATION,
-                                                      StatutContrat.PROLONGATION_EN_ATTENTE),
-        StatutContrat.EN_ATTENTE_RESILIATION,  Set.of(StatutContrat.RESILIE, StatutContrat.ACTIF),
+        StatutContrat.EN_ATTENTE, Set.of(StatutContrat.ACTIF, StatutContrat.RESILIE),
+        StatutContrat.ACTIF, Set.of(StatutContrat.EXPIRE,
+                StatutContrat.EN_ATTENTE_RESILIATION,
+                StatutContrat.PROLONGATION_EN_ATTENTE),
+        StatutContrat.EN_ATTENTE_RESILIATION, Set.of(StatutContrat.RESILIE, StatutContrat.ACTIF),
         StatutContrat.PROLONGATION_EN_ATTENTE, Set.of(StatutContrat.ACTIF),
-        StatutContrat.EXPIRE,                  Set.of(),
-        StatutContrat.RESILIE,                 Set.of()
+        StatutContrat.EXPIRE, Set.of(),
+        StatutContrat.RESILIE, Set.of()
     );
 
-    private final ContratRepository      contratRepository;
-    private final UserRepository         userRepository;
-    private final AnnonceRepository      annonceRepository;
-    private final LeadRepository         leadRepository;
-    private final ContratMapper          mapper;
-    private final ContratHistoryService  contratHistoryService;
-    private final LeadHistoryService     leadHistoryService;
-    private final FileStorageService     fileStorageService;
+    private final ContratRepository contratRepository;
+    private final UserRepository userRepository;
+    private final AnnonceRepository annonceRepository;
+    private final LeadRepository leadRepository;
+    private final ContratMapper mapper;
+    private final ContratHistoryService contratHistoryService;
+    private final LeadHistoryService leadHistoryService;
+    private final FileStorageService fileStorageService;
 
     @Override
     @Transactional
     public ContratResponseDto create(ContratCreateRequestDto request) {
         log.info("Création contrat : clientId={}, annonceId={}", request.clientId(), request.annonceId());
 
-        var client  = userRepository.findById(request.clientId())
+        var client = userRepository.findById(request.clientId())
             .orElseThrow(() -> new EntityNotFoundException("Client non trouvé : id=" + request.clientId()));
         var annonce = annonceRepository.findByIdAndIsArchivedFalse(request.annonceId())
             .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée : id=" + request.annonceId()));
@@ -276,16 +276,16 @@ public class ContratServiceImpl implements ContratService {
             contrat.setStatut(request.statut());
         }
         if (request.documentUrl() != null) contrat.setDocumentUrl(request.documentUrl());
-        if (request.notes()       != null) contrat.setNotes(request.notes());
+        if (request.notes() != null) contrat.setNotes(request.notes());
 
         // Mise à jour VENTE
         if (!isLocation) {
             if (request.dateDebut() != null) contrat.setDateDebut(request.dateDebut());
-            if (request.dateFin()   != null) contrat.setDateFin(request.dateFin());
+            if (request.dateFin() != null) contrat.setDateFin(request.dateFin());
             if (contrat.getDateFin() != null && !contrat.getDateFin().isAfter(contrat.getDateDebut())) {
                 throw new IllegalArgumentException("La date de fin doit être strictement postérieure à la date de début.");
             }
-            if (request.montant()   != null) contrat.setMontant(request.montant());
+            if (request.montant() != null) contrat.setMontant(request.montant());
             Contrat saved = contratRepository.save(contrat);
             if (request.statut() != null && !ancienStatut.equals(saved.getStatut())) {
                 contratHistoryService.record(saved, ancienStatut, saved.getStatut(),
@@ -371,7 +371,7 @@ public class ContratServiceImpl implements ContratService {
         String motif = null;
         if (dto != null && dto.motif() != null && !dto.motif().isBlank()) {
             motif = dto.motif();
-            String note     = "[Admin] Résiliation acceptée — " + motif;
+            String note = "[Admin] Résiliation acceptée — " + motif;
             String existing = contrat.getNotes();
             contrat.setNotes(existing != null && !existing.isBlank() ? existing + "\n" + note : note);
         }
@@ -392,7 +392,7 @@ public class ContratServiceImpl implements ContratService {
         String motif = null;
         if (dto != null && dto.motif() != null && !dto.motif().isBlank()) {
             motif = dto.motif();
-            String note     = "[Admin] Résiliation refusée — " + motif;
+            String note = "[Admin] Résiliation refusée — " + motif;
             String existing = contrat.getNotes();
             contrat.setNotes(existing != null && !existing.isBlank() ? existing + "\n" + note : note);
         }
@@ -438,7 +438,7 @@ public class ContratServiceImpl implements ContratService {
         String motif = null;
         if (dto != null && dto.motif() != null && !dto.motif().isBlank()) {
             motif = dto.motif();
-            String note     = "[Admin] Prolongation acceptée — " + motif;
+            String note = "[Admin] Prolongation acceptée — " + motif;
             String existing = contrat.getNotes();
             contrat.setNotes(existing != null && !existing.isBlank() ? existing + "\n" + note : note);
         }
@@ -459,7 +459,7 @@ public class ContratServiceImpl implements ContratService {
         String motif = null;
         if (dto != null && dto.motif() != null && !dto.motif().isBlank()) {
             motif = dto.motif();
-            String note     = "[Admin] Prolongation refusée — " + motif;
+            String note = "[Admin] Prolongation refusée — " + motif;
             String existing = contrat.getNotes();
             contrat.setNotes(existing != null && !existing.isBlank() ? existing + "\n" + note : note);
         }
@@ -506,8 +506,8 @@ public class ContratServiceImpl implements ContratService {
     }
 
     private String resolveUpdateAction(StatutContrat ancien, StatutContrat nouveau) {
-        if (ancien == StatutContrat.EN_ATTENTE && nouveau == StatutContrat.ACTIF)    return "VALIDATION";
-        if (ancien == StatutContrat.EN_ATTENTE && nouveau == StatutContrat.RESILIE)  return "REJET";
+        if (ancien == StatutContrat.EN_ATTENTE && nouveau == StatutContrat.ACTIF) return "VALIDATION";
+        if (ancien == StatutContrat.EN_ATTENTE && nouveau == StatutContrat.RESILIE) return "REJET";
         return "CHANGEMENT_STATUT";
     }
 

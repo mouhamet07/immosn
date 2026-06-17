@@ -50,7 +50,7 @@ public class VisiteHistoryServiceImpl implements VisiteHistoryService {
     private VisiteHistoryDto toDto(VisiteHistory h) {
         return new VisiteHistoryDto(
             h.getId(),
-            h.getAncienStatut()  != null ? h.getAncienStatut().name()  : null,
+            h.getAncienStatut() != null ? h.getAncienStatut().name() : null,
             h.getNouveauStatut() != null ? h.getNouveauStatut().name() : null,
             h.getAuteurId(),
             h.getAuteurEmail(),

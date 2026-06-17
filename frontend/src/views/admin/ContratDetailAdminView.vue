@@ -258,7 +258,7 @@ onMounted(() => fetchContrat())
         <div class="cda-header">
           <div class="cda-header__left">
             <StatusBadge :label="STATUT_LABELS[contrat.statut]" :variant="STATUT_VARIANTS[contrat.statut]" />
-            <h1 class="cda-header__title">Contrat #{{ contrat.id }}</h1>
+            <h1 class="cda-header__title">Contrat {{ contrat.id }}</h1>
             <p class="cda-header__sub">{{ contrat.annonceLibelle }}</p>
           </div>
           <div class="cda-header__right">
@@ -278,7 +278,7 @@ onMounted(() => fetchContrat())
         <div v-show="tab === 'detail'">
         <!-- Image -->
         <div class="cda-image">
-          <ImageGallery :images="contrat.imagePrincipale ? [contrat.imagePrincipale] : []" :alt="contrat.annonceLibelle" height="220px" />
+          <ImageGallery :images="contrat.imagePrincipale ? [contrat.imagePrincipale] : []" :alt="contrat.annonceLibelle" aspect="16 / 9" max-height="380px" />
         </div>
 
         <!-- Grille -->
@@ -287,7 +287,7 @@ onMounted(() => fetchContrat())
             <h2 class="cda-card__title">Client</h2>
             <dl class="cda-dl">
               <div class="cda-dl__row"><dt>Nom</dt><dd>{{ contrat.clientNom }}</dd></div>
-              <div class="cda-dl__row"><dt>ID client</dt><dd>#{{ contrat.clientId }}</dd></div>
+              <div class="cda-dl__row"><dt>ID client</dt><dd>{{ contrat.clientId }}</dd></div>
             </dl>
           </div>
 
@@ -326,8 +326,8 @@ onMounted(() => fetchContrat())
             <dl class="cda-dl">
               <div class="cda-dl__row"><dt>Créé le</dt><dd>{{ formatDatetime(contrat.createdAt) }}</dd></div>
               <div class="cda-dl__row"><dt>Mis à jour</dt><dd>{{ formatDatetime(contrat.updatedAt) }}</dd></div>
-              <div v-if="contrat.leadId" class="cda-dl__row"><dt>Lead lié</dt><dd>#{{ contrat.leadId }}</dd></div>
-              <div v-if="contrat.visiteId" class="cda-dl__row"><dt>Visite liée</dt><dd>#{{ contrat.visiteId }}</dd></div>
+              <div v-if="contrat.leadId" class="cda-dl__row"><dt>Lead lié</dt><dd>{{ contrat.leadId }}</dd></div>
+              <div v-if="contrat.visiteId" class="cda-dl__row"><dt>Visite liée</dt><dd>{{ contrat.visiteId }}</dd></div>
             </dl>
           </div>
 
@@ -508,7 +508,7 @@ onMounted(() => fetchContrat())
     <Teleport to="body">
       <div v-if="showEdit" class="modal-overlay" @click.self="showEdit = false">
         <div class="modal-box">
-          <h2 class="modal-box__title">Modifier le contrat #{{ contrat?.id }}</h2>
+          <h2 class="modal-box__title">Modifier le contrat {{ contrat?.id }}</h2>
           <div class="modal-box__field">
             <label>Statut</label>
             <select v-model="editStatut" class="modal-box__input">

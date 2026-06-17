@@ -53,7 +53,7 @@ class AnnonceServiceTest {
     AnnonceServiceImpl annonceService;
     private Annonce annonceActive;
     private AnnonceResponseDto responseDto;
-    private AnnonceListDto     listDto;
+    private AnnonceListDto listDto;
     @BeforeEach
     void setUp() {
         TypeBienAnnonce type = new TypeBienAnnonce();
@@ -102,9 +102,7 @@ class AnnonceServiceTest {
         when(annonceRepository.findAnnonceByIdWithImages(1L))
             .thenReturn(Optional.of(annonceActive));
         when(annonceMapper.toResponse(annonceActive)).thenReturn(responseDto);
-
         AnnonceResponseDto result = annonceService.getAnnonceById(1L);
-
         assertThat(result).isNotNull();
         assertThat(result.libelle()).isEqualTo("Villa Almadies");
         verify(annonceRepository).findAnnonceByIdWithImages(1L);

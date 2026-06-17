@@ -45,35 +45,35 @@ public class DashboardServiceImpl implements DashboardService {
         Comparator.comparingInt((RecentActivityDto a) -> ACTION_REQUIRED_STATUS.contains(a.statut()) ? 0 : 1)
                   .thenComparing(Comparator.comparing(RecentActivityDto::createdAt).reversed());
 
-    private final AnnonceRepository      annonceRepository;
-    private final UserRepository         userRepository;
-    private final ContratRepository      contratRepository;
+    private final AnnonceRepository annonceRepository;
+    private final UserRepository userRepository;
+    private final ContratRepository contratRepository;
     private final DemandeVisiteRepository visiteRepository;
-    private final SignalementRepository  signalementRepository;
-    private final LeadRepository         leadRepository;
-    private final DiscussionRepository   discussionRepository;
+    private final SignalementRepository signalementRepository;
+    private final LeadRepository leadRepository;
+    private final DiscussionRepository discussionRepository;
 
     @Override
     public DashboardStatsDto getStats() {
         var page = PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt"));
 
         // Compteurs : COUNT uniquement, aucune entité chargée
-        long totalAnnonces     = annonceRepository.count();
-        long annoncesActives   = annonceRepository.countByIsArchivedFalse();
-        long totalClients      = userRepository.countByRoles_Role(RoleType.CLIENT);
-        long totalAdmins       = userRepository.countByRoles_Role(RoleType.ADMIN);
-        long totalContrats     = contratRepository.count();
-        long contratsActifs    = contratRepository.countByStatut(StatutContrat.ACTIF);
-        long totalVisites      = visiteRepository.count();
-        long visitesEnAttente  = visiteRepository.countByStatutAndIsArchivedFalse(StatutDemandeVisite.EN_ATTENTE);
+        long totalAnnonces = annonceRepository.count();
+        long annoncesActives = annonceRepository.countByIsArchivedFalse();
+        long totalClients = userRepository.countByRoles_Role(RoleType.CLIENT);
+        long totalAdmins = userRepository.countByRoles_Role(RoleType.ADMIN);
+        long totalContrats = contratRepository.count();
+        long contratsActifs = contratRepository.countByStatut(StatutContrat.ACTIF);
+        long totalVisites = visiteRepository.count();
+        long visitesEnAttente = visiteRepository.countByStatutAndIsArchivedFalse(StatutDemandeVisite.EN_ATTENTE);
         long visitesAujourdhui = countVisitesToday();
-        long totalSig          = signalementRepository.count();
-        long sigOuverts        = signalementRepository.countByStatut(StatutSignalement.OUVERT);
-        long totalLeads        = leadRepository.count();
-        long leadsEnCours      = leadRepository.countByStatut(StatutLead.EN_COURS);
-        long leadsConvertis    = leadRepository.countByStatut(StatutLead.CONVERTI);
-        long leadsAbandonnes   = leadRepository.countByStatut(StatutLead.ABANDONNE);
-        long leadsTermines     = leadsConvertis + leadsAbandonnes;
+        long totalSig = signalementRepository.count();
+        long sigOuverts = signalementRepository.countByStatut(StatutSignalement.OUVERT);
+        long totalLeads = leadRepository.count();
+        long leadsEnCours = leadRepository.countByStatut(StatutLead.EN_COURS);
+        long leadsConvertis = leadRepository.countByStatut(StatutLead.CONVERTI);
+        long leadsAbandonnes = leadRepository.countByStatut(StatutLead.ABANDONNE);
+        long leadsTermines = leadsConvertis + leadsAbandonnes;
         double tauxConversionLeads = leadsTermines > 0
             ? Math.round(leadsConvertis * 10000.0 / leadsTermines) / 100.0
             : 0.0;
@@ -100,12 +100,12 @@ public class DashboardServiceImpl implements DashboardService {
         var cap = PageRequest.of(0, BOUNDED_FETCH_CAP, Sort.by(Sort.Direction.DESC, "createdAt"));
 
         List<RecentActivityDto> all = switch (upper) {
-            case "VISITE"      -> buildVisites(cap);
-            case "CONTRAT"     -> buildContrats(cap);
+            case "VISITE" -> buildVisites(cap);
+            case "CONTRAT" -> buildContrats(cap);
             case "SIGNALEMENT" -> buildSignalements(cap);
-            case "BIEN"        -> buildAnnonces(cap);
-            case "MESSAGE"     -> buildMessages(cap);
-            default            -> {
+            case "BIEN" -> buildAnnonces(cap);
+            case "MESSAGE" -> buildMessages(cap);
+            default -> {
                 List<RecentActivityDto> merged = new ArrayList<>();
                 merged.addAll(buildAnnonces(cap));
                 merged.addAll(buildVisites(cap));
@@ -121,9 +121,9 @@ public class DashboardServiceImpl implements DashboardService {
             .toList();
 
         long totalElements = countByType(upper);
-        int  totalPages    = (int) Math.max(1, Math.ceil((double) totalElements / size));
-        int  fromIdx       = page * size;
-        int  toIdx         = Math.min(fromIdx + size, sorted.size());
+        int totalPages = (int) Math.max(1, Math.ceil((double) totalElements / size));
+        int fromIdx = page * size;
+        int toIdx = Math.min(fromIdx + size, sorted.size());
         List<RecentActivityDto> content = fromIdx >= sorted.size() ? List.of() : sorted.subList(fromIdx, toIdx);
 
         return new PagedResponse<>(content, totalElements, totalPages, page, size,
@@ -132,22 +132,22 @@ public class DashboardServiceImpl implements DashboardService {
 
     private long countByType(String type) {
         return switch (type) {
-            case "VISITE"      -> visiteRepository.count();
-            case "CONTRAT"     -> contratRepository.count();
+            case "VISITE" -> visiteRepository.count();
+            case "CONTRAT" -> contratRepository.count();
             case "SIGNALEMENT" -> signalementRepository.count();
-            case "BIEN"        -> annonceRepository.countByIsArchivedFalse();
-            case "MESSAGE"     -> discussionRepository.count();
-            default            -> annonceRepository.countByIsArchivedFalse()
-                                + visiteRepository.count()
-                                + contratRepository.count()
-                                + signalementRepository.count()
-                                + discussionRepository.count();
+            case "BIEN" -> annonceRepository.countByIsArchivedFalse();
+            case "MESSAGE" -> discussionRepository.count();
+            default -> annonceRepository.countByIsArchivedFalse()
+                    + visiteRepository.count()
+                    + contratRepository.count()
+                    + signalementRepository.count()
+                    + discussionRepository.count();
         };
     }
 
     private long countVisitesToday() {
         var start = LocalDate.now().atStartOfDay();
-        var end   = start.plusDays(1);
+        var end = start.plusDays(1);
         return visiteRepository.countByDateVisiteBetweenAndIsArchivedFalse(start, end);
     }
 

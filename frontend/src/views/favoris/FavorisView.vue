@@ -1,11 +1,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { Heart } from 'lucide-vue-next'
 import { useFavorisStore } from '@/stores/favorisStore'
 import AnnonceCard from '@/components/AnnonceCard.vue'
 
-const router       = useRouter()
 const favorisStore = useFavorisStore()
 
 const favoris     = ref([])

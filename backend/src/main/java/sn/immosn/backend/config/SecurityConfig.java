@@ -39,8 +39,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtTokenProvider       jwtTokenProvider;
-    private final AuthUserDetailService  authUserDetailService;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final AuthUserDetailService authUserDetailService;
 
     @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:80}")
     private List<String> allowedOrigins;
@@ -104,37 +104,37 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").permitAll()
-                .requestMatchers(HttpMethod.GET,  "/api/v1/annonces").permitAll()
-                .requestMatchers(HttpMethod.GET,  "/api/v1/annonces/admin").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                .requestMatchers(HttpMethod.GET,  "/api/v1/annonces/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                .requestMatchers(HttpMethod.GET,  "/api/v1/annonces/{id}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/annonces").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/annonces/admin").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/v1/annonces/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/v1/annonces/{id}").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/annonces/search").permitAll()
-                .requestMatchers(HttpMethod.GET,  "/api/v1/commodites").permitAll()
-                .requestMatchers(HttpMethod.GET,  "/api/v1/commodites/paged").permitAll()
-                .requestMatchers(HttpMethod.GET,  "/api/v1/types-bien").permitAll()
-                .requestMatchers(HttpMethod.GET,  "/api/v1/types-bien/paged").permitAll()
-                .requestMatchers(HttpMethod.GET,  "/api/v1/locations/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/commodites").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/commodites/paged").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/types-bien").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/types-bien/paged").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/locations/**").permitAll()
 
                 //  ADMIN ou SUPER_ADMIN
-                .requestMatchers(HttpMethod.POST,   "/api/v1/annonces").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                .requestMatchers(HttpMethod.PUT,    "/api/v1/annonces/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/v1/annonces").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/v1/annonces/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/annonces/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                .requestMatchers(HttpMethod.PATCH,  "/api/v1/annonces/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                .requestMatchers(HttpMethod.POST,   "/api/v1/commodites/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                .requestMatchers(HttpMethod.PUT,    "/api/v1/commodites/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/api/v1/annonces/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/v1/commodites/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/v1/commodites/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/commodites/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                .requestMatchers(HttpMethod.PATCH,  "/api/v1/commodites/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                .requestMatchers(HttpMethod.POST,   "/api/v1/types-bien/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                .requestMatchers(HttpMethod.PUT,    "/api/v1/types-bien/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/api/v1/commodites/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/v1/types-bien/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/v1/types-bien/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/types-bien/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                .requestMatchers(HttpMethod.PATCH,  "/api/v1/types-bien/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/api/v1/types-bien/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers("/api/v1/leads/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
 
                 //  Gestion ADMIN : SUPER_ADMIN UNIQUEMENT 
                 // ADMIN ne peut PAS créer d'autres admins ni les archiver
-                .requestMatchers(HttpMethod.POST,  "/api/v1/auth/admin").hasRole("SUPER_ADMIN")
-                .requestMatchers(HttpMethod.GET,   "/api/v1/auth/admins").hasRole("SUPER_ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/admin").hasRole("SUPER_ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/v1/auth/admins").hasRole("SUPER_ADMIN")
                 .requestMatchers(HttpMethod.PATCH, "/api/v1/auth/admins/**").hasRole("SUPER_ADMIN")
 
                 //  Endpoints authentifiés (granularité via @PreAuthorize)

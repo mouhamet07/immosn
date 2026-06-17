@@ -28,8 +28,8 @@ import sn.immosn.backend.shared.response.RestResponse;
 @Tag(name = "LOCALISATION", description = "Données géographiques du Sénégal — départements, quartiers et géocodage pour les annonces et la recherche")
 public class LocationController {
 
-    private final LocationService   locationService;
-    private final GeoCodingService  geoCodingService;
+    private final LocationService locationService;
+    private final GeoCodingService geoCodingService;
 
     @Operation(
         summary = "Lister les départements",

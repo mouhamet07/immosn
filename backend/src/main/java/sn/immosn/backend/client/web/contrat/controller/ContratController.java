@@ -35,7 +35,7 @@ import java.security.Principal;
 @SecurityRequirement(name = "bearerAuth")
 public class ContratController {
 
-    private final ContratService        service;
+    private final ContratService service;
     private final ContratHistoryService historyService;
 
     @Operation(

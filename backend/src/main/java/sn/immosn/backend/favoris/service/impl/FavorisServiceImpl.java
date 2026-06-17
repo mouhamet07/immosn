@@ -25,13 +25,13 @@ public class FavorisServiceImpl implements FavorisService {
     private static final Logger log = LoggerFactory.getLogger(FavorisServiceImpl.class);
 
     private final AnnonceFavorisRepository favorisRepository;
-    private final AnnonceRepository        annonceRepository;
-    private final UserRepository           userRepository;
+    private final AnnonceRepository annonceRepository;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional
     public FavorisStatusDto toggle(Long annonceId, String clientEmail) {
-        var client  = userRepository.findByEmail(clientEmail)
+        var client = userRepository.findByEmail(clientEmail)
             .orElseThrow(() -> new EntityNotFoundException("Utilisateur non trouvé"));
         var annonce = annonceRepository.findByIdAndIsArchivedFalse(annonceId)
             .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée : id=" + annonceId));

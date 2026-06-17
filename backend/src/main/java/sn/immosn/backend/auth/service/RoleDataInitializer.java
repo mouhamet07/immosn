@@ -24,8 +24,8 @@ public class RoleDataInitializer implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(RoleDataInitializer.class);
 
-    private final RoleRepository  roleRepository;
-    private final UserRepository  userRepository;
+    private final RoleRepository roleRepository;
+    private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Value("${app.super-admin.email:superadmin@immosn.sn}")

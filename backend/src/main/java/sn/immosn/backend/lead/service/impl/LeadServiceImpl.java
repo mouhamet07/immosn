@@ -35,23 +35,23 @@ public class LeadServiceImpl implements LeadService {
      * ABANDONNE  → (aucune) — état final
      */
     private static final Map<StatutLead, Set<StatutLead>> TRANSITIONS_AUTORISEES = Map.of(
-        StatutLead.EN_COURS,  Set.of(StatutLead.CONVERTI, StatutLead.ABANDONNE),
-        StatutLead.CONVERTI,  Set.of(),
+        StatutLead.EN_COURS, Set.of(StatutLead.CONVERTI, StatutLead.ABANDONNE),
+        StatutLead.CONVERTI, Set.of(),
         StatutLead.ABANDONNE, Set.of()
     );
 
-    private final LeadRepository          leadRepository;
-    private final UserRepository          userRepository;
-    private final AnnonceRepository       annonceRepository;
+    private final LeadRepository leadRepository;
+    private final UserRepository userRepository;
+    private final AnnonceRepository annonceRepository;
     private final DemandeVisiteRepository visiteRepository;
-    private final ContratRepository       contratRepository;
-    private final LeadMapper              mapper;
-    private final LeadHistoryService      leadHistoryService;
+    private final ContratRepository contratRepository;
+    private final LeadMapper mapper;
+    private final LeadHistoryService leadHistoryService;
 
     @Override
     @Transactional
     public LeadResponseDto create(LeadCreateRequestDto request) {
-        var client  = userRepository.findById(request.clientId())
+        var client = userRepository.findById(request.clientId())
             .orElseThrow(() -> new EntityNotFoundException("Client non trouvé"));
         var annonce = annonceRepository.findByIdAndIsArchivedFalse(request.annonceId())
             .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée"));

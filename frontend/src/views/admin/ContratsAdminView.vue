@@ -177,7 +177,7 @@ onMounted(() => fetchContrats(0))
     <Teleport to="body">
       <div v-if="showEdit" class="modal-overlay" @click.self="showEdit = false">
         <div class="modal-box">
-          <h2 class="modal-box__title">Modifier le contrat #{{ editId }}</h2>
+          <h2 class="modal-box__title">Modifier le contrat {{ editId }}</h2>
 
           <!-- Champs communs -->
           <div class="modal-box__field">

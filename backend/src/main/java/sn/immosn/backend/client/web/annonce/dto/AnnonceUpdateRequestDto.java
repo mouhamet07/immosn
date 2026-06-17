@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
@@ -17,10 +18,12 @@ public record AnnonceUpdateRequestDto(
     @Size(max = 5000)
     String description,
 
-    @Positive(message = "Le nombre de pièces doit être positif")
+    // Autorisé à 0 : un terrain / une parcelle n'a pas de pièces
+    @PositiveOrZero(message = "Le nombre de pièces ne peut pas être négatif")
     Integer nbrPieces,
 
-    @Min(value = 1, message = "Le nombre de salles de bains doit être au minimum 1")
+    // Autorisé à 0 : un terrain / une parcelle n'a pas de salle de bain
+    @Min(value = 0, message = "Le nombre de salles de bains ne peut pas être négatif")
     Integer nbrSallesBain,
 
     @Positive(message = "La surface doit être positive")

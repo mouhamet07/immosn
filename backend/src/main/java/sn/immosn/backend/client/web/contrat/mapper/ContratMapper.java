@@ -19,7 +19,7 @@ public class ContratMapper {
             c.getId(),
             c.getClient().getId(),
             c.getClient().getNomComplet(),
-            annonce != null ? annonce.getId()      : null,
+            annonce != null ? annonce.getId() : null,
             annonce != null ? annonce.getLibelle() : null,
             annonce != null ? annonce.getAdresse() : null,
             image,

@@ -1,10 +1,12 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, RotateCcw, UserX } from 'lucide-vue-next'
+import { ArrowLeft, RotateCcw, ShieldOff, Save } from 'lucide-vue-next'
 import { useToastStore } from '@/stores/toastStore'
 import authService from '@/services/authService'
+import { getErrorMessage } from '@/utils/messages'
 import StatusBadge from '@/components/StatusBadge.vue'
+import PhoneInput from '@/components/PhoneInput.vue'
 
 const route  = useRoute()
 const router = useRouter()
@@ -13,6 +15,15 @@ const toast  = useToastStore()
 const admin   = ref(null)
 const loading = ref(true)
 const acting  = ref(false)
+const saving  = ref(false)
+
+// Formulaire d'édition — champs du AdminUpdateRequestDto (tous optionnels)
+const form = reactive({
+  nomComplet: '',
+  email: '',
+  telephone: '',
+  nouveauMotDePasse: '',
+})
 
 // Chargement de l'admin — GET /auth/admins retourne la liste paginée
 // On cherche l'admin par id dans la liste complète
@@ -21,7 +32,13 @@ onMounted(async () => {
     const res  = await authService.getAdmins(0, 200)
     const list = res.data?.content ?? res.data?.data ?? []
     admin.value = list.find(a => String(a.id) === String(route.params.id)) || null
-    if (!admin.value) toast.error('Administrateur introuvable.')
+    if (!admin.value) {
+      toast.error('Administrateur introuvable.')
+    } else {
+      form.nomComplet = admin.value.nomComplet || ''
+      form.email      = admin.value.email      || ''
+      form.telephone  = admin.value.telephone  || ''
+    }
   } catch {
     toast.error('Erreur lors du chargement.')
   } finally {
@@ -29,45 +46,56 @@ onMounted(async () => {
   }
 })
 
-// Archiver — PATCH /auth/admins/{id}/archive
-async function handleArchive() {
-  if (!confirm('Archiver cet administrateur ?')) return
+// Enregistrer les modifications — PUT /auth/admins/{id}
+async function handleSave() {
+  // N'envoyer que les champs réellement renseignés
+  const payload = {
+    nomComplet: form.nomComplet.trim(),
+    email:      form.email.trim(),
+    telephone:  form.telephone.trim(),
+  }
+  if (form.nouveauMotDePasse) payload.nouveauMotDePasse = form.nouveauMotDePasse
+
+  saving.value = true
+  try {
+    const res = await authService.updateAdmin(admin.value.id, payload)
+    admin.value = { ...admin.value, ...(res.data?.data ?? {}) }
+    form.nouveauMotDePasse = ''
+    toast.success('Administrateur modifié ✓')
+  } catch (err) {
+    // getErrorMessage extrait les messages détaillés de validation (champ data)
+    toast.error(getErrorMessage(err))
+  } finally {
+    saving.value = false
+  }
+}
+
+// Révoquer l'accès administrateur — PATCH /auth/admins/{id}/archive
+// Opération réversible : l'admin révoqué est simplement archivé (ne peut plus
+// se connecter) et conserve son rôle. Son accès est réactivable via « Restaurer ».
+async function handleRevoke() {
+  if (!confirm('Révoquer l\'accès administrateur de cet utilisateur ? Il ne pourra plus se connecter, mais vous pourrez restaurer son accès à tout moment.')) return
   acting.value = true
   try {
     await authService.archiveAdmin(admin.value.id)
-    toast.success('Administrateur archivé ✓')
+    toast.success('Accès administrateur révoqué ✓')
     router.push('/admin/administrateurs')
   } catch (err) {
-    toast.error(err.response?.data?.message || 'Erreur lors de l\'archivage.')
+    toast.error(err.response?.data?.message || 'Erreur lors de la révocation de l\'accès.')
   } finally {
     acting.value = false
   }
 }
 
-// Restaurer — PATCH /auth/admins/{id}/restore
+// Restaurer l'accès administrateur — PATCH /auth/admins/{id}/restore
 async function handleRestore() {
   acting.value = true
   try {
     await authService.restoreAdmin(admin.value.id)
-    toast.success('Administrateur restauré ✓')
+    toast.success('Accès administrateur restauré ✓')
     router.push('/admin/administrateurs')
   } catch (err) {
-    toast.error(err.response?.data?.message || 'Erreur lors de la restauration.')
-  } finally {
-    acting.value = false
-  }
-}
-
-// Révoquer — PATCH /auth/admins/{id}/revoke
-async function handleRevoke() {
-  if (!confirm('Révoquer le rôle admin de cet utilisateur ?')) return
-  acting.value = true
-  try {
-    await authService.revokeAdmin(admin.value.id)
-    toast.success('Rôle admin révoqué ✓')
-    router.push('/admin/administrateurs')
-  } catch (err) {
-    toast.error(err.response?.data?.message || 'Erreur lors de la révocation.')
+    toast.error(err.response?.data?.message || 'Erreur lors de la restauration de l\'accès.')
   } finally {
     acting.value = false
   }
@@ -97,27 +125,33 @@ function formatDate(d) {
     <div v-else-if="!admin" class="ma-error">Administrateur introuvable.</div>
 
     <div v-else class="ma-grid">
-      <!-- Fiche info -->
-      <div class="ma-card">
+      <!-- Formulaire d'édition -->
+      <form class="ma-card" @submit.prevent="handleSave">
         <h2 class="ma-card__title">Informations</h2>
 
         <div class="ma-avatar">
           {{ admin.nomComplet?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?' }}
         </div>
 
-        <div class="ma-fields">
-          <div class="ma-field">
-            <span class="ma-field__label">Nom complet</span>
-            <span class="ma-field__value">{{ admin.nomComplet }}</span>
+        <div class="ma-form">
+          <div class="ma-form__field">
+            <label class="ma-form__label">Nom complet</label>
+            <input v-model="form.nomComplet" type="text" class="ma-form__input" placeholder="ex. Mamadou Diop" />
           </div>
-          <div class="ma-field">
-            <span class="ma-field__label">Adresse e-mail</span>
-            <span class="ma-field__value">{{ admin.email }}</span>
+          <div class="ma-form__field">
+            <label class="ma-form__label">Adresse e-mail</label>
+            <input v-model="form.email" type="email" class="ma-form__input" placeholder="mamadou@immosn.sn" />
           </div>
-          <div class="ma-field">
-            <span class="ma-field__label">Téléphone</span>
-            <span class="ma-field__value">{{ admin.telephone || '—' }}</span>
+          <div class="ma-form__field">
+            <label class="ma-form__label">Téléphone</label>
+            <PhoneInput v-model="form.telephone" />
           </div>
+          <div class="ma-form__field">
+            <label class="ma-form__label">Nouveau mot de passe <span class="ma-form__optional">(optionnel)</span></label>
+            <input v-model="form.nouveauMotDePasse" type="password" class="ma-form__input" placeholder="Laisser vide pour ne pas changer" autocomplete="new-password" />
+            <span class="ma-form__hint">Renseignez ce champ uniquement pour réinitialiser le mot de passe de l'administrateur.</span>
+          </div>
+
           <div class="ma-field">
             <span class="ma-field__label">Rôle</span>
             <span class="ma-field__value">{{ Array.from(admin.roles ?? []).join(', ') }}</span>
@@ -128,20 +162,21 @@ function formatDate(d) {
           </div>
           <div class="ma-field">
             <span class="ma-field__label">Statut</span>
-            <StatusBadge :label="admin.archived ? 'Archivé' : 'Actif'" :variant="admin.archived ? 'neutral' : 'success'" />
+            <StatusBadge :label="admin.archived ? 'Accès révoqué' : 'Actif'" :variant="admin.archived ? 'neutral' : 'success'" />
           </div>
         </div>
-      </div>
+
+        <button type="submit" class="ma-btn ma-btn--save" :disabled="saving">
+          <Save :size="16" />
+          {{ saving ? 'Enregistrement...' : 'Enregistrer les modifications' }}
+        </button>
+      </form>
 
       <!-- Actions -->
       <div class="ma-card ma-actions-card">
         <h2 class="ma-card__title">Actions</h2>
-        <p class="ma-actions-note">
-          La modification directe d'un profil admin n'est pas disponible.<br/>
-          L'administrateur peut modifier son propre profil depuis ses paramètres.
-        </p>
 
-        <!-- Restaurer si archivé -->
+        <!-- Restaurer si l'accès est révoqué (compte archivé) -->
         <button
           v-if="admin.archived"
           class="ma-btn ma-btn--restore"
@@ -149,30 +184,25 @@ function formatDate(d) {
           @click="handleRestore"
         >
           <RotateCcw :size="16" />
-          Restaurer l'accès
+          Restaurer l'accès administrateur
         </button>
+        <p v-if="admin.archived" class="ma-action-hint">
+          Réactive le compte : l'administrateur pourra de nouveau se connecter et retrouve ses privilèges.
+        </p>
 
-        <!-- Archiver si actif -->
+        <!-- Révoquer l'accès si actif (réversible — logique d'archivage) -->
         <button
           v-else
-          class="ma-btn ma-btn--archive"
-          :disabled="acting"
-          @click="handleArchive"
-        >
-          <UserX :size="16" />
-          Archiver l'accès
-        </button>
-
-        <!-- Révoquer le rôle admin -->
-        <button
-          v-if="!admin.archived"
           class="ma-btn ma-btn--revoke"
           :disabled="acting"
           @click="handleRevoke"
         >
-          <UserX :size="16" />
-          Révoquer le rôle Admin
+          <ShieldOff :size="16" />
+          Révoquer l'accès administrateur
         </button>
+        <p v-if="!admin.archived" class="ma-action-hint">
+          Suspend l'accès : l'administrateur ne pourra plus se connecter. Opération réversible via « Restaurer ».
+        </p>
 
         <button class="ma-btn ma-btn--cancel" @click="router.push('/admin/administrateurs')">
           Retour à la liste
@@ -233,6 +263,30 @@ function formatDate(d) {
   margin: 0 auto 1.5rem;
 }
 
+/* Formulaire d'édition */
+.ma-form { display: flex; flex-direction: column; gap: 1rem; }
+.ma-form__field { display: flex; flex-direction: column; gap: 0.4rem; }
+.ma-form__label {
+  font-size: 0.78rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+.ma-form__optional { text-transform: none; font-weight: 500; opacity: 0.8; }
+.ma-form__input {
+  padding: 0.7rem 0.9rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem; color: var(--color-text);
+  background: var(--color-card);
+  transition: border-color 0.2s;
+  width: 100%; box-sizing: border-box;
+}
+.ma-form__input:focus { border-color: var(--color-primary); outline: none; }
+.ma-form__hint { font-size: 0.75rem; color: var(--color-text-secondary); font-style: italic; }
+
+.ma-btn--save { background: var(--color-primary); color: #fff; margin-top: 1rem; }
+.ma-btn--save:hover:not(:disabled) { opacity: 0.9; }
+
 /* Champs */
 .ma-fields { display: flex; flex-direction: column; gap: 1rem; }
 .ma-field {
@@ -272,20 +326,21 @@ function formatDate(d) {
 .ma-btn--restore { background: var(--color-primary); color: #fff; }
 .ma-btn--restore:hover:not(:disabled) { opacity: 0.85; }
 
-.ma-btn--archive { background: var(--color-accent); color: #fff; }
-.ma-btn--archive:hover:not(:disabled) { opacity: 0.85; }
+.ma-btn--revoke { background: var(--color-accent); color: #fff; }
+.ma-btn--revoke:hover:not(:disabled) { opacity: 0.85; }
 
-.ma-btn--revoke {
+.ma-btn--cancel {
   background: transparent; color: var(--color-accent);
   border: 1.5px solid var(--color-accent);
 }
-.ma-btn--revoke:hover:not(:disabled) { background: rgba(var(--color-accent-rgb), 0.1); }
+.ma-btn--cancel:hover:not(:disabled) { background: rgba(var(--color-accent-rgb), 0.1); }
 
-.ma-btn--cancel {
-  background: transparent; color: var(--color-text);
-  border: 1px solid var(--color-border);
+.ma-action-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  line-height: 1.45;
+  margin: -0.35rem 0 0.35rem;
 }
-.ma-btn--cancel:hover { background: var(--color-background); }
 
 /* Spinner */
 .spinner { width: 36px; height: 36px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin .8s linear infinite; }

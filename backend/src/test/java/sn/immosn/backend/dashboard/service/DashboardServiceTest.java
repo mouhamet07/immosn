@@ -34,13 +34,13 @@ import static org.mockito.Mockito.*;
 @DisplayName("DashboardService — Tests unitaires")
 class DashboardServiceTest {
 
-    @Mock AnnonceRepository       annonceRepository;
-    @Mock UserRepository          userRepository;
-    @Mock ContratRepository       contratRepository;
+    @Mock AnnonceRepository annonceRepository;
+    @Mock UserRepository userRepository;
+    @Mock ContratRepository contratRepository;
     @Mock DemandeVisiteRepository visiteRepository;
-    @Mock SignalementRepository   signalementRepository;
-    @Mock LeadRepository          leadRepository;
-    @Mock DiscussionRepository    discussionRepository;
+    @Mock SignalementRepository signalementRepository;
+    @Mock LeadRepository leadRepository;
+    @Mock DiscussionRepository discussionRepository;
 
     @InjectMocks
     DashboardServiceImpl dashboardService;

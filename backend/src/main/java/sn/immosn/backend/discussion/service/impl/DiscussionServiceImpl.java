@@ -31,10 +31,10 @@ public class DiscussionServiceImpl implements DiscussionService {
     private static final Logger log = LoggerFactory.getLogger(DiscussionServiceImpl.class);
 
     private final DiscussionRepository discussionRepository;
-    private final MessageRepository    messageRepository;
-    private final AnnonceRepository    annonceRepository;
-    private final UserRepository       userRepository;
-    private final DiscussionMapper     discussionMapper;
+    private final MessageRepository messageRepository;
+    private final AnnonceRepository annonceRepository;
+    private final UserRepository userRepository;
+    private final DiscussionMapper discussionMapper;
 
     /**
      * Crée une discussion ou retourne l'existante (idempotent).
@@ -43,7 +43,7 @@ public class DiscussionServiceImpl implements DiscussionService {
     @Override
     @Transactional
     public DiscussionResponseDto createOrGetDiscussion(DiscussionCreateRequestDto request, String clientEmail) {
-        User    client  = loadUser(clientEmail);
+        User client = loadUser(clientEmail);
         Annonce annonce = annonceRepository.findByIdAndIsArchivedFalse(request.annonceId())
             .orElseThrow(() -> new EntityNotFoundException("Annonce non trouvée : id=" + request.annonceId()));
 

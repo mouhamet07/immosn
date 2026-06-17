@@ -105,7 +105,6 @@ onMounted(() => fetchLeads(0))
 
         <!-- Header -->
         <div class="la-card__header">
-          <RouterLink :to="`/admin/leads/${lead.id}`" class="la-card__id">#{{ lead.id }}</RouterLink>
           <StatusBadge :label="STATUT_LABELS[lead.statut]" :variant="STATUT_VARIANTS[lead.statut]" />
           <span class="la-card__date">{{ formatDate(lead.createdAt) }}</span>
         </div>
@@ -129,12 +128,12 @@ onMounted(() => fetchLeads(0))
             v-if="lead.visiteId"
             :to="`/admin/visites/${lead.visiteId}`"
             class="la-card__link la-card__link--visite"
-          >Visite #{{ lead.visiteId }}</RouterLink>
+          >Visite {{ lead.visiteId }}</RouterLink>
           <RouterLink
             v-if="lead.contratId"
             :to="`/admin/contrats/${lead.contratId}`"
             class="la-card__link la-card__link--contrat"
-          >Contrat #{{ lead.contratId }}</RouterLink>
+          >Contrat {{ lead.contratId }}</RouterLink>
         </div>
 
         <!-- Dates secondaires -->
@@ -177,7 +176,7 @@ onMounted(() => fetchLeads(0))
       <div v-if="showNoteModal" class="modal-backdrop" @click.self="closeNoteModal">
         <div class="modal" role="dialog" aria-modal="true">
           <div class="modal__header">
-            <h2 class="modal__title">Note admin — Lead #{{ modalLead?.id }}</h2>
+            <h2 class="modal__title">Note admin — Lead {{ modalLead?.id }}</h2>
             <button class="modal__close" @click="closeNoteModal">✕</button>
           </div>
           <div class="modal__body">

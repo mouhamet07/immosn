@@ -45,7 +45,7 @@ public class LeadHistoryServiceImpl implements LeadHistoryService {
     private LeadHistoryDto toDto(LeadHistory h) {
         return new LeadHistoryDto(
             h.getId(),
-            h.getAncienStatut()  != null ? h.getAncienStatut().name()  : null,
+            h.getAncienStatut() != null ? h.getAncienStatut().name() : null,
             h.getNouveauStatut() != null ? h.getNouveauStatut().name() : null,
             h.getAuteurId(),
             h.getAuteurEmail(),

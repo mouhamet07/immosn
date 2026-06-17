@@ -27,7 +27,7 @@ public class SignalementServiceImpl implements SignalementService {
     @Override
     @Transactional
     public SignalementResponseDto create(SignalementCreateRequestDto request, String clientEmail) {
-        var client  = userRepository.findByEmail(clientEmail)
+        var client = userRepository.findByEmail(clientEmail)
             .orElseThrow(() -> new EntityNotFoundException("Utilisateur non trouvé"));
         var contrat = contratRepository.findByIdAndClientId(request.contratId(), client.getId())
             .orElseThrow(() -> new EntityNotFoundException("Contrat non trouvé"));

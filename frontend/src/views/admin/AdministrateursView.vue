@@ -32,7 +32,7 @@ function normalize(admin) {
 const stats = computed(() => ({
   total:   admins.value.length,
   actifs:  admins.value.filter(a => a.statut === 'ACTIF').length,
-  attente: admins.value.filter(a => a.statut === 'INACTIF').length,
+  revoques: admins.value.filter(a => a.statut === 'INACTIF').length,
 }))
 
 function formatDate(d) {
@@ -57,28 +57,36 @@ onMounted(async () => {
   }
 })
 
+// Révoquer l'accès administrateur — opération réversible via la logique d'archivage.
+// PATCH /auth/admins/{id}/archive : l'admin reste dans la liste (statut INACTIF), restaurable.
 async function revokeAccess() {
   try {
-    // PATCH /auth/admins/{id}/revoke — révoque le rôle ADMIN
-    await authService.revokeAdmin(confirmId.value)
+    await authService.archiveAdmin(confirmId.value)
     const idx = admins.value.findIndex(a => a.id === confirmId.value)
-    if (idx !== -1) admins.value[idx].statut = 'INACTIF'
-    toast.value.show('Accès révoqué avec succès.', 'success')
+    if (idx !== -1) {
+      admins.value[idx].statut = 'INACTIF'
+      admins.value[idx].archived = true
+    }
+    toast.value.show('Accès administrateur révoqué avec succès.', 'success')
   } catch (err) {
-    toast.value.show(err.userMessage || err.response?.data?.message || 'Erreur lors de la révocation.', 'error')
+    toast.value.show(err.userMessage || err.response?.data?.message || 'Erreur lors de la révocation de l\'accès.', 'error')
   } finally {
     confirmId.value = null
   }
 }
 
+// Restaurer l'accès administrateur — PATCH /auth/admins/{id}/restore
 async function restoreAccess(id) {
   try {
     await authService.restoreAdmin(id)
     const idx = admins.value.findIndex(a => a.id === id)
-    if (idx !== -1) admins.value[idx].statut = 'ACTIF'
-    toast.value.show('Accès restauré avec succès.', 'success')
+    if (idx !== -1) {
+      admins.value[idx].statut = 'ACTIF'
+      admins.value[idx].archived = false
+    }
+    toast.value.show('Accès administrateur restauré avec succès.', 'success')
   } catch (err) {
-    toast.value.show(err.userMessage || err.response?.data?.message || 'Erreur lors de la restauration.', 'error')
+    toast.value.show(err.userMessage || err.response?.data?.message || 'Erreur lors de la restauration de l\'accès.', 'error')
   }
 }
 </script>
@@ -89,8 +97,8 @@ async function restoreAccess(id) {
 
     <ConfirmModal
       v-if="confirmId"
-      title="Révoquer l'accès"
-      message="Cette action supprimera définitivement l'accès de cet administrateur. Voulez-vous continuer ?"
+      title="Révoquer l'accès administrateur"
+      message="L'administrateur ne pourra plus se connecter. Cette opération est réversible : vous pourrez restaurer son accès à tout moment. Voulez-vous continuer ?"
       @confirm="revokeAccess"
       @cancel="confirmId = null"
     />
@@ -108,9 +116,9 @@ async function restoreAccess(id) {
 
     <!-- Stats -->
     <div class="admins-stats">
-      <StatsCard label="Total admins"    :value="stats.total"   color="primary" />
-      <StatsCard label="Actifs"          :value="stats.actifs"  color="primary" />
-      <StatsCard label="En attente"      :value="stats.attente" color="accent"  />
+      <StatsCard label="Total admins"    :value="stats.total"    color="primary" />
+      <StatsCard label="Actifs"          :value="stats.actifs"   color="primary" />
+      <StatsCard label="Accès révoqués"  :value="stats.revoques" color="accent"  />
     </div>
 
     <!-- Skeleton loader -->
@@ -148,8 +156,8 @@ async function restoreAccess(id) {
             <td class="table-date">{{ formatDate(admin.creationDate) }}</td>
             <td>
               <StatusBadge
-                :label="admin.statut === 'EN_ATTENTE' ? 'En attente' : admin.statut === 'ACTIF' ? 'Actif' : 'Inactif'"
-                :variant="admin.statut === 'ACTIF' ? 'success' : admin.statut === 'EN_ATTENTE' ? 'warning' : 'neutral'"
+                :label="admin.statut === 'ACTIF' ? 'Actif' : 'Accès révoqué'"
+                :variant="admin.statut === 'ACTIF' ? 'success' : 'neutral'"
               />
             </td>
             <td>
@@ -157,10 +165,10 @@ async function restoreAccess(id) {
                 <button class="action-btn" title="Modifier" @click="router.push(`/admin/administrateurs/${admin.id}/modifier`)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 </button>
-                <button v-if="admin.statut === 'INACTIF'" class="action-btn" title="Restaurer l'accès" @click="restoreAccess(admin.id)">
+                <button v-if="admin.statut === 'INACTIF'" class="action-btn" title="Restaurer l'accès administrateur" @click="restoreAccess(admin.id)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
                 </button>
-                <button v-else class="action-btn danger" title="Révoquer l'accès" @click="confirmId = admin.id">
+                <button v-else class="action-btn danger" title="Révoquer l'accès administrateur" @click="confirmId = admin.id">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
                 </button>
               </div>

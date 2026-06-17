@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
@@ -21,11 +22,11 @@ public record AnnonceCreateRequestDto(
     String description,
 
     @NotNull(message = "Le nombre de pièces est obligatoire")
-    @Positive(message = "Le nombre de pièces doit être positif")
+    @PositiveOrZero(message = "Le nombre de pièces ne peut pas être négatif")
     Integer nbrPieces,
 
     @NotNull(message = "Le nombre de salles de bains est obligatoire")
-    @Min(value = 1, message = "Le nombre de salles de bains doit être au minimum 1")
+    @Min(value = 0, message = "Le nombre de salles de bains ne peut pas être négatif")
     Integer nbrSallesBain,
 
     @NotNull(message = "La surface est obligatoire")

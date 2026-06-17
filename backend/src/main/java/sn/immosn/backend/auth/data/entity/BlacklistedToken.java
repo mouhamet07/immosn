@@ -29,7 +29,7 @@ public class BlacklistedToken {
     private LocalDateTime expiryDate;
 
     public BlacklistedToken(String token, LocalDateTime expiryDate) {
-        this.token      = token;
+        this.token = token;
         this.expiryDate = expiryDate;
     }
 }

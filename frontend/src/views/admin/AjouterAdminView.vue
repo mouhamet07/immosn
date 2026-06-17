@@ -2,7 +2,9 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import ToastNotification from '@/components/admin/ToastNotification.vue'
+import PhoneInput from '@/components/PhoneInput.vue'
 import authService from '@/services/authService'
+import { getErrorMessage } from '@/utils/messages'
 
 const router = useRouter()
 const toast = ref(null)
@@ -33,7 +35,9 @@ function validate() {
     errors.email = 'Adresse e-mail invalide.'
     valid = false
   }
-  if (!form.telephone.trim()) {
+  // PhoneInput émet toujours l'indicatif (ex. "+221") : on exige des chiffres saisis
+  const phoneDigits = form.telephone.replace(/^\+\d+\s*/, '').replace(/\D/g, '')
+  if (!phoneDigits) {
     errors.telephone = 'Le numéro de téléphone est requis.'
     valid = false
   }
@@ -57,8 +61,9 @@ async function handleSubmit() {
     toast.value.show('Administrateur ajouté avec succès.', 'success')
     setTimeout(() => router.push('/admin/administrateurs'), 1200)
   } catch (err) {
-    const msg = err.response?.data?.message || err.response?.data?.data?.email || 'Erreur lors de la création.'
-    toast.value.show(msg, 'error')
+    // getErrorMessage extrait les messages détaillés de validation (champ data)
+    // au lieu du message générique "Erreur de validation des données"
+    toast.value.show(getErrorMessage(err), 'error')
   } finally {
     loading.value = false
   }
@@ -110,16 +115,10 @@ async function handleSubmit() {
           <span v-if="errors.email" class="field__error">{{ errors.email }}</span>
         </div>
 
-        <!-- Téléphone -->
+        <!-- Téléphone — même composant que l'inscription et le profil (PhoneInput) -->
         <div class="field">
           <label class="field__label">TÉLÉPHONE <span class="required">*</span></label>
-          <input
-            v-model="form.telephone"
-            type="tel"
-            class="field__input"
-            :class="{ 'field__input--error': errors.telephone }"
-            placeholder="ex. +221 77 000 00 00"
-          />
+          <PhoneInput v-model="form.telephone" />
           <span v-if="errors.telephone" class="field__error">{{ errors.telephone }}</span>
         </div>
 

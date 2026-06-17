@@ -159,8 +159,13 @@ async function submit() {
     toast.value.show('Le département et le quartier sont obligatoires.', 'error')
     return
   }
-  if (!form.nbrSallesBain || parseInt(form.nbrSallesBain) < 1) {
-    toast.value.show('Le nombre de salles de bains est obligatoire (minimum 1).', 'error')
+  // Pièces / salles de bain : 0 autorisé (terrain, parcelle, bien non bâti)
+  if (form.nbrPieces === '' || parseInt(form.nbrPieces) < 0) {
+    toast.value.show('Le nombre de pièces est obligatoire (0 pour un terrain).', 'error')
+    return
+  }
+  if (form.nbrSallesBain === '' || parseInt(form.nbrSallesBain) < 0) {
+    toast.value.show('Le nombre de salles de bains est obligatoire (0 pour un terrain).', 'error')
     return
   }
   loading.value = true
@@ -259,11 +264,11 @@ async function submit() {
         <div class="field-row">
           <div class="field">
             <label class="field__label">NOMBRE DE PIÈCES <span class="req">*</span></label>
-            <input v-model.number="form.nbrPieces" type="number" min="0" step="1" class="field__input" placeholder="ex. 4" @input="form.nbrPieces = Math.max(0, form.nbrPieces)" />
+            <input v-model.number="form.nbrPieces" type="number" min="0" step="1" class="field__input" placeholder="ex. 4 — 0 pour un terrain" @input="form.nbrPieces = Math.max(0, form.nbrPieces)" />
           </div>
           <div class="field">
             <label class="field__label">SALLES DE BAINS <span class="req">*</span></label>
-            <input v-model.number="form.nbrSallesBain" type="number" min="1" step="1" class="field__input" placeholder="ex. 2" @input="form.nbrSallesBain = Math.max(1, form.nbrSallesBain)" />
+            <input v-model.number="form.nbrSallesBain" type="number" min="0" step="1" class="field__input" placeholder="ex. 2 — 0 pour un terrain" @input="form.nbrSallesBain = Math.max(0, form.nbrSallesBain)" />
           </div>
           <div class="field">
             <label class="field__label">SURFACE (m²) <span class="req">*</span></label>
