@@ -30,6 +30,16 @@ services:
       SUPER_ADMIN_NOM: ${SUPER_ADMIN_NOM:-Super Administrateur}
       SUPER_ADMIN_TELEPHONE: ${SUPER_ADMIN_TELEPHONE:-+221770000000}
       CONTRAT_EXPIRATION_CRON: ${CONTRAT_EXPIRATION_CRON:-0 5 0 * * *}
+      TWILIO_ENABLED: ${TWILIO_ENABLED:-false}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-}
+      MAIL_ENABLED: ${MAIL_ENABLED:-false}
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-noreply@immosn.sn}
     networks:
       - app-network
     healthcheck:

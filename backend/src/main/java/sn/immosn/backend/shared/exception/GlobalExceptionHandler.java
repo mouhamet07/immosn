@@ -12,6 +12,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import sn.immosn.backend.shared.response.RestResponse;
 
@@ -126,6 +127,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity
             .status(HttpStatus.SERVICE_UNAVAILABLE)
             .body(RestResponse.error("Service temporairement indisponible — veuillez réessayer dans quelques secondes", HttpStatus.SERVICE_UNAVAILABLE));
+    }
+
+    // Client déconnecté avant la fin de la réponse — rien à écrire, juste tracer en debug
+    @ExceptionHandler(AsyncRequestNotUsableException.class)
+    public void handleAsyncRequestNotUsable(AsyncRequestNotUsableException ex) {
+        log.debug("Client déconnecté avant la fin de la réponse : {}", ex.getMessage());
     }
 
     // 500 — Fallback générique

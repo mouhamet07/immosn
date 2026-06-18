@@ -48,16 +48,17 @@ class RapportVisiteServiceTest {
 
     @BeforeEach
     void setUp() {
-        visite = DemandeVisite.builder()
-            .dateVisite(LocalDateTime.now().plusDays(1))
-            .statut(StatutDemandeVisite.AFFECTEE)
-            .build();
-        visite.setId(60L);
-
         admin = new User();
         admin.setId(9L);
         admin.setEmail("admin@immosn.sn");
         admin.setNomComplet("Ibrahima Sow");
+
+        visite = DemandeVisite.builder()
+            .dateVisite(LocalDateTime.now().plusDays(1))
+            .statut(StatutDemandeVisite.AFFECTEE)
+            .adminResponsable(admin)
+            .build();
+        visite.setId(60L);
     }
 
     @Test

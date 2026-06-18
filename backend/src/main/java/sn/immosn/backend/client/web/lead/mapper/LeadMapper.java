@@ -25,15 +25,23 @@ public class LeadMapper {
     public LeadResponseDto toDto(Lead l, Long contratId) {
         String image = (l.getAnnonce().getImages() != null && !l.getAnnonce().getImages().isEmpty())
             ? l.getAnnonce().getImages().get(0) : null;
+        var prospect = l.getProspect();
+        String prospectNom = prospect != null
+            ? ((prospect.getPrenom() != null && !prospect.getPrenom().isBlank() ? prospect.getPrenom().trim() + " " : "")
+                + (prospect.getNom() != null ? prospect.getNom() : "")).trim()
+            : null;
         return new LeadResponseDto(
             l.getId(),
-            l.getClient().getId(),
-            l.getClient().getNomComplet(),
-            l.getClient().getEmail(),
+            l.getClient() != null ? l.getClient().getId() : null,
+            l.getClient() != null ? l.getClient().getNomComplet() : null,
+            l.getClient() != null ? l.getClient().getEmail() : null,
+            prospect != null ? prospect.getId() : null,
+            prospectNom,
             l.getAnnonce().getId(),
             l.getAnnonce().getLibelle(),
             l.getAnnonce().getAdresse(),
             image,
+            l.getAnnonce().getTypeTransaction(),
             l.getVisite() != null ? l.getVisite().getId() : null,
             contratId,
             l.getStatut(),

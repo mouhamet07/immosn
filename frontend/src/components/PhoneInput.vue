@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { ChevronDown } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -59,11 +59,40 @@ const emitValue = () => {
   emit('update:modelValue', (selectedCountry.value.dialCode + ' ' + rawNumber.value).trim())
 }
 
+// Initialise le composant depuis une valeur existante (ex. édition de profil) :
+// détecte le pays via l'indicatif puis reformate les chiffres restants.
+const hydrateFromModel = (value) => {
+  if (!value) return
+  const trimmed = value.trim()
+  // Pays par indicatif le plus long d'abord (+225 avant +22…) pour éviter les collisions
+  const match = [...countries]
+    .sort((a, b) => b.dialCode.length - a.dialCode.length)
+    .find(c => trimmed.startsWith(c.dialCode))
+  if (match) {
+    selectedCountry.value = match
+    const digits = trimmed.slice(match.dialCode.length).replace(/\D/g, '').slice(0, match.maxDigits)
+    rawNumber.value = formatWithGroups(digits, match.formatGroups)
+  } else {
+    // Valeur sans indicatif connu : on conserve les chiffres pour le pays par défaut
+    const digits = trimmed.replace(/\D/g, '').slice(0, selectedCountry.value.maxDigits)
+    rawNumber.value = formatWithGroups(digits, selectedCountry.value.formatGroups)
+  }
+}
+
 const handleOutsideClick = (e) => {
   if (!e.target.closest('.phone-input-wrapper')) open.value = false
 }
-onMounted(() => document.addEventListener('click', handleOutsideClick))
+onMounted(() => {
+  hydrateFromModel(props.modelValue)
+  document.addEventListener('click', handleOutsideClick)
+})
 onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
+
+// Si la valeur parente arrive de façon asynchrone (chargement du profil), réhydrater
+// tant que l'utilisateur n'a pas encore saisi de numéro.
+watch(() => props.modelValue, (val) => {
+  if (!rawNumber.value && val) hydrateFromModel(val)
+})
 </script>
 
 <template>

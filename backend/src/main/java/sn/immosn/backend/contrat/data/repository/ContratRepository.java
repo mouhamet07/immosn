@@ -26,6 +26,9 @@ public interface ContratRepository extends JpaRepository<Contrat, Long> {
 
     long countByStatut(StatutContrat statut);
 
+    // Sprint 4 — répartition des contrats par type (statistiques)
+    long countByTypeContrat(sn.immosn.backend.contrat.data.entity.TypeContrat typeContrat);
+
     // Vérifie les contrats actifs liés à une annonce (bloque l'archivage)
     long countByAnnonceIdAndStatut(Long annonceId, StatutContrat statut);
 
@@ -41,10 +44,12 @@ public interface ContratRepository extends JpaRepository<Contrat, Long> {
     List<Contrat> findByLeadIdIn(@org.springframework.data.repository.query.Param("leadIds") List<Long> leadIds);
 
     // JOIN FETCH annonce + client : élimine le N+1 du dashboard (1 query au lieu de 1+5+5+5)
+    // LEFT JOIN sur client : un contrat issu d'une visite invité n'a pas encore de client tant
+    // qu'il n'est pas activé (voir Contrat.prospect) — un INNER JOIN l'exclurait à tort.
     @Query("""
         SELECT c FROM Contrat c
         JOIN FETCH c.annonce
-        JOIN FETCH c.client
+        LEFT JOIN FETCH c.client
         """)
     List<Contrat> findRecentForDashboard(Pageable pageable);
 }

@@ -28,7 +28,6 @@ const affecting     = ref(false)
 const rapport         = ref(null)
 const rapportCR       = ref('')
 const rapportAboutie  = ref(true)
-const rapportSaving   = ref(false)
 const rapportDocFile  = ref(null)
 const rapportDocSaving = ref(false)
 
@@ -37,12 +36,11 @@ const showDateModal = ref(false)
 const newDate       = ref('')
 const dateComment   = ref('')
 
-// Modal clôture
-const showCloture        = ref(false)
-const clotureType        = ref('SANS_SUITE')
-const clotureContratType = ref('VENTE')
-const clotureDuree       = ref(12)
+// Clôture (fusionnée dans la carte rapport)
 const cloturing          = ref(false)
+const showDureeModal     = ref(false)
+const clotureDureeValue  = ref(12)
+const dureeModalCreeRapport = ref(false) // true si la modal doit d'abord créer le rapport
 
 const STATUT_LABELS = {
   EN_ATTENTE:               'En attente',
@@ -101,7 +99,7 @@ async function fetchAdmins() {
   if (!isSuperAdmin.value) return
   try {
     const res = await authService.getAdmins(0, 100)
-    admins.value = (res.data.content ?? res.data.data?.content ?? []).filter(a => !a.archived)
+    admins.value = (res.data.content ?? res.data.data ?? []).filter(a => !a.archived)
   } catch { /* liste indisponible */ }
 }
 
@@ -119,6 +117,9 @@ async function affecter() {
   }
 }
 
+// Admin à affecter dès l'acceptation (EN_ATTENTE) — choix obligatoire avant d'accepter
+const acceptAdmin = ref('')
+
 async function accepterReplanification() {
   updating.value = true
   try {
@@ -131,19 +132,87 @@ async function accepterReplanification() {
   }
 }
 
-async function submitRapport() {
+// Rédige le rapport puis clôture la visite dans le même geste. Si la visite est
+// aboutie et que l'annonce est une LOCATION, on demande la durée du bail avant
+// de créer le rapport (pour éviter un état RAPPORT_REDIGE orphelin si l'admin annule).
+async function submitRapportEtCloture() {
   if (!rapportCR.value.trim()) { alert('Le compte-rendu est obligatoire.'); return }
-  rapportSaving.value = true
+  if (rapportAboutie.value && visite.value.typeTransaction === 'LOCATION') {
+    clotureDureeValue.value = 12
+    dureeModalCreeRapport.value = true
+    showDureeModal.value = true
+    return
+  }
+  await creerRapportPuisCloturer(null)
+}
+
+async function confirmerDureeEtCloturer() {
+  showDureeModal.value = false
+  const duree = Number(clotureDureeValue.value)
+  if (dureeModalCreeRapport.value) {
+    await creerRapportPuisCloturer(duree)
+  } else {
+    cloturing.value = true
+    try {
+      await cloturerApresRapport(duree)
+    } finally {
+      cloturing.value = false
+    }
+  }
+}
+
+async function creerRapportPuisCloturer(dureeLocationMois) {
+  cloturing.value = true
   try {
     await visiteService.creerRapport(visite.value.id, {
       compteRendu: rapportCR.value.trim(),
       aboutie: rapportAboutie.value,
     })
-    await fetchVisite()
+    await cloturerApresRapport(dureeLocationMois)
   } catch (e) {
     alert(e.response?.data?.message || 'Erreur lors de l\'enregistrement du rapport.')
+    await fetchVisite()
   } finally {
-    rapportSaving.value = false
+    cloturing.value = false
+  }
+}
+
+// Clôture une visite déjà au statut RAPPORT_REDIGE (recouvrement si la clôture
+// avait échoué juste après la création du rapport).
+async function cloturerApresRapport(dureeLocationMois) {
+  const type = rapportAboutie.value ? 'AVEC_CONTRAT' : 'SANS_SUITE'
+  try {
+    const res = await visiteService.cloturerVisite(visite.value.id, {
+      type,
+      dureeLocationMois: type === 'AVEC_CONTRAT' && visite.value.typeTransaction === 'LOCATION'
+        ? dureeLocationMois : null,
+    })
+    const contratId = res?.data?.data?.id
+    if (type === 'AVEC_CONTRAT' && contratId) {
+      router.push(`/admin/contrats/${contratId}`)
+    } else {
+      await fetchVisite()
+    }
+  } catch (e) {
+    alert(e.response?.data?.message || 'Erreur lors de la clôture.')
+    await fetchVisite()
+  }
+}
+
+// Recouvrement manuel : la visite est restée en RAPPORT_REDIGE (clôture précédente échouée).
+async function cloturerDepuisRapportExistant() {
+  rapportAboutie.value = rapport.value.aboutie
+  if (rapport.value.aboutie && visite.value.typeTransaction === 'LOCATION') {
+    clotureDureeValue.value = 12
+    dureeModalCreeRapport.value = false
+    showDureeModal.value = true
+    return
+  }
+  cloturing.value = true
+  try {
+    await cloturerApresRapport(null)
+  } finally {
+    cloturing.value = false
   }
 }
 
@@ -166,9 +235,17 @@ async function uploadRapportDoc() {
 }
 
 async function accepter() {
+  if (isSuperAdmin.value && !acceptAdmin.value) {
+    alert('Veuillez choisir un administrateur responsable avant d\'accepter cette demande.')
+    return
+  }
   updating.value = true
   try {
     await visiteService.updateStatut(visite.value.id, 'ACCEPTEE')
+    if (isSuperAdmin.value && acceptAdmin.value) {
+      await visiteService.affecter(visite.value.id, Number(acceptAdmin.value))
+    }
+    acceptAdmin.value = ''
     await fetchVisite()
   } catch (e) {
     alert(e.response?.data?.message || 'Erreur.')
@@ -206,39 +283,6 @@ function openDateModal() {
   showDateModal.value = true
 }
 
-function openCloture() {
-  clotureType.value        = 'SANS_SUITE'
-  clotureContratType.value = 'VENTE'
-  clotureDuree.value       = 12
-  showCloture.value        = true
-}
-
-async function submitCloture() {
-  if (clotureType.value === 'AVEC_CONTRAT' && !clotureContratType.value) {
-    alert('Veuillez sélectionner le type de contrat.')
-    return
-  }
-  cloturing.value = true
-  try {
-    const res = await visiteService.cloturerVisite(visite.value.id, {
-      type:              clotureType.value,
-      typeContrat:       clotureType.value === 'AVEC_CONTRAT' ? clotureContratType.value : null,
-      dureeLocationMois: clotureType.value === 'AVEC_CONTRAT' && clotureContratType.value === 'LOCATION'
-                           ? Number(clotureDuree.value) : null,
-    })
-    showCloture.value = false
-    const contratId = res?.data?.data?.id
-    if (clotureType.value === 'AVEC_CONTRAT' && contratId) {
-      router.push(`/admin/contrats/${contratId}`)
-    } else {
-      await fetchVisite()
-    }
-  } catch (e) {
-    alert(e.response?.data?.message || 'Erreur lors de la clôture.')
-  } finally {
-    cloturing.value = false
-  }
-}
 
 function formatDate(d) {
   if (!d) return '–'
@@ -375,30 +419,31 @@ onMounted(() => { fetchVisite(); fetchAdmins() })
               </div>
             </dl>
           </div>
-
-          <div class="vda-card">
-            <h2 class="vda-card__title">Historique</h2>
-            <dl class="vda-dl">
-              <div class="vda-dl__row"><dt>Créée le</dt><dd>{{ formatDatetime(visite.createdAt) }}</dd></div>
-              <div class="vda-dl__row"><dt>Mise à jour</dt><dd>{{ formatDatetime(visite.updatedAt) }}</dd></div>
-            </dl>
-          </div>
         </div>
 
         <!-- Actions admin selon statut -->
         <div class="vda-actions-section">
           <h2 class="vda-actions-section__title">Actions disponibles</h2>
 
-          <!-- EN_ATTENTE : accepter ou refuser (SUPER_ADMIN) -->
-          <div v-if="visite.statut === 'EN_ATTENTE'" class="vda-actions">
+          <!-- EN_ATTENTE : choisir un admin responsable puis accepter, ou refuser (SUPER_ADMIN) -->
+          <div v-if="visite.statut === 'EN_ATTENTE'" class="vda-actions vda-actions--col">
             <template v-if="isSuperAdmin">
-              <button class="vda-btn vda-btn--accept" :disabled="updating" @click="accepter"><Check :size="14" /> Accepter</button>
-              <button class="vda-btn vda-btn--refuse" :disabled="updating" @click="refuser"><X :size="14" /> Refuser</button>
+              <div class="vda-affect">
+                <label class="vda-affect__label">Administrateur responsable (obligatoire avant acceptation)</label>
+                <select v-model="acceptAdmin" class="vda-select">
+                  <option value="">— Choisir un administrateur —</option>
+                  <option v-for="a in admins" :key="a.id" :value="a.id">{{ a.nomComplet }} ({{ a.email }})</option>
+                </select>
+              </div>
+              <div class="vda-actions">
+                <button class="vda-btn vda-btn--accept" :disabled="updating || !acceptAdmin" @click="accepter"><Check :size="14" /> Accepter</button>
+                <button class="vda-btn vda-btn--refuse" :disabled="updating" @click="refuser"><X :size="14" /> Refuser</button>
+              </div>
             </template>
             <p v-else class="vda-readonly">En attente de validation par un SUPER_ADMIN.</p>
           </div>
 
-          <!-- ACCEPTEE / AFFECTEE : affecter (SUPER_ADMIN), clôturer, modifier date -->
+          <!-- ACCEPTEE / AFFECTEE : affecter (SUPER_ADMIN) -->
           <div v-else-if="visite.statut === 'ACCEPTEE' || visite.statut === 'AFFECTEE'" class="vda-actions vda-actions--col">
             <div v-if="isSuperAdmin" class="vda-affect">
               <label class="vda-affect__label">{{ visite.statut === 'AFFECTEE' ? 'Réaffecter à' : 'Affecter à un responsable' }}</label>
@@ -412,9 +457,7 @@ onMounted(() => { fetchVisite(); fetchAdmins() })
                 </button>
               </div>
             </div>
-            <div class="vda-actions">
-              <button class="vda-btn vda-btn--cloture" @click="openCloture">Clôturer la visite</button>
-            </div>
+            <p v-else class="vda-readonly">Rédigez le rapport de visite ci-dessous pour clôturer.</p>
           </div>
 
           <!-- REPLANIFICATION_DEMANDEE : accepter la nouvelle date (SUPER_ADMIN) -->
@@ -427,9 +470,9 @@ onMounted(() => { fetchVisite(); fetchAdmins() })
             <p v-else class="vda-readonly">Replanification en attente de validation par un SUPER_ADMIN.</p>
           </div>
 
-          <!-- RAPPORT_REDIGE : clôturer -->
+          <!-- RAPPORT_REDIGE : la clôture se fait depuis la carte rapport ci-dessous -->
           <div v-else-if="visite.statut === 'RAPPORT_REDIGE'" class="vda-actions">
-            <button class="vda-btn vda-btn--cloture" @click="openCloture">Clôturer la visite</button>
+            <p class="vda-readonly">Rapport rédigé — clôturez la visite depuis la carte « Rapport de visite » ci-dessous.</p>
           </div>
 
           <!-- Autres statuts : lecture seule -->
@@ -438,7 +481,7 @@ onMounted(() => { fetchVisite(); fetchAdmins() })
           </div>
         </div>
 
-        <!-- Rapport de visite (Sprint 2) -->
+        <!-- Rapport de visite -->
         <div class="vda-actions-section" v-if="['ACCEPTEE','AFFECTEE','RAPPORT_REDIGE','CLOTUREE_SANS_SUITE','CLOTUREE_AVEC_CONTRAT'].includes(visite.statut)">
           <h2 class="vda-actions-section__title">Rapport de visite</h2>
 
@@ -460,9 +503,16 @@ onMounted(() => { fetchVisite(); fetchAdmins() })
                 </button>
               </div>
             </div>
+
+            <!-- Recouvrement : le rapport existe mais la clôture précédente a échoué -->
+            <div v-if="visite.statut === 'RAPPORT_REDIGE'" class="vda-affect__row" style="margin-top: .85rem; padding-top: .85rem; border-top: 1px solid var(--color-border);">
+              <button class="vda-btn vda-btn--cloture" :disabled="cloturing" @click="cloturerDepuisRapportExistant">
+                {{ cloturing ? 'Clôture en cours…' : 'Clôturer la visite' }}
+              </button>
+            </div>
           </template>
 
-          <!-- Formulaire de rédaction (si pas encore de rapport et état rapportable) -->
+          <!-- Formulaire de rédaction + clôture (si pas encore de rapport et état rapportable) -->
           <template v-else-if="['ACCEPTEE','AFFECTEE'].includes(visite.statut)">
             <div class="modal-box__field">
               <label>Compte-rendu *</label>
@@ -473,8 +523,8 @@ onMounted(() => { fetchVisite(); fetchAdmins() })
               <label class="vda-checkbox">
                 <input type="checkbox" v-model="rapportAboutie" /> Visite aboutie (le client souhaite poursuivre)
               </label>
-              <button class="vda-btn vda-btn--cloture" :disabled="rapportSaving || !rapportCR.trim()" @click="submitRapport">
-                {{ rapportSaving ? 'Enregistrement…' : 'Enregistrer le rapport' }}
+              <button class="vda-btn vda-btn--cloture" :disabled="cloturing || !rapportCR.trim()" @click="submitRapportEtCloture">
+                {{ cloturing ? 'Enregistrement…' : 'Clôturer la visite' }}
               </button>
             </div>
           </template>
@@ -536,61 +586,23 @@ onMounted(() => { fetchVisite(); fetchAdmins() })
       </div>
     </Teleport>
 
-    <!-- Modal clôture -->
+    <!-- Mini-modal : durée du bail (LOCATION uniquement, avant clôture) -->
     <Teleport to="body">
-      <div v-if="showCloture" class="modal-overlay" @click.self="showCloture = false">
-        <div class="modal-box modal-box--lg">
-          <h2 class="modal-box__title">Clôturer la visite {{ visite?.id }}</h2>
-          <p class="modal-box__desc">La visite a été effectuée. Quelle est l'issue ?</p>
-
-          <div class="cloture-options">
-            <label class="cloture-option" :class="{ '--selected': clotureType === 'SANS_SUITE' }">
-              <input type="radio" v-model="clotureType" value="SANS_SUITE" />
-              <div class="cloture-option__content">
-                <span class="cloture-option__title">Sans suite</span>
-                <span class="cloture-option__desc">Le client n'est pas intéressé. Aucun contrat ne sera créé.</span>
-              </div>
-            </label>
-            <label class="cloture-option" :class="{ '--selected': clotureType === 'AVEC_CONTRAT' }">
-              <input type="radio" v-model="clotureType" value="AVEC_CONTRAT" />
-              <div class="cloture-option__content">
-                <span class="cloture-option__title">Avec contrat</span>
-                <span class="cloture-option__desc">Le client souhaite poursuivre. Un contrat sera créé automatiquement.</span>
-              </div>
-            </label>
-          </div>
-
-          <div v-if="clotureType === 'AVEC_CONTRAT'" class="cloture-contrat-fields">
-            <div class="modal-box__field">
-              <label>Type de contrat *</label>
-              <div class="type-radios">
-                <label class="type-radio" :class="{ '--active': clotureContratType === 'VENTE' }">
-                  <input type="radio" v-model="clotureContratType" value="VENTE" /> Vente
-                </label>
-                <label class="type-radio" :class="{ '--active': clotureContratType === 'LOCATION' }">
-                  <input type="radio" v-model="clotureContratType" value="LOCATION" /> Location
-                </label>
-              </div>
+      <div v-if="showDureeModal" class="modal-overlay" @click.self="showDureeModal = false">
+        <div class="modal-box">
+          <h2 class="modal-box__title">Durée du bail</h2>
+          <p class="modal-box__desc">Ce contrat est une location : précisez la durée du bail avant de clôturer la visite.</p>
+          <div class="modal-box__field">
+            <div class="duree-radios">
+              <label v-for="d in [6, 12, 24, 36]" :key="d" class="type-radio" :class="{ '--active': clotureDureeValue === d }">
+                <input type="radio" v-model="clotureDureeValue" :value="d" /> {{ d }} mois
+              </label>
             </div>
-            <div v-if="clotureContratType === 'LOCATION'" class="modal-box__field">
-              <label>Durée du bail *</label>
-              <div class="duree-radios">
-                <label v-for="d in [6, 12, 24, 36]" :key="d" class="type-radio" :class="{ '--active': clotureDuree === d }">
-                  <input type="radio" v-model="clotureDuree" :value="d" /> {{ d }} mois
-                </label>
-              </div>
-            </div>
-            <p class="cloture-info">
-              Le montant sera pré-rempli avec le prix de l'annonce et pourra être ajusté dans la fiche contrat.
-            </p>
           </div>
-
           <div class="modal-box__footer">
-            <button class="modal-box__cancel" @click="showCloture = false">Annuler</button>
-            <button class="modal-box__submit"
-              :class="clotureType === 'AVEC_CONTRAT' ? '' : 'modal-box__submit--neutral'"
-              :disabled="cloturing" @click="submitCloture">
-              {{ cloturing ? 'En cours…' : clotureType === 'AVEC_CONTRAT' ? 'Clôturer et créer le contrat' : 'Clôturer sans suite' }}
+            <button class="modal-box__cancel" @click="showDureeModal = false">Annuler</button>
+            <button class="modal-box__submit" :disabled="cloturing" @click="confirmerDureeEtCloturer">
+              {{ cloturing ? 'En cours…' : 'Confirmer' }}
             </button>
           </div>
         </div>
@@ -639,7 +651,8 @@ onMounted(() => { fetchVisite(); fetchAdmins() })
 .vda-addr { display: inline-flex; align-items: center; gap: .3rem; }
 .vda-link { color: var(--color-primary); text-decoration: none; font-weight: 600; }
 
-.vda-actions-section { background: var(--color-card); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow-card); }
+.vda-actions-section { background: var(--color-card); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow-card); margin-bottom: 1.5rem; }
+.vda-actions-section:last-child { margin-bottom: 0; }
 .vda-actions-section__title { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--color-text); opacity: .5; margin: 0 0 1rem; }
 .vda-actions { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; }
 .vda-actions--col { flex-direction: column; align-items: stretch; gap: 1rem; }
@@ -676,7 +689,6 @@ onMounted(() => { fetchVisite(); fetchAdmins() })
 /* Modal */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1rem; }
 .modal-box { background: var(--color-card); border-radius: var(--radius); padding: 1.75rem; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
-.modal-box--lg { max-width: 520px; }
 .modal-box__title { font-size: 1rem; font-weight: 700; color: var(--color-text); margin-bottom: .35rem; }
 .modal-box__desc { font-size: .85rem; color: var(--color-text); opacity: .6; margin-bottom: 1.25rem; }
 .modal-box__field { display: flex; flex-direction: column; gap: .4rem; margin-bottom: 1rem; }
@@ -685,23 +697,9 @@ onMounted(() => { fetchVisite(); fetchAdmins() })
 .modal-box__footer { display: flex; justify-content: flex-end; gap: .75rem; margin-top: 1.5rem; }
 .modal-box__cancel { padding: .5rem 1rem; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); background: none; cursor: pointer; font-size: .88rem; color: var(--color-text); }
 .modal-box__submit { padding: .5rem 1.25rem; background: var(--color-primary); color: #fff; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; font-size: .88rem; transition: opacity .15s; }
-.modal-box__submit--neutral { background: #6b7280; }
 .modal-box__submit:disabled { opacity: .5; cursor: not-allowed; }
 
-.cloture-options { display: flex; flex-direction: column; gap: .6rem; margin-bottom: 1.25rem; }
-.cloture-option {
-  display: flex; align-items: flex-start; gap: .75rem;
-  padding: .85rem 1rem; border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-sm); cursor: pointer; transition: border-color .15s, background .15s;
-}
-.cloture-option input[type="radio"] { margin-top: .1rem; accent-color: var(--color-primary); flex-shrink: 0; }
-.cloture-option.--selected { border-color: var(--color-primary); background: rgba(74,124,111,.06); }
-.cloture-option__content { display: flex; flex-direction: column; gap: .2rem; }
-.cloture-option__title { font-size: .9rem; font-weight: 700; color: var(--color-text); }
-.cloture-option__desc { font-size: .78rem; color: var(--color-text); opacity: .6; }
-
-.cloture-contrat-fields { border-top: 1px solid var(--color-border); padding-top: 1rem; margin-top: .25rem; }
-.type-radios, .duree-radios { display: flex; gap: .5rem; flex-wrap: wrap; }
+.duree-radios { display: flex; gap: .5rem; flex-wrap: wrap; }
 .type-radio {
   display: flex; align-items: center; gap: .35rem;
   padding: .35rem .85rem; border: 1.5px solid var(--color-border);
@@ -710,11 +708,6 @@ onMounted(() => { fetchVisite(); fetchAdmins() })
 }
 .type-radio input[type="radio"] { display: none; }
 .type-radio.--active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
-
-.cloture-info {
-  font-size: .75rem; color: var(--color-text); opacity: .55; font-style: italic;
-  margin-top: .5rem; padding: .5rem .75rem; background: var(--color-background); border-radius: 6px;
-}
 
 .spinner { width: 36px; height: 36px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }

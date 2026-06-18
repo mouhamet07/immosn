@@ -122,6 +122,27 @@ public class DemandeVisiteController {
     }
 
     @Operation(
+        summary = "Suivre une visite par token (visiteur non authentifié)",
+        description = """
+            Retourne le statut, la date prévue, l'administrateur affecté et l'historique
+            de toutes les demandes de visite rattachées au numéro de suivi (token du prospect).
+
+            **Accès : PUBLIC — aucun token JWT requis**
+            """,
+        security = {}
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Suivi de la visite",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Aucun suivi trouvé pour ce numéro",
+            content = @Content(mediaType = "application/json"))
+    })
+    @GetMapping("/suivi/{token}")
+    public ResponseEntity<RestResponse<SuiviVisiteResponseDto>> suivreParToken(@PathVariable String token) {
+        return ResponseEntity.ok(RestResponse.success(service.suivreParToken(token), HttpStatus.OK));
+    }
+
+    @Operation(
         summary = "Mes demandes de visite (vue client)",
         description = """
             Retourne la liste paginée des demandes de visite du client connecté,
@@ -177,9 +198,10 @@ public class DemandeVisiteController {
     public ResponseEntity<PagedResponse<DemandeVisiteResponseDto>> getAllVisites(
             @Parameter(description = "Numéro de page", example = "0") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Taille de la page", example = "20") @RequestParam(defaultValue = "20") int size,
-            @Parameter(description = "Filtre optionnel par statut") @RequestParam(required = false) StatutDemandeVisite statut) {
+            @Parameter(description = "Filtre optionnel par statut") @RequestParam(required = false) StatutDemandeVisite statut,
+            @Parameter(description = "Filtre optionnel par type de transaction (VENTE/LOCATION)") @RequestParam(required = false) sn.immosn.backend.annonce.data.entity.TypeTransaction typeTransaction) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        return ResponseEntity.ok(PagedResponse.fromPage(service.getAllVisites(statut, pageable)));
+        return ResponseEntity.ok(PagedResponse.fromPage(service.getAllVisites(statut, typeTransaction, pageable)));
     }
 
     @Operation(
@@ -398,8 +420,9 @@ public class DemandeVisiteController {
             - `SANS_SUITE` : le client n'est pas intéressé. Visite → `CLOTUREE_SANS_SUITE`, lead → `ABANDONNE`. Retourne `null`.
             - `AVEC_CONTRAT` : le client souhaite poursuivre. Visite → `CLOTUREE_AVEC_CONTRAT`, contrat créé automatiquement (client, annonce, lead, montant=prix annonce), lead → `CONVERTI`. Retourne le contrat créé.
 
-            Pour `AVEC_CONTRAT`, `typeContrat` (VENTE ou LOCATION) est obligatoire.
-            Pour LOCATION, `dureeLocationMois` est obligatoire.
+            Pour `AVEC_CONTRAT`, le type de contrat (VENTE ou LOCATION) est déterminé automatiquement
+            par le `typeTransaction` de l'annonce — il ne se choisit plus manuellement.
+            Pour une annonce LOCATION, `dureeLocationMois` est obligatoire.
 
             **Accès : ADMIN ou SUPER_ADMIN**
             """,

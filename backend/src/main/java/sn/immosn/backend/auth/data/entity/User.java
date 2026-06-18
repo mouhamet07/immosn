@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -51,12 +52,18 @@ public class User implements UserDetails {
     @Column(name = "dernier_connexion")
     protected LocalDateTime dernierConnexion;
 
-    /** Compte créé automatiquement lors de la conversion d'un prospect (Sprint 3). */
+    /**
+     * Compte créé automatiquement lors de la conversion d'un prospect (Sprint 3).
+     * @ColumnDefault("false") : avec ddl-auto=update, garantit que l'ALTER TABLE ADD COLUMN
+     * applique DEFAULT false aux lignes existantes (sinon NULL → échec de mapping vers boolean → login 401).
+     */
     @Column(name = "compte_genere_auto", nullable = false)
+    @ColumnDefault("false")
     protected boolean compteGenereAuto = false;
 
     /** Le mot de passe temporaire doit être changé à la première connexion (Sprint 3). */
     @Column(name = "mot_de_passe_a_changer", nullable = false)
+    @ColumnDefault("false")
     protected boolean motDePasseAChanger = false;
 
     @ManyToMany(fetch = FetchType.EAGER)

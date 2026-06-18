@@ -30,6 +30,11 @@ export default {
     return api.put(`/contrats/${id}`, data)
   },
 
+  // PUT /api/v1/contrats/{id}/prospect — ADMIN — { nom, prenom, email, telephone }
+  updateProspect(id, data) {
+    return api.put(`/contrats/${id}/prospect`, data)
+  },
+
   // POST /api/v1/contrats/{id}/document — ADMIN (multipart)
   uploadDocument(id, file) {
     const form = new FormData()
@@ -70,15 +75,15 @@ export default {
     return api.put(`/contrats/${id}/prolongation/refuser`, motif ? { motif } : {})
   },
 
-  // ─── Sprint 3 : circuit pré-contrat ───
+  // ─── Pièces jointes typées (pré-contrat, contrat signé, pièce d'identité, etc.) ───
 
-  // PUT /api/v1/contrats/{id}/precontrat/valider — CLIENT valide son pré-contrat
-  validerPrecontrat(id) {
-    return api.put(`/contrats/${id}/precontrat/valider`)
+  // POST /api/v1/contrats/{id}/documents — ADMIN — documents : [{ type, url }]
+  addDocuments(id, documents) {
+    return api.post(`/contrats/${id}/documents`, { documents })
   },
 
-  // PUT /api/v1/contrats/{id}/activer — SUPER_ADMIN active le contrat validé
-  activer(id) {
-    return api.put(`/contrats/${id}/activer`)
+  // DELETE /api/v1/contrats/{id}/documents/{documentId} — ADMIN
+  removeDocument(id, documentId) {
+    return api.delete(`/contrats/${id}/documents/${documentId}`)
   },
 }

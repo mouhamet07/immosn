@@ -79,6 +79,20 @@ public class DashboardServiceImpl implements DashboardService {
             : 0.0;
         long totalDisc = discussionRepository.count();
 
+        // Sprint 4 — répartition par type de transaction
+        long annoncesVente = annonceRepository.countByTypeTransactionAndIsArchivedFalse(
+            sn.immosn.backend.annonce.data.entity.TypeTransaction.VENTE);
+        long annoncesLocation = annonceRepository.countByTypeTransactionAndIsArchivedFalse(
+            sn.immosn.backend.annonce.data.entity.TypeTransaction.LOCATION);
+        long contratsVente = contratRepository.countByTypeContrat(
+            sn.immosn.backend.contrat.data.entity.TypeContrat.VENTE);
+        long contratsLocation = contratRepository.countByTypeContrat(
+            sn.immosn.backend.contrat.data.entity.TypeContrat.LOCATION);
+        long visitesVente = visiteRepository.countByAnnonce_TypeTransaction(
+            sn.immosn.backend.annonce.data.entity.TypeTransaction.VENTE);
+        long visitesLocation = visiteRepository.countByAnnonce_TypeTransaction(
+            sn.immosn.backend.annonce.data.entity.TypeTransaction.LOCATION);
+
         // Activités récentes (5 par domaine, fusionnées, priorité EN_ATTENTE/OUVERT en tête)
         List<RecentActivityDto> activites = buildRecentActivities(page);
 
@@ -90,6 +104,8 @@ public class DashboardServiceImpl implements DashboardService {
             totalSig, sigOuverts,
             totalLeads, leadsEnCours, leadsConvertis, leadsAbandonnes, tauxConversionLeads,
             totalDisc,
+            annoncesVente, annoncesLocation, contratsVente, contratsLocation,
+            visitesVente, visitesLocation,
             activites
         );
     }
@@ -188,9 +204,15 @@ public class DashboardServiceImpl implements DashboardService {
             .map(c -> new RecentActivityDto(
                 "CONTRAT",
                 "Contrat : " + c.getAnnonce().getLibelle(),
-                c.getClient().getNomComplet(),
+                c.getClient() != null ? c.getClient().getNomComplet() : nomProspect(c.getProspect()),
                 c.getStatut().name(), c.getCreatedAt()))
             .toList();
+    }
+
+    private String nomProspect(sn.immosn.backend.prospect.data.entity.Prospect prospect) {
+        if (prospect == null) return null;
+        String prenom = prospect.getPrenom() != null && !prospect.getPrenom().isBlank() ? prospect.getPrenom().trim() + " " : "";
+        return (prenom + (prospect.getNom() != null ? prospect.getNom() : "")).trim();
     }
 
     private List<RecentActivityDto> buildSignalements(PageRequest page) {

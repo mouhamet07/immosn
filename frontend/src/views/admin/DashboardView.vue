@@ -348,6 +348,25 @@ const shortcuts = [
         </div>
       </div>
 
+      <!-- Répartition visites Vente/Location -->
+      <div v-if="stats" class="dash__vente-location">
+        <div class="vl-card">
+          <p class="vl-card__title">Visites — Vente / Location</p>
+          <div class="vl-card__rows">
+            <div class="vl-card__row">
+              <span class="vl-card__dot" style="background:#a16207"></span>
+              <span class="vl-card__lbl">Vente</span>
+              <span class="vl-card__val">{{ stats.visitesVente }}</span>
+            </div>
+            <div class="vl-card__row">
+              <span class="vl-card__dot" style="background:#7c3aed"></span>
+              <span class="vl-card__lbl">Location</span>
+              <span class="vl-card__val">{{ stats.visitesLocation }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Grille 2 colonnes -->
       <div class="dash__grid">
 
@@ -602,6 +621,23 @@ const shortcuts = [
 
 /* Total à droite */
 .conv-total      { flex-shrink: 0; text-align: center; padding-left: 1rem; border-left: 1px solid #f3f4f6; }
+
+/* Répartition visites Vente/Location */
+.dash__vente-location { display: flex; }
+.vl-card {
+  background: #fff;
+  border: 1px solid #eef2f7;
+  border-radius: 16px;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+  width: 100%;
+}
+.vl-card__title { font-size: .8rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: .05em; margin-bottom: .55rem; }
+.vl-card__rows  { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+.vl-card__row   { display: flex; align-items: center; gap: .5rem; }
+.vl-card__dot   { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.vl-card__lbl   { font-size: .82rem; color: #374151; }
+.vl-card__val   { font-size: .88rem; font-weight: 700; color: #111827; }
 .conv-total__val { display: block; font-size: 1.8rem; font-weight: 800; color: #111827; line-height: 1; }
 .conv-total__lbl { display: block; font-size: .72rem; color: #9ca3af; margin-top: .2rem; white-space: nowrap; }
 

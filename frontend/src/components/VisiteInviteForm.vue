@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import ButtonPrimary from '@/components/ButtonPrimary.vue'
+import PhoneInput from '@/components/PhoneInput.vue'
 import visiteService from '@/services/visiteService'
 
 const props = defineProps({
@@ -14,7 +15,6 @@ const form = ref({
   email: '',
   adresse: '',
   date: '',
-  heure: '',
   commentaire: '',
 })
 
@@ -47,7 +47,6 @@ async function submit() {
       email: form.value.email.trim(),
       adresse: form.value.adresse.trim() || null,
       dateVisite: dateFormatted,
-      heureVisite: form.value.heure || null,
       commentaire: form.value.commentaire.trim() || null,
     })
     prospectToken.value = res.data.data.prospectToken
@@ -74,7 +73,7 @@ async function submit() {
         </div>
         <div class="invite-form__field">
           <label>Téléphone *</label>
-          <input v-model="form.telephone" type="tel" placeholder="+221 77 000 00 00" />
+          <PhoneInput v-model="form.telephone" />
         </div>
         <div class="invite-form__field">
           <label>Email *</label>
@@ -84,13 +83,9 @@ async function submit() {
           <label>Adresse</label>
           <input v-model="form.adresse" type="text" placeholder="Almadies, Dakar" />
         </div>
-        <div class="invite-form__field">
-          <label>Date souhaitée *</label>
+        <div class="invite-form__field invite-form__field--full">
+          <label>Date et heure souhaitées *</label>
           <input v-model="form.date" type="datetime-local" />
-        </div>
-        <div class="invite-form__field">
-          <label>Heure (optionnel)</label>
-          <input v-model="form.heure" type="time" />
         </div>
         <div class="invite-form__field invite-form__field--full">
           <label>Commentaire</label>
@@ -115,6 +110,9 @@ async function submit() {
         <p class="invite-form__success-hint">
           Vous serez contacté au numéro et à l'email indiqués.
         </p>
+        <RouterLink :to="{ name: 'suivi-visite', query: { token: prospectToken } }" class="invite-form__track-link">
+          Suivre ma visite avec ce numéro
+        </RouterLink>
       </div>
     </template>
   </div>
@@ -147,6 +145,10 @@ async function submit() {
   border-radius: var(--radius-sm); font-size: 0.8rem; word-break: break-all;
 }
 .invite-form__success-hint { font-size: 0.8rem; opacity: 0.6; }
+.invite-form__track-link {
+  display: inline-block; margin-top: 0.5rem; font-size: 0.85rem; font-weight: 600;
+  color: var(--color-primary); text-decoration: underline;
+}
 @media (max-width: 480px) {
   .invite-form__grid { grid-template-columns: 1fr; }
 }

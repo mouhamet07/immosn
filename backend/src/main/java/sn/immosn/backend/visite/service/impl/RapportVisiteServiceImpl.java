@@ -32,12 +32,11 @@ public class RapportVisiteServiceImpl implements RapportVisiteService {
 
     /**
      * États depuis lesquels une visite peut recevoir un rapport.
-     * Souple par compatibilité : une visite ACCEPTEE (flux Sprint 1) ou AFFECTEE (flux Sprint 2)
-     * peut être rapportée. REPLANIFICATION_DEMANDEE est exclue (date à régler d'abord).
+     * Un admin doit avoir été affecté à la visite au préalable (AFFECTEE) : ACCEPTEE est exclue
+     * pour éviter un rapport orphelin sans admin responsable.
      */
     private static final Set<StatutDemandeVisite> ETATS_RAPPORTABLES =
-        EnumSet.of(StatutDemandeVisite.ACCEPTEE, StatutDemandeVisite.AFFECTEE,
-                   StatutDemandeVisite.RAPPORT_REDIGE);
+        EnumSet.of(StatutDemandeVisite.AFFECTEE, StatutDemandeVisite.RAPPORT_REDIGE);
 
     private final RapportVisiteRepository rapportRepository;
     private final DemandeVisiteRepository visiteRepository;
@@ -50,9 +49,13 @@ public class RapportVisiteServiceImpl implements RapportVisiteService {
     @Transactional
     public RapportVisiteResponseDto creerRapport(Long visiteId, RapportVisiteCreateRequestDto request, String adminEmail) {
         DemandeVisite visite = loadVisite(visiteId);
+        if (visite.getAdminResponsable() == null) {
+            throw new IllegalStateException(
+                "Aucun admin n'est affecté à cette visite : affectez un admin avant de rédiger le rapport.");
+        }
         if (!ETATS_RAPPORTABLES.contains(visite.getStatut())) {
             throw new IllegalStateException(
-                "Un rapport ne peut être rédigé que pour une visite ACCEPTEE ou AFFECTEE. "
+                "Un rapport ne peut être rédigé que pour une visite AFFECTEE. "
                 + "Statut actuel : " + visite.getStatut());
         }
         if (rapportRepository.existsByDemandeVisiteId(visiteId)) {
@@ -61,6 +64,11 @@ public class RapportVisiteServiceImpl implements RapportVisiteService {
 
         User auteur = userRepository.findByEmail(adminEmail)
             .orElseThrow(() -> new EntityNotFoundException("Administrateur non trouvé : " + adminEmail));
+        if (!visite.getAdminResponsable().getId().equals(auteur.getId())) {
+            throw new IllegalStateException(
+                "Seul l'admin affecté à cette visite (" + visite.getAdminResponsable().getEmail()
+                + ") peut rédiger le rapport.");
+        }
 
         RapportVisite rapport = RapportVisite.builder()
             .demandeVisite(visite)

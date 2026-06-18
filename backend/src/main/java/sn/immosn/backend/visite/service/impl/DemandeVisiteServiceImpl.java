@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.immosn.backend.annonce.data.entity.Annonce;
+import sn.immosn.backend.annonce.data.entity.TypeTransaction;
 import sn.immosn.backend.annonce.data.repository.AnnonceRepository;
 import sn.immosn.backend.auth.data.entity.RoleType;
 import sn.immosn.backend.auth.data.entity.User;
@@ -24,6 +25,7 @@ import sn.immosn.backend.lead.service.LeadHistoryService;
 import sn.immosn.backend.prospect.data.entity.Prospect;
 import sn.immosn.backend.prospect.data.repository.ProspectRepository;
 import sn.immosn.backend.shared.exception.EntityNotFoundException;
+import sn.immosn.backend.shared.service.VisiteTrackingNotificationService;
 import sn.immosn.backend.visite.data.entity.DemandeVisite;
 import sn.immosn.backend.visite.data.entity.StatutDemandeVisite;
 import sn.immosn.backend.visite.data.repository.DemandeVisiteRepository;
@@ -49,6 +51,7 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
     private final ContratService contratService;
     private final VisiteHistoryService visiteHistoryService;
     private final LeadHistoryService leadHistoryService;
+    private final VisiteTrackingNotificationService visiteTrackingNotificationService;
 
     /**
      * Crée une demande de visite ET un lead automatiquement.
@@ -102,9 +105,9 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
 
     /**
      * Demande de visite d'un visiteur non authentifié.
-     * Crée (ou réutilise par email) un Prospect, puis une DemandeVisite rattachée à ce prospect.
-     * Le lead n'est pas créé ici : l'entité Lead reste liée à un User (compat ascendante) —
-     * la conversion prospect → lead/contrat est traitée dans un sprint ultérieur.
+     * Crée (ou réutilise par email) un Prospect, une DemandeVisite rattachée à ce prospect,
+     * et un Lead (comme pour un client authentifié) pour permettre la conversion en contrat
+     * sans attendre la création d'un compte.
      */
     @Override
     @Transactional
@@ -130,8 +133,24 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
         visite = visiteRepository.save(visite);
         visiteHistoryService.record(visite, null, StatutDemandeVisite.EN_ATTENTE,
             "CREATION_INVITE", request.commentaire(), null, null);
+
+        boolean leadExisteDeja = !leadRepository.findByVisiteId(visite.getId()).isEmpty();
+        if (!leadExisteDeja) {
+            Lead lead = Lead.builder()
+                .prospect(prospect)
+                .annonce(annonce)
+                .visite(visite)
+                .build();
+            Lead savedLead = leadRepository.save(lead);
+            leadHistoryService.record(savedLead, null, StatutLead.EN_COURS,
+                "CREATION", "Lead créé automatiquement pour visite invité #" + visite.getId());
+        }
+
         log.info("Demande de visite invité #{} créée (prospect={}, annonce={})",
             visite.getId(), prospect.getEmail(), annonce.getId());
+
+        visiteTrackingNotificationService.notifierNumeroSuivi(
+            prospect.getNom(), prospect.getEmail(), prospect.getTelephone(), prospect.getToken());
 
         return mapper.toInviteDto(visite, prospect.getToken());
     }
@@ -146,6 +165,17 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
                 .adresse(request.adresse())
                 .token(UUID.randomUUID().toString())
                 .build()));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SuiviVisiteResponseDto suivreParToken(String token) {
+        Prospect prospect = prospectRepository.findByToken(token)
+            .orElseThrow(() -> new EntityNotFoundException("Aucun suivi trouvé pour ce numéro."));
+        List<DemandeVisiteResponseDto> visites = visiteRepository.findByProspectIdOrderByCreatedAtDesc(prospect.getId())
+            .stream().map(mapper::toDto).toList();
+        return new SuiviVisiteResponseDto(prospect.getPrenom() != null
+            ? prospect.getPrenom() + " " + prospect.getNom() : prospect.getNom(), visites);
     }
 
     @Override
@@ -171,12 +201,21 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<DemandeVisiteResponseDto> getAllVisites(StatutDemandeVisite statut, Pageable pageable) {
+    public Page<DemandeVisiteResponseDto> getAllVisites(
+        StatutDemandeVisite statut, TypeTransaction typeTransaction, Pageable pageable
+    ) {
         // Admin path: no isArchived filter — archived visits remain visible for audit/review.
         // Mutation helpers (loadVisite) still enforce isArchivedFalse to block edits on archived visits.
-        Page<DemandeVisite> page = statut != null
-            ? visiteRepository.findByStatut(statut, pageable)
-            : visiteRepository.findAll(pageable);
+        Page<DemandeVisite> page;
+        if (statut != null && typeTransaction != null) {
+            page = visiteRepository.findByStatutAndAnnonce_TypeTransaction(statut, typeTransaction, pageable);
+        } else if (statut != null) {
+            page = visiteRepository.findByStatut(statut, pageable);
+        } else if (typeTransaction != null) {
+            page = visiteRepository.findByAnnonce_TypeTransaction(typeTransaction, pageable);
+        } else {
+            page = visiteRepository.findAll(pageable);
+        }
         return page.map(mapper::toDto);
     }
 
@@ -423,13 +462,14 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
                 return null;
             }
             case AVEC_CONTRAT -> {
+                // Le type de contrat n'est plus choisi manuellement : il est imposé par le
+                // TypeTransaction de l'annonce, fixé une fois pour toutes à sa création.
+                TypeContrat typeContrat = visite.getAnnonce().getTypeTransaction() == TypeTransaction.LOCATION
+                    ? TypeContrat.LOCATION : TypeContrat.VENTE;
+
                 // Valider avant toute mutation d'état : un rollback protège,
                 // mais la validation doit précéder la persistance.
-                if (dto.typeContrat() == null) {
-                    throw new IllegalArgumentException(
-                        "typeContrat est obligatoire pour une clôture AVEC_CONTRAT (VENTE ou LOCATION)");
-                }
-                if (dto.typeContrat() == TypeContrat.LOCATION
+                if (typeContrat == TypeContrat.LOCATION
                         && (dto.dureeLocationMois() == null || dto.dureeLocationMois() <= 0)) {
                     throw new IllegalArgumentException(
                         "dureeLocationMois est obligatoire et doit être > 0 pour un contrat LOCATION");
@@ -439,7 +479,7 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
                 visiteHistoryService.record(visite, actuel,
                     StatutDemandeVisite.CLOTUREE_AVEC_CONTRAT,
                     "CLOTURE_AVEC_CONTRAT", null, null, null);
-                ContratResponseDto contrat = contratService.createFromVisite(visite, dto.typeContrat(), dto.dureeLocationMois());
+                ContratResponseDto contrat = contratService.createFromVisite(visite, typeContrat, dto.dureeLocationMois());
                 log.info("Visite #{} clôturée avec contrat #{}", id, contrat.id());
                 return contrat;
             }

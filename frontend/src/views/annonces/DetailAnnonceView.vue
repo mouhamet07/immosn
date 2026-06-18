@@ -218,6 +218,10 @@ function toUSD(prix) {
           <!-- Titre + prix -->
           <div class="detail-header">
             <div>
+              <span v-if="annonce.typeTransaction" class="detail-transac-badge"
+                :class="annonce.typeTransaction === 'VENTE' ? 'detail-transac-badge--vente' : 'detail-transac-badge--location'">
+                {{ annonce.typeTransaction === 'VENTE' ? 'À vendre' : 'À louer' }}
+              </span>
               <h1 class="detail-header__title">{{ annonce.libelle }}</h1>
               <p class="detail-adresse">
                 <SvgIcon name="map-pin" :size="14" />
@@ -516,6 +520,13 @@ function toUSD(prix) {
   align-items: flex-start; gap: 1rem;
   margin-bottom: 1.5rem; flex-wrap: wrap;
 }
+.detail-transac-badge {
+  display: inline-block; margin-bottom: 0.5rem;
+  padding: 0.2rem 0.7rem; border-radius: 20px;
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+}
+.detail-transac-badge--vente { background: rgba(74, 124, 111, 0.12); color: #3a6b5e; }
+.detail-transac-badge--location { background: rgba(180, 130, 40, 0.14); color: #92670f; }
 .detail-header__title {
   font-family: var(--font-serif);
   font-size: 2.2rem; font-weight: 700;
@@ -680,7 +691,7 @@ function toUSD(prix) {
 }
 .modal-chat__close:hover { color: var(--color-text); }
 .modal-chat__intro { padding: 1.25rem 1.5rem 0; font-size: 0.88rem; color: var(--color-text-muted); line-height: 1.6; }
-.modal-chat__compose { display: flex; flex-direction: column; gap: 0.75rem; padding: 1rem 1.5rem 1.5rem; }
+.modal-chat__compose { display: flex; flex-direction: column; gap: 0.75rem; padding: 1rem 1.5rem 1.5rem; flex: 1 1 auto; overflow-y: auto; min-height: 0; }
 .modal-chat__textarea {
   width: 100%; padding: 0.75rem;
   border: 1.5px solid var(--color-border); border-radius: var(--radius-sm);

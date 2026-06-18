@@ -15,11 +15,13 @@ import sn.immosn.backend.auth.data.repository.UserRepository;
 import sn.immosn.backend.client.web.visite.dto.VisiteInviteCreateRequestDto;
 import sn.immosn.backend.client.web.visite.dto.VisiteInviteResponseDto;
 import sn.immosn.backend.client.web.visite.mapper.DemandeVisiteMapper;
+import sn.immosn.backend.lead.data.entity.Lead;
 import sn.immosn.backend.lead.data.repository.LeadRepository;
 import sn.immosn.backend.lead.service.LeadHistoryService;
 import sn.immosn.backend.prospect.data.entity.Prospect;
 import sn.immosn.backend.prospect.data.repository.ProspectRepository;
 import sn.immosn.backend.shared.exception.EntityNotFoundException;
+import sn.immosn.backend.shared.service.VisiteTrackingNotificationService;
 import sn.immosn.backend.visite.data.entity.DemandeVisite;
 import sn.immosn.backend.visite.data.repository.DemandeVisiteRepository;
 import sn.immosn.backend.visite.service.impl.DemandeVisiteServiceImpl;
@@ -43,6 +45,7 @@ class DemandeVisiteInviteServiceTest {
     @Mock LeadRepository leadRepository;
     @Mock VisiteHistoryService visiteHistoryService;
     @Mock LeadHistoryService leadHistoryService;
+    @Mock VisiteTrackingNotificationService visiteTrackingNotificationService;
     // Mapper réel : on vérifie le mapping invité de bout en bout
     @org.mockito.Spy DemandeVisiteMapper mapper = new DemandeVisiteMapper();
 
@@ -94,6 +97,12 @@ class DemandeVisiteInviteServiceTest {
             v.setId(99L);
             return v;
         });
+        when(leadRepository.findByVisiteId(99L)).thenReturn(java.util.List.of());
+        when(leadRepository.save(any(Lead.class))).thenAnswer(inv -> {
+            Lead l = inv.getArgument(0);
+            l.setId(42L);
+            return l;
+        });
 
         VisiteInviteResponseDto dto = service.createInvite(request());
 
@@ -114,9 +123,14 @@ class DemandeVisiteInviteServiceTest {
         assertThat(visiteCaptor.getValue().getProspect()).isNotNull();
         assertThat(visiteCaptor.getValue().getHeureVisite()).isEqualTo("10:00");
 
-        // Aucun lead créé dans le flux invité (Lead reste lié à un User — sprint ultérieur)
-        verifyNoInteractions(leadRepository);
-        verifyNoInteractions(leadHistoryService);
+        // Un lead est créé pour la visite invité, rattaché au prospect (pas à un client)
+        ArgumentCaptor<Lead> leadCaptor = ArgumentCaptor.forClass(Lead.class);
+        verify(leadRepository).save(leadCaptor.capture());
+        assertThat(leadCaptor.getValue().getClient()).isNull();
+        assertThat(leadCaptor.getValue().getProspect()).isNotNull();
+        assertThat(leadCaptor.getValue().getVisite()).isEqualTo(visiteCaptor.getValue());
+        verify(leadHistoryService).record(any(Lead.class), isNull(), eq(sn.immosn.backend.lead.data.entity.StatutLead.EN_COURS),
+            eq("CREATION"), anyString());
     }
 
     @Test

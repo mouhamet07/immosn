@@ -5,6 +5,7 @@ import lombok.*;
 import sn.immosn.backend.annonce.data.entity.Annonce;
 import sn.immosn.backend.auth.data.entity.User;
 import sn.immosn.backend.lead.data.entity.Lead;
+import sn.immosn.backend.prospect.data.entity.Prospect;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -22,9 +23,23 @@ public class Contrat {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "client_id", nullable = false)
+    /**
+     * Client titulaire du contrat. Nullable : un contrat issu d'une visite invité n'a pas encore
+     * de compte client tant qu'il n'est pas activé par le SUPER_ADMIN — voir {@link #prospect}.
+     * Le compte est créé à l'activation finale, jamais avant.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "client_id")
     private User client;
+
+    /**
+     * Prospect non authentifié à l'origine du contrat (null si le contrat provient d'un client
+     * déjà connu). Exactement l'un de {@link #client} ou {@link #prospect} est renseigné avant
+     * activation ; après activation, {@link #client} est toujours renseigné.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "prospect_id")
+    private Prospect prospect;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "annonce_id", nullable = false)
@@ -57,6 +72,21 @@ public class Contrat {
     @Column(name = "duree_location_mois")
     private Integer dureeLocationMois;
 
+    /**
+     * Date de fin de garantie (Sprint 4). Pertinent surtout pour une VENTE :
+     * un signalement n'est éligible que si déposé avant cette date. Nullable.
+     */
+    @Column(name = "date_fin_garantie")
+    private LocalDate dateFinGarantie;
+
+    /**
+     * Clauses contractuelles (Sprint 4) — texte libre listant les engagements
+     * (entretien, réparation, dégradation, responsabilité…) utilisé pour l'analyse
+     * d'éligibilité des signalements LOCATION. Nullable.
+     */
+    @Column(name = "clauses_contractuelles", columnDefinition = "TEXT")
+    private String clausesContractuelles;
+
     @Column(name = "document_url")
     private String documentUrl;
 
@@ -71,11 +101,7 @@ public class Contrat {
     @Column(name = "motif_prolongation", columnDefinition = "TEXT")
     private String motifProlongation;
 
-    /** Horodatage de validation du pré-contrat par le client (Sprint 3). Null tant que non validé. */
-    @Column(name = "valide_par_client_at")
-    private LocalDateTime valideParClientAt;
-
-    /** Horodatage d'activation du contrat par le SUPER_ADMIN (Sprint 3). Null tant que non activé. */
+    /** Horodatage d'activation du contrat (EN_ATTENTE → ACTIF) par le SUPER_ADMIN. Null tant que non activé. */
     @Column(name = "valide_par_super_admin_at")
     private LocalDateTime valideParSuperAdminAt;
 

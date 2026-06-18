@@ -33,10 +33,15 @@ async function handleLogout() {
     <!-- Liens de navigation (desktop) -->
     <ul class="navbar__links">
       <li><RouterLink to="/annonces" class="navbar__link">Annonces</RouterLink></li>
-      <li><RouterLink to="/mes-visites" class="navbar__link">Visites</RouterLink></li>
-      <li><RouterLink to="/mes-contrats" class="navbar__link">Contrats</RouterLink></li>
-      <li><RouterLink to="/discussions" class="navbar__link">Messages</RouterLink></li>
-      <li><RouterLink to="/mes-signalements" class="navbar__link">Signalements</RouterLink></li>
+      <template v-if="authStore.isAuthenticated">
+        <li><RouterLink to="/mes-visites" class="navbar__link">Visites</RouterLink></li>
+        <li><RouterLink to="/mes-contrats" class="navbar__link">Contrats</RouterLink></li>
+        <li><RouterLink to="/discussions" class="navbar__link">Messages</RouterLink></li>
+        <li><RouterLink to="/mes-signalements" class="navbar__link">Signalements</RouterLink></li>
+      </template>
+      <template v-else>
+        <li><RouterLink to="/suivi-visite" class="navbar__link">Suivre ma visite</RouterLink></li>
+      </template>
     </ul>
 
     <!-- Actions droite -->
@@ -75,10 +80,15 @@ async function handleLogout() {
       <nav class="navbar__drawer" @click.stop>
         <ul class="navbar__drawer-links">
           <li><RouterLink to="/annonces" class="navbar__drawer-link" @click="closeMenu">Annonces</RouterLink></li>
-          <li><RouterLink to="/mes-visites" class="navbar__drawer-link" @click="closeMenu">Visites</RouterLink></li>
-          <li><RouterLink to="/mes-contrats" class="navbar__drawer-link" @click="closeMenu">Contrats</RouterLink></li>
-          <li><RouterLink to="/discussions" class="navbar__drawer-link" @click="closeMenu">Messages</RouterLink></li>
-          <li><RouterLink to="/mes-signalements" class="navbar__drawer-link" @click="closeMenu">Signalements</RouterLink></li>
+          <template v-if="authStore.isAuthenticated">
+            <li><RouterLink to="/mes-visites" class="navbar__drawer-link" @click="closeMenu">Visites</RouterLink></li>
+            <li><RouterLink to="/mes-contrats" class="navbar__drawer-link" @click="closeMenu">Contrats</RouterLink></li>
+            <li><RouterLink to="/discussions" class="navbar__drawer-link" @click="closeMenu">Messages</RouterLink></li>
+            <li><RouterLink to="/mes-signalements" class="navbar__drawer-link" @click="closeMenu">Signalements</RouterLink></li>
+          </template>
+          <template v-else>
+            <li><RouterLink to="/suivi-visite" class="navbar__drawer-link" @click="closeMenu">Suivre ma visite</RouterLink></li>
+          </template>
         </ul>
 
         <div class="navbar__drawer-footer">

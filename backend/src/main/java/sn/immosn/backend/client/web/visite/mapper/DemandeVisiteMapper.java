@@ -26,6 +26,7 @@ public class DemandeVisiteMapper {
             v.getAnnonce().getLibelle(),
             v.getAnnonce().getAdresse(),
             image,
+            v.getAnnonce().getTypeTransaction(),
             v.getDateVisite(),
             v.getStatut(),
             v.getCommentaire(),

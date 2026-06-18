@@ -1,17 +1,8 @@
 package sn.immosn.backend.contrat.data.entity;
 
 public enum StatutContrat {
-    /** Contrat créé, en attente de validation admin */
+    /** Pré-contrat créé, en attente du document signé puis d'activation par le SUPER_ADMIN */
     EN_ATTENTE,
-
-    /** Pré-contrat brouillon, pas encore soumis au client (Sprint 3) */
-    BROUILLON,
-
-    /** Pré-contrat en attente de validation par le client (Sprint 3) */
-    EN_ATTENTE_VALIDATION_CLIENT,
-
-    /** Validé par le client, en attente d'activation par le SUPER_ADMIN (Sprint 3) */
-    EN_ATTENTE_VALIDATION_SUPER_ADMIN,
 
     /** Contrat en cours, valide */
     ACTIF,

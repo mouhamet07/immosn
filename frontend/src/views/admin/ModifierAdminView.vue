@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, RotateCcw, ShieldOff, Save } from 'lucide-vue-next'
@@ -61,7 +61,7 @@ async function handleSave() {
     const res = await authService.updateAdmin(admin.value.id, payload)
     admin.value = { ...admin.value, ...(res.data?.data ?? {}) }
     form.nouveauMotDePasse = ''
-    toast.success('Administrateur modifié ✓')
+    toast.success('Administrateur modifié')
   } catch (err) {
     // getErrorMessage extrait les messages détaillés de validation (champ data)
     toast.error(getErrorMessage(err))
@@ -78,7 +78,7 @@ async function handleRevoke() {
   acting.value = true
   try {
     await authService.archiveAdmin(admin.value.id)
-    toast.success('Accès administrateur révoqué ✓')
+    toast.success('Accès administrateur révoqué')
     router.push('/admin/administrateurs')
   } catch (err) {
     toast.error(err.response?.data?.message || 'Erreur lors de la révocation de l\'accès.')
@@ -92,7 +92,7 @@ async function handleRestore() {
   acting.value = true
   try {
     await authService.restoreAdmin(admin.value.id)
-    toast.success('Accès administrateur restauré ✓')
+    toast.success('Accès administrateur restauré')
     router.push('/admin/administrateurs')
   } catch (err) {
     toast.error(err.response?.data?.message || 'Erreur lors de la restauration de l\'accès.')

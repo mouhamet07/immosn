@@ -257,4 +257,31 @@ public class SignalementController {
         return ResponseEntity.status(HttpStatus.NO_CONTENT)
             .body(RestResponse.success(null, HttpStatus.NO_CONTENT));
     }
+
+    @Operation(
+        summary = "Historique des décisions d'un signalement",
+        description = "Retourne l'historique des transitions de statut et motifs d'un signalement (Sprint 4). **Accès : ADMIN ou SUPER_ADMIN**"
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Historique du signalement",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Identifiant invalide",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Signalement non trouvé",
+            content = @Content(mediaType = "application/json"))
+    })
+    @GetMapping("/{id}/historique")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<PagedResponse<SignalementHistoryDto>> getHistorique(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(PagedResponse.fromPage(service.getHistory(id, pageable)));
+    }
 }

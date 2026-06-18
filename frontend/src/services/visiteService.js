@@ -12,6 +12,11 @@ export default {
     return api.post('/visites/invite', payload)
   },
 
+  // GET /api/v1/visites/suivi/{token} — PUBLIC : suivi d'une visite par numéro/token de prospect
+  suivreParToken(token) {
+    return api.get(`/visites/suivi/${token}`)
+  },
+
   // GET /api/v1/visites/client?page&size&statut
   getClientVisites(page = 0, size = 10, statut = null) {
     const params = { page, size }
@@ -19,10 +24,11 @@ export default {
     return api.get('/visites/client', { params })
   },
 
-  // GET /api/v1/visites/admin?page&size&statut
-  getAllVisites(page = 0, size = 20, statut = null) {
+  // GET /api/v1/visites/admin?page&size&statut&typeTransaction
+  getAllVisites(page = 0, size = 20, statut = null, typeTransaction = null) {
     const params = { page, size }
     if (statut) params.statut = statut
+    if (typeTransaction) params.typeTransaction = typeTransaction
     return api.get('/visites/admin', { params })
   },
 

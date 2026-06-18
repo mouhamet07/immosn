@@ -43,6 +43,18 @@ public class RoleDataInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        // Backfill défensif des colonnes booléennes Sprint 3 (NULL → false) sur les lignes existantes.
+        // Évite un 401 au login causé par un NULL non mappable vers boolean. Idempotent.
+        try {
+            int normalises = userRepository.normaliserFlagsBooleens();
+            if (normalises > 0) {
+                log.info("Normalisation des indicateurs booléens utilisateurs : {} ligne(s) corrigée(s)", normalises);
+            }
+        } catch (Exception e) {
+            // Sur une base fraîche (colonnes inexistantes au moment de l'exécution) ou H2, on ignore.
+            log.debug("Normalisation des indicateurs booléens ignorée : {}", e.getMessage());
+        }
+
         // Créer tous les rôles manquants
         for (RoleType type : RoleType.values()) {
             roleRepository.findByRole(type).orElseGet(() -> {

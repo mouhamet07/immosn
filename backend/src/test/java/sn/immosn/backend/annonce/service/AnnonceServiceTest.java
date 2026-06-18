@@ -81,7 +81,9 @@ class AnnonceServiceTest {
             1L, "Villa Almadies", "Magnifique villa", 5, 2, 250.0,
             BigDecimal.valueOf(150_000_000), "Almadies, Dakar",
             null, null, null, null, null,
-            null, List.of(), List.of(), false,
+            null,                 // typeBien
+            null,                 // typeTransaction (Sprint 4)
+            List.of(), List.of(), false,
             null, null,
             LocalDateTime.now(), LocalDateTime.now()
         );
@@ -89,7 +91,9 @@ class AnnonceServiceTest {
         listDto = new AnnonceListDto(
             "1", "Villa Almadies", BigDecimal.valueOf(150_000_000),
             "Almadies, Dakar", null, null, null, null,
-            null, 5, 2, 250.0, null, null, LocalDateTime.now(), false,
+            null,                 // typeBien
+            null,                 // typeTransaction (Sprint 4)
+            5, 2, 250.0, null, null, LocalDateTime.now(), false,
             null, null
         );
     }
@@ -149,6 +153,7 @@ class AnnonceServiceTest {
             "Dakar",
             "Almadies",
             1L,
+            sn.immosn.backend.annonce.data.entity.TypeTransaction.VENTE,
             null,
             null,
             null
@@ -197,6 +202,7 @@ class AnnonceServiceTest {
             "Dakar",
             "Almadies",
             1L,
+            sn.immosn.backend.annonce.data.entity.TypeTransaction.VENTE,
             null,
             null,
             null
@@ -264,7 +270,8 @@ class AnnonceServiceTest {
             null,
             "Dakar",
             "Almadies",
-            null,
+            null,   // typeBienId
+            null,   // typeTransaction (Sprint 4)
             null,
             null,
             null
@@ -321,7 +328,7 @@ class AnnonceServiceTest {
     @DisplayName("searchAnnonces — délègue au repository avec Specification")
     void searchAnnonces_delegatesToRepo() {
         SearchAnnonceRequestDto req = new SearchAnnonceRequestDto(
-            null, null, null, "Almadies", null, null, null, null, 0, 9, "createdAt", "DESC"
+            null, null, null, null, "Almadies", null, null, null, null, 0, 9, "createdAt", "DESC"
         );
         Page<Annonce> page = new PageImpl<>(List.of(annonceActive));
         // Utiliser ArgumentMatchers.<Type>any() pour éviter les unchecked cast warnings

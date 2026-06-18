@@ -5,5 +5,7 @@ import sn.immosn.backend.signalement.data.entity.StatutSignalement;
 
 public record UpdateStatutSignalementDto(
     @NotNull StatutSignalement statut,
-    String reponseAdmin
+    String reponseAdmin,
+    /** Motif obligatoire lorsque le statut cible est REJETE (Sprint 4). */
+    String motifRejet
 ) {}

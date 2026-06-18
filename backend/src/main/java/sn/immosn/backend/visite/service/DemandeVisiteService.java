@@ -2,6 +2,7 @@ package sn.immosn.backend.visite.service;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import sn.immosn.backend.annonce.data.entity.TypeTransaction;
 import sn.immosn.backend.client.web.contrat.dto.ContratResponseDto;
 import sn.immosn.backend.client.web.visite.dto.*;
 import sn.immosn.backend.visite.data.entity.StatutDemandeVisite;
@@ -16,11 +17,17 @@ public interface DemandeVisiteService {
      */
     VisiteInviteResponseDto createInvite(VisiteInviteCreateRequestDto request);
 
+    /**
+     * Suivi public d'une visite par token de prospect — aucune authentification requise.
+     * Retourne toutes les demandes de visite rattachées au prospect identifié par ce token.
+     */
+    SuiviVisiteResponseDto suivreParToken(String token);
+
     DemandeVisiteResponseDto getById(Long id, String userEmail, boolean isAdmin);
 
     Page<DemandeVisiteResponseDto> getClientVisites(String clientEmail, StatutDemandeVisite statut, Pageable pageable);
 
-    Page<DemandeVisiteResponseDto> getAllVisites(StatutDemandeVisite statut, Pageable pageable);
+    Page<DemandeVisiteResponseDto> getAllVisites(StatutDemandeVisite statut, TypeTransaction typeTransaction, Pageable pageable);
 
     DemandeVisiteResponseDto updateStatut(Long id, UpdateStatutVisiteDto dto, String userEmail, boolean isAdmin);
 

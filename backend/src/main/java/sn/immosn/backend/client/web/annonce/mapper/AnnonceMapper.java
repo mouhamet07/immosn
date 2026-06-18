@@ -39,6 +39,7 @@ public class AnnonceMapper {
             a.getLatitude(),
             a.getLongitude(),
             typeBienAnnonceMapper.toResponseDto(a.getTypeBien()),
+            a.getTypeTransaction(),
             a.getAnnonceCommodites().stream()
                 .map(ac -> commoditeMapper.toResponse(ac.getCommodite()))
                 .collect(Collectors.toList()),
@@ -64,6 +65,7 @@ public class AnnonceMapper {
             a.getLatitude(),
             a.getLongitude(),
             typeBienAnnonceMapper.toResponseDto(a.getTypeBien()),
+            a.getTypeTransaction(),
             a.getNbrPieces(),
             a.getNbrSallesBain(),
             a.getSurface(),
@@ -88,6 +90,7 @@ public class AnnonceMapper {
             .departement(dto.departement())
             .quartier(dto.quartier())
             .typeBien(typeBien)
+            .typeTransaction(dto.typeTransaction())
             .images(dto.images())
             .isExclusivite(dto.isExclusivite() != null && dto.isExclusivite())
             .isArchived(false)

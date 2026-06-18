@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
+import sn.immosn.backend.annonce.data.entity.TypeTransaction;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -51,6 +52,9 @@ public record AnnonceCreateRequestDto(
 
     @NotNull(message = "Le type de bien est obligatoire")
     Long typeBienId,
+
+    @NotNull(message = "Le type de transaction est obligatoire (VENTE ou LOCATION)")
+    TypeTransaction typeTransaction,
 
     List<@NotNull Long> commoditeIds,
 

@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import sn.immosn.backend.annonce.data.entity.Annonce;
+import sn.immosn.backend.annonce.data.entity.TypeTransaction;
 
 @Repository
 public interface AnnonceRepository extends JpaRepository<Annonce, Long>, JpaSpecificationExecutor<Annonce> {
@@ -41,6 +42,9 @@ public interface AnnonceRepository extends JpaRepository<Annonce, Long>, JpaSpec
     );
 
     long countByIsArchivedFalse();
+
+    // Sprint 4 — répartition des annonces actives par type de transaction (statistiques)
+    long countByTypeTransactionAndIsArchivedFalse(TypeTransaction typeTransaction);
 
     // 5 dernières annonces actives pour le dashboard (List = pas de COUNT inutile)
     List<Annonce> findTop5ByIsArchivedFalseOrderByCreatedAtDesc();
