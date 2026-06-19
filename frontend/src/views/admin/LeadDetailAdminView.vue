@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, FileText, Edit3 } from 'lucide-vue-next'
+import { ArrowLeft, FileText, Edit3, X } from 'lucide-vue-next'
 import leadService from '@/services/leadService'
 import StatusBadge from '@/components/StatusBadge.vue'
 import ImageGallery from '@/components/ImageGallery.vue'
@@ -303,7 +303,7 @@ onMounted(fetchLead)
         <div class="modal" role="dialog" aria-modal="true">
           <div class="modal__header">
             <h2 class="modal__title">Note admin — Lead {{ lead?.id }}</h2>
-            <button class="modal__close" @click="closeNoteModal">✕</button>
+            <button class="modal__close" @click="closeNoteModal"><X :size="16" /></button>
           </div>
           <div class="modal__body">
             <p class="modal__meta">{{ lead?.clientNom }} · {{ lead?.annonceLibelle }}</p>

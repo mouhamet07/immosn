@@ -231,8 +231,8 @@ public class LeadController {
     @GetMapping("/{id}/historique")
     public ResponseEntity<PagedResponse<LeadHistoryDto>> getHistorique(
             @Parameter(description = "Identifiant du lead", required = true) @PathVariable Long id,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @Parameter(description = "Numéro de page", example = "0") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Taille de la page", example = "20") @RequestParam(defaultValue = "20") int size) {
         if (id == null || id <= 0) {
             return ResponseEntity.badRequest().build();
         }

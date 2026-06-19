@@ -10,6 +10,8 @@ import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -64,6 +66,14 @@ public class Annonce {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "type_bien_id", nullable = false)
     private TypeBienAnnonce typeBien;
+
+    /**
+     * Type de transaction (Sprint 4) : VENTE ou LOCATION.
+     * Nullable pour rester compatible avec les annonces existantes (affichées « Non renseigné »).
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type_transaction", length = 20)
+    private TypeTransaction typeTransaction;
 
     @Builder.Default
     @OneToMany(mappedBy = "annonce",

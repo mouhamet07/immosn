@@ -1,6 +1,7 @@
 package sn.immosn.backend.client.web.dashboard.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import java.security.Principal;
 import sn.immosn.backend.client.web.dashboard.dto.DashboardStatsDto;
 import sn.immosn.backend.client.web.dashboard.dto.RecentActivityDto;
 import sn.immosn.backend.dashboard.service.DashboardService;
@@ -94,9 +96,9 @@ public class DashboardController {
             content = @Content(mediaType = "application/json"))
     })
     @GetMapping("/stats")
-    public ResponseEntity<RestResponse<DashboardStatsDto>> getStats() {
+    public ResponseEntity<RestResponse<DashboardStatsDto>> getStats(Principal principal) {
         return ResponseEntity.ok(
-            RestResponse.success(dashboardService.getStats(), HttpStatus.OK)
+            RestResponse.success(dashboardService.getStats(principal.getName()), HttpStatus.OK)
         );
     }
 
@@ -112,13 +114,40 @@ public class DashboardController {
             **Accès : ADMIN ou SUPER_ADMIN**
             """
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Liste paginée des activités récentes retournée avec succès",
+            content = @Content(mediaType = "application/json",
+                examples = @ExampleObject(value = """
+                    {
+                      "success": true, "status": 200,
+                      "data": {
+                        "data": [
+                          {
+                            "type": "VISITE",
+                            "titre": "Visite : Villa F5 Almadies",
+                            "description": "Aminata Diallo",
+                            "statut": "EN_ATTENTE",
+                            "createdAt": "2024-01-15T11:30:00"
+                          }
+                        ],
+                        "totalElements": 42, "totalPages": 9, "currentPage": 0, "pageSize": 5,
+                        "isFirst": true, "isLast": false
+                      }
+                    }"""))),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json"))
+    })
     @GetMapping("/activities")
     public ResponseEntity<RestResponse<PagedResponse<RecentActivityDto>>> getActivities(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size,
-            @RequestParam(defaultValue = "ALL") String type) {
+            @Parameter(description = "Numéro de page", example = "0") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Taille de la page", example = "5") @RequestParam(defaultValue = "5") int size,
+            @Parameter(description = "Filtre par type d'activité : ALL, VISITE, CONTRAT, SIGNALEMENT, BIEN, MESSAGE", example = "ALL")
+            @RequestParam(defaultValue = "ALL") String type,
+            Principal principal) {
         return ResponseEntity.ok(
-            RestResponse.success(dashboardService.getActivities(page, size, type), HttpStatus.OK)
+            RestResponse.success(dashboardService.getActivities(page, size, type, principal.getName()), HttpStatus.OK)
         );
     }
 }

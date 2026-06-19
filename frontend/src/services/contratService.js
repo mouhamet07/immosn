@@ -30,6 +30,11 @@ export default {
     return api.put(`/contrats/${id}`, data)
   },
 
+  // PUT /api/v1/contrats/{id}/prospect — ADMIN — { nom, prenom, email, telephone }
+  updateProspect(id, data) {
+    return api.put(`/contrats/${id}/prospect`, data)
+  },
+
   // POST /api/v1/contrats/{id}/document — ADMIN (multipart)
   uploadDocument(id, file) {
     const form = new FormData()
@@ -68,5 +73,17 @@ export default {
   // PUT /api/v1/contrats/{id}/prolongation/refuser — ADMIN
   refuserProlongation(id, motif = null) {
     return api.put(`/contrats/${id}/prolongation/refuser`, motif ? { motif } : {})
+  },
+
+  // ─── Pièces jointes typées (pré-contrat, contrat signé, pièce d'identité, etc.) ───
+
+  // POST /api/v1/contrats/{id}/documents — ADMIN — documents : [{ type, url }]
+  addDocuments(id, documents) {
+    return api.post(`/contrats/${id}/documents`, { documents })
+  },
+
+  // DELETE /api/v1/contrats/{id}/documents/{documentId} — ADMIN
+  removeDocument(id, documentId) {
+    return api.delete(`/contrats/${id}/documents/${documentId}`)
   },
 }

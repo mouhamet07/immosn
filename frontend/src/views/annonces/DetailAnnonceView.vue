@@ -5,6 +5,7 @@ import { Heart, Phone, Mail, Share2, FileText, Flag } from 'lucide-vue-next'
 import ButtonPrimary from '@/components/ButtonPrimary.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ImageGallery from '@/components/ImageGallery.vue'
+import ContactInviteChat from '@/components/ContactInviteChat.vue'
 import annonceService from '@/services/annonceService'
 import discussionService from '@/services/discussionService'
 import { useAuthStore } from '@/stores/authStore'
@@ -54,10 +55,9 @@ function closeVisiteModal() {
 }
 
 function handleReserverVisite() {
+  // Visiteur non authentifié : page dédiée /visite-demande (formulaire complet, mieux organisé qu'un modal).
   if (!authStore.isAuthenticated) {
-    localStorage.setItem('redirectAfterLogin', route.fullPath)
-    toastStore.info('Connectez-vous pour réserver une visite')
-    router.push('/connexion')
+    router.push({ name: 'visite-demande', query: { annonceId: annonce.value.id } })
     return
   }
   showVisiteModal.value = true
@@ -79,12 +79,8 @@ const newMessage = ref('')
 const sendingMessage = ref(false)
 
 function handleContactAgent() {
-  if (!authStore.isAuthenticated) {
-    localStorage.setItem('redirectAfterLogin', route.fullPath)
-    toastStore.info("Connectez-vous pour contacter l'agence")
-    router.push('/connexion')
-    return
-  }
+  // Parcours visiteur : un utilisateur non authentifié peut contacter l'agence
+  // via la conversation invité (composant ContactInviteChat). Aucune redirection connexion.
   showContactModal.value = true
   contactSuccess.value   = false
   contactError.value     = ''
@@ -224,6 +220,10 @@ function toUSD(prix) {
           <!-- Titre + prix -->
           <div class="detail-header">
             <div>
+              <span v-if="annonce.typeTransaction" class="detail-transac-badge"
+                :class="annonce.typeTransaction === 'VENTE' ? 'detail-transac-badge--vente' : 'detail-transac-badge--location'">
+                {{ annonce.typeTransaction === 'VENTE' ? 'À vendre' : 'À louer' }}
+              </span>
               <h1 class="detail-header__title">{{ annonce.libelle }}</h1>
               <p class="detail-adresse">
                 <SvgIcon name="map-pin" :size="14" />
@@ -345,6 +345,7 @@ function toUSD(prix) {
             </button>
           </div>
 
+          <!-- Réservé au client connecté : le visiteur non authentifié est redirigé vers /visite-demande -->
           <template v-if="!visiteSuccess">
             <div class="modal-chat__compose" style="padding-top: 1.25rem;">
               <div style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:.75rem;">
@@ -395,8 +396,14 @@ function toUSD(prix) {
             </button>
           </div>
 
+          <!-- Visiteur non authentifié : conversation invité (gère identité + fil) -->
+          <div v-if="!authStore.isAuthenticated" class="modal-chat__compose">
+            <ContactInviteChat :annonce-id="annonce.id" />
+          </div>
+
+          <!-- Client connecté : flux existant inchangé -->
           <!-- Phase 1 : premier message -->
-          <template v-if="!contactSuccess">
+          <template v-else-if="!contactSuccess">
             <div class="modal-chat__intro">
               <p>Bonjour ! Présentez brièvement votre demande et l'agence vous répondra rapidement.</p>
             </div>
@@ -510,6 +517,13 @@ function toUSD(prix) {
   align-items: flex-start; gap: 1rem;
   margin-bottom: 1.5rem; flex-wrap: wrap;
 }
+.detail-transac-badge {
+  display: inline-block; margin-bottom: 0.5rem;
+  padding: 0.2rem 0.7rem; border-radius: 20px;
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+}
+.detail-transac-badge--vente { background: rgba(74, 124, 111, 0.12); color: #3a6b5e; }
+.detail-transac-badge--location { background: rgba(180, 130, 40, 0.14); color: #92670f; }
 .detail-header__title {
   font-family: var(--font-serif);
   font-size: 2.2rem; font-weight: 700;
@@ -674,7 +688,7 @@ function toUSD(prix) {
 }
 .modal-chat__close:hover { color: var(--color-text); }
 .modal-chat__intro { padding: 1.25rem 1.5rem 0; font-size: 0.88rem; color: var(--color-text-muted); line-height: 1.6; }
-.modal-chat__compose { display: flex; flex-direction: column; gap: 0.75rem; padding: 1rem 1.5rem 1.5rem; }
+.modal-chat__compose { display: flex; flex-direction: column; gap: 0.75rem; padding: 1rem 1.5rem 1.5rem; flex: 1 1 auto; overflow-y: auto; min-height: 0; }
 .modal-chat__textarea {
   width: 100%; padding: 0.75rem;
   border: 1.5px solid var(--color-border); border-radius: var(--radius-sm);

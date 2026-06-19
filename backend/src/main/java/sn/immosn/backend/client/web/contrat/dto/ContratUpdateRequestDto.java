@@ -18,5 +18,8 @@ public record ContratUpdateRequestDto(
     Integer dureeLocationMois,
     StatutContrat statut,
     String documentUrl,
-    String notes
+    String notes,
+    // Sprint 4 — paramètres d'éligibilité des signalements
+    LocalDate dateFinGarantie,
+    String clausesContractuelles
 ) {}

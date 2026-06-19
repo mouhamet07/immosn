@@ -57,4 +57,10 @@ export default {
   changePassword(motDePasseActuel, nouveauMotDePasse, confirmationMotDePasse) {
     return api.put('/auth/profile', { motDePasseActuel, nouveauMotDePasse, confirmationMotDePasse })
   },
+
+  // POST /api/v1/auth/change-password — Sprint 3 : changement de mot de passe
+  // motDePasseActuel facultatif pour un compte à mot de passe temporaire (1re connexion)
+  changePasswordForced(nouveauMotDePasse, confirmationMotDePasse, motDePasseActuel = null) {
+    return api.post('/auth/change-password', { motDePasseActuel, nouveauMotDePasse, confirmationMotDePasse })
+  },
 }

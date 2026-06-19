@@ -9,6 +9,15 @@ public interface DiscussionService {
     // Client : créer ou récupérer une discussion existante pour une annonce
     DiscussionResponseDto createOrGetDiscussion(DiscussionCreateRequestDto request, String clientEmail);
 
+    // Visiteur non authentifié : ouvrir une discussion (crée/réutilise un Prospect), renvoie le guestToken
+    DiscussionInviteResponseDto createInviteDiscussion(ContactInviteRequestDto request);
+
+    // Visiteur non authentifié : poursuivre la conversation via son guestToken
+    MessageResponseDto sendInviteMessage(String guestToken, MessageCreateRequestDto request);
+
+    // Visiteur non authentifié : relire sa discussion via son guestToken
+    DiscussionInviteResponseDto getDiscussionByToken(String guestToken);
+
     // Client : liste de ses discussions
     Page<DiscussionListDto> getClientDiscussions(String clientEmail, Pageable pageable);
 

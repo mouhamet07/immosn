@@ -26,4 +26,6 @@ public class AuthResponseDto {
     private Set<String> roles;
     private LocalDateTime dernierConnexion;
     private long sessionsActives;
+    /** Sprint 3 : true si l'utilisateur doit changer son mot de passe temporaire. */
+    private boolean motDePasseAChanger;
 }

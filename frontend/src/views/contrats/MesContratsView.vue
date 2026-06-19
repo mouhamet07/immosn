@@ -22,7 +22,7 @@ const submitting   = ref(false)
 
 const STATUTS = ['', 'EN_ATTENTE', 'ACTIF', 'EXPIRE', 'RESILIE', 'EN_ATTENTE_RESILIATION', 'PROLONGATION_EN_ATTENTE']
 const STATUT_LABELS = {
-  EN_ATTENTE:              'En attente',
+  EN_ATTENTE:              'Pré-contrat',
   ACTIF:                   'Actif',
   EXPIRE:                  'Expiré',
   RESILIE:                 'Résilié',

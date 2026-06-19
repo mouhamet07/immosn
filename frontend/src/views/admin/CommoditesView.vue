@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ChevronLeft, ChevronRight, Pencil, Archive, RotateCcw } from 'lucide-vue-next'
 import commoditeService from '@/services/commoditeService'
@@ -59,7 +59,7 @@ function setFilter(f) {
 async function restaurer(id) {
   try {
     await commoditeService.restoreCommodite(id)
-    notify('Commodité restaurée ✓')
+    notify('Commodité restaurée')
     await fetchItems()
   } catch (err) {
     notify(err.response?.data?.message || 'Erreur lors de la restauration.', 'error')

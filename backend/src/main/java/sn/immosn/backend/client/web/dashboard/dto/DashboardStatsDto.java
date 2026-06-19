@@ -22,6 +22,14 @@ public record DashboardStatsDto(
     double tauxConversionLeads,
     long totalDiscussions,
 
+    // Sprint 4 — répartition par type de transaction
+    long annoncesVente,
+    long annoncesLocation,
+    long contratsVente,
+    long contratsLocation,
+    long visitesVente,
+    long visitesLocation,
+
     // Activités récentes
     List<RecentActivityDto> activitesRecentes
 ) {}

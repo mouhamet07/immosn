@@ -21,7 +21,7 @@ const modalMotif   = ref('')
 const submitting   = ref(false)
 
 const STATUT_LABELS = {
-  EN_ATTENTE:              'En attente',
+  EN_ATTENTE:              'Pré-contrat',
   ACTIF:                   'Actif',
   EXPIRE:                  'Expiré',
   RESILIE:                 'Résilié',

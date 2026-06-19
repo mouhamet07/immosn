@@ -98,6 +98,94 @@ public class DiscussionController {
     }
 
     @Operation(
+        summary = "Contacter l'agence (visiteur non authentifié)",
+        description = """
+            Ouvre une discussion sans compte à propos d'une annonce. Le visiteur fournit son
+            identité (nom, prénom, téléphone, email) et un premier message.
+
+            La réponse contient un `guestToken` non devinable que le visiteur doit conserver
+            pour relire la conversation et y répondre.
+
+            **Accès : PUBLIC — aucun token requis**
+            """,
+        security = {}
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Discussion invité créée avec le premier message",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Données invalides",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Annonce non trouvée",
+            content = @Content(mediaType = "application/json"))
+    })
+    @PostMapping("/invite")
+    public ResponseEntity<RestResponse<DiscussionInviteResponseDto>> createInvite(
+            @RequestBody @Valid ContactInviteRequestDto request) {
+        DiscussionInviteResponseDto dto = discussionService.createInviteDiscussion(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(RestResponse.success(dto, HttpStatus.CREATED));
+    }
+
+    @Operation(
+        summary = "Lire une discussion invité (par token)",
+        description = """
+            Retourne une discussion invité et ses messages à partir du `guestToken`.
+            Les réponses de l'agence sont marquées comme lues lors de cet appel.
+
+            **Accès : PUBLIC — le token fait foi**
+            """,
+        security = {}
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Discussion invité avec ses messages",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Discussion non trouvée pour ce token",
+            content = @Content(mediaType = "application/json"))
+    })
+    @GetMapping("/token/{token}")
+    public ResponseEntity<RestResponse<DiscussionInviteResponseDto>> getByToken(
+            @Parameter(description = "Token de suivi de la discussion invité", required = true)
+            @PathVariable String token) {
+        if (token == null || token.isBlank()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Token invalide", null));
+        }
+        return ResponseEntity.ok(
+            RestResponse.success(discussionService.getDiscussionByToken(token), HttpStatus.OK));
+    }
+
+    @Operation(
+        summary = "Répondre dans une discussion invité (par token)",
+        description = """
+            Ajoute un message à une discussion invité identifiée par son `guestToken`.
+
+            **Accès : PUBLIC — le token fait foi**
+            """,
+        security = {}
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Message envoyé",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Token ou contenu invalide",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Discussion non trouvée pour ce token",
+            content = @Content(mediaType = "application/json"))
+    })
+    @PostMapping("/token/{token}/messages")
+    public ResponseEntity<RestResponse<MessageResponseDto>> sendInviteMessage(
+            @Parameter(description = "Token de suivi de la discussion invité", required = true)
+            @PathVariable String token,
+            @RequestBody @Valid MessageCreateRequestDto request) {
+        if (token == null || token.isBlank()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Token invalide", null));
+        }
+        MessageResponseDto dto = discussionService.sendInviteMessage(token, request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(RestResponse.success(dto, HttpStatus.CREATED));
+    }
+
+    @Operation(
         summary = "Mes discussions (vue client)",
         description = """
             Retourne la liste paginée des discussions du client connecté,
