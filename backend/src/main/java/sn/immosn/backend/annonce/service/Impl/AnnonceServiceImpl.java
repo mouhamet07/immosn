@@ -146,6 +146,11 @@ public class AnnonceServiceImpl implements AnnonceService {
             annonce.setTypeBien(typeBien);
         }
 
+        // Sprint 4 — type de transaction (VENTE / LOCATION)
+        if (requestDto.typeTransaction() != null) {
+            annonce.setTypeTransaction(requestDto.typeTransaction());
+        }
+
         if (requestDto.commoditeIds() != null) {
             List<Commodite> commodites = commoditeRepository.findByIdInAndIsArchivedFalse(requestDto.commoditeIds());
             annonce.getAnnonceCommodites().clear();

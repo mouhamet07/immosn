@@ -238,12 +238,49 @@ public class ContratController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<RestResponse<ContratResponseDto>> update(
             @Parameter(description = "Identifiant du contrat à modifier", required = true, example = "8")
-            @PathVariable Long id, @RequestBody @Valid ContratUpdateRequestDto request) {
+            @PathVariable Long id, @RequestBody @Valid ContratUpdateRequestDto request, Principal principal) {
         if (id == null || id <= 0) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(RestResponse.badRequest("Identifiant de contrat invalide", null));
         }
-        return ResponseEntity.ok(RestResponse.success(service.update(id, request), HttpStatus.OK));
+        return ResponseEntity.ok(RestResponse.success(service.update(id, request, principal.getName()), HttpStatus.OK));
+    }
+
+    @Operation(
+        summary = "Modifier les informations du prospect lié au contrat",
+        description = """
+            Permet à l'administrateur de corriger ou compléter les informations du prospect
+            (nom, prénom, email, téléphone) lorsque le contrat n'est pas encore lié à un compte
+            client. Ces informations seront utilisées pour générer le compte client lors de
+            l'activation finale du contrat par le SUPER_ADMIN.
+
+            Échoue si le contrat est déjà lié à un client (informations non modifiables).
+
+            **Accès : ADMIN ou SUPER_ADMIN**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Informations du prospect mises à jour",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Identifiant invalide, données incorrectes ou contrat déjà lié à un client",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Contrat non trouvé",
+            content = @Content(mediaType = "application/json"))
+    })
+    @PutMapping("/{id}/prospect")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<RestResponse<ContratResponseDto>> updateProspect(
+            @Parameter(description = "Identifiant du contrat", required = true, example = "8")
+            @PathVariable Long id, @RequestBody @Valid ContratProspectUpdateRequestDto request) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de contrat invalide", null));
+        }
+        return ResponseEntity.ok(RestResponse.success(service.updateProspect(id, request), HttpStatus.OK));
     }
 
     @Operation(
@@ -282,6 +319,73 @@ public class ContratController {
                 .body(RestResponse.badRequest("Identifiant de contrat invalide", null));
         }
         return ResponseEntity.ok(RestResponse.success(service.uploadDocument(id, file), HttpStatus.OK));
+    }
+
+    @Operation(
+        summary = "Ajouter des pièces jointes typées au contrat",
+        description = """
+            Enregistre une ou plusieurs pièces jointes (pré-contrat, contrat signé, pièce
+            d'identité, etc.) déjà uploadées (Cloudinary) côté frontend — ce endpoint ne reçoit
+            que les URLs résultantes et leur type, pas les fichiers eux-mêmes.
+
+            **Accès : ADMIN ou SUPER_ADMIN**
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Pièces jointes ajoutées avec succès",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Identifiant invalide ou données incorrectes",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Contrat non trouvé",
+            content = @Content(mediaType = "application/json"))
+    })
+    @PostMapping("/{id}/documents")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<RestResponse<ContratResponseDto>> addDocuments(
+            @Parameter(description = "Identifiant du contrat", required = true, example = "8")
+            @PathVariable Long id,
+            @RequestBody @Valid ContratDocumentCreateRequestDto request,
+            Principal principal) {
+        if (id == null || id <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant de contrat invalide", null));
+        }
+        return ResponseEntity.ok(RestResponse.success(
+            service.addDocuments(id, request, principal.getName()), HttpStatus.OK));
+    }
+
+    @Operation(
+        summary = "Supprimer une pièce jointe du contrat",
+        description = "Supprime une pièce jointe précédemment ajoutée au contrat. **Accès : ADMIN ou SUPER_ADMIN**"
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Pièce jointe supprimée avec succès",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "400", description = "Identifiant invalide",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "404", description = "Contrat non trouvé",
+            content = @Content(mediaType = "application/json"))
+    })
+    @DeleteMapping("/{id}/documents/{documentId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<RestResponse<ContratResponseDto>> removeDocument(
+            @Parameter(description = "Identifiant du contrat", required = true, example = "8")
+            @PathVariable Long id,
+            @Parameter(description = "Identifiant de la pièce jointe à supprimer", required = true, example = "3")
+            @PathVariable Long documentId) {
+        if (id == null || id <= 0 || documentId == null || documentId <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(RestResponse.badRequest("Identifiant invalide", null));
+        }
+        return ResponseEntity.ok(RestResponse.success(service.removeDocument(id, documentId), HttpStatus.OK));
     }
 
     @Operation(
@@ -386,12 +490,17 @@ public class ContratController {
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "400", description = "Transition invalide ou identifiant invalide",
             content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "404", description = "Contrat non trouvé",
             content = @Content(mediaType = "application/json"))
     })
     @PutMapping("/{id}/resiliation/accepter")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<RestResponse<ContratResponseDto>> accepterResiliation(
+            @Parameter(description = "Identifiant du contrat", required = true, example = "8")
             @PathVariable Long id, @RequestBody(required = false) ContratActionDto dto) {
         if (id == null || id <= 0) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -417,12 +526,17 @@ public class ContratController {
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "400", description = "Transition invalide ou identifiant invalide",
             content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "404", description = "Contrat non trouvé",
             content = @Content(mediaType = "application/json"))
     })
     @PutMapping("/{id}/resiliation/refuser")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<RestResponse<ContratResponseDto>> refuserResiliation(
+            @Parameter(description = "Identifiant du contrat", required = true, example = "8")
             @PathVariable Long id, @RequestBody(required = false) ContratActionDto dto) {
         if (id == null || id <= 0) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -454,12 +568,17 @@ public class ContratController {
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "400", description = "Transition invalide, durée insuffisante ou identifiant invalide",
             content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "404", description = "Contrat non trouvé",
             content = @Content(mediaType = "application/json"))
     })
     @PutMapping("/{id}/prolongation/accepter")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<RestResponse<ContratResponseDto>> accepterProlongation(
+            @Parameter(description = "Identifiant du contrat", required = true, example = "8")
             @PathVariable Long id, @RequestBody(required = false) ContratActionDto dto) {
         if (id == null || id <= 0) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -485,12 +604,17 @@ public class ContratController {
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "400", description = "Transition invalide ou identifiant invalide",
             content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
+            content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "404", description = "Contrat non trouvé",
             content = @Content(mediaType = "application/json"))
     })
     @PutMapping("/{id}/prolongation/refuser")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<RestResponse<ContratResponseDto>> refuserProlongation(
+            @Parameter(description = "Identifiant du contrat", required = true, example = "8")
             @PathVariable Long id, @RequestBody(required = false) ContratActionDto dto) {
         if (id == null || id <= 0) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -515,9 +639,10 @@ public class ContratController {
     @GetMapping("/{id}/historique")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<PagedResponse<ContratHistoryDto>> getHistorique(
+            @Parameter(description = "Identifiant du contrat", required = true, example = "8")
             @PathVariable Long id,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @Parameter(description = "Numéro de page", example = "0") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Taille de la page", example = "20") @RequestParam(defaultValue = "20") int size) {
         if (id == null || id <= 0) {
             return ResponseEntity.badRequest().build();
         }

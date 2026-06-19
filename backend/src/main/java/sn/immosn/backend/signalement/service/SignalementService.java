@@ -12,4 +12,7 @@ public interface SignalementService {
     SignalementResponseDto getById(Long id);
     SignalementResponseDto updateStatut(Long id, UpdateStatutSignalementDto dto);
     void markAsRead(Long id);
+
+    /** Historique des décisions d'un signalement (Sprint 4). */
+    Page<SignalementHistoryDto> getHistory(Long id, Pageable pageable);
 }

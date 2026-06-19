@@ -1,4 +1,6 @@
 <script setup>
+import { Check } from 'lucide-vue-next'
+
 defineProps({
   steps:       { type: Array,  required: true },  // ['Étape 1', 'Étape 2', ...]
   currentStep: { type: Number, default: 0 },       // index 0-based
@@ -23,7 +25,10 @@ defineProps({
           'stepper__step--active': i === currentStep,
         }"
       >
-        <div class="stepper__dot">{{ i < currentStep ? '✓' : i + 1 }}</div>
+        <div class="stepper__dot">
+          <Check v-if="i < currentStep" :size="15" />
+          <template v-else>{{ i + 1 }}</template>
+        </div>
         <span class="stepper__label">{{ step }}</span>
       </div>
     </div>

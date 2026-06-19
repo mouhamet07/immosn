@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ChevronLeft, ChevronRight, Pencil, Archive, RotateCcw } from 'lucide-vue-next'
 import typeBienService from '@/services/typeBienService'
@@ -59,7 +59,7 @@ function setFilter(f) {
 async function restaurer(id) {
   try {
     await typeBienService.restoreTypeBien(id)
-    notify('Type de bien restauré ✓')
+    notify('Type de bien restauré')
     await fetchItems()
   } catch (err) {
     notify(err.response?.data?.message || 'Erreur lors de la restauration.', 'error')

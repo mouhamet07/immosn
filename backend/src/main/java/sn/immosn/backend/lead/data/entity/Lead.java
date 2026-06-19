@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import sn.immosn.backend.annonce.data.entity.Annonce;
 import sn.immosn.backend.auth.data.entity.User;
+import sn.immosn.backend.prospect.data.entity.Prospect;
 import sn.immosn.backend.visite.data.entity.DemandeVisite;
 
 import java.time.LocalDateTime;
@@ -20,9 +21,19 @@ public class Lead {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "client_id", nullable = false)
+    /**
+     * Client authentifié à l'origine du lead. Nullable depuis l'ouverture du parcours visiteur :
+     * un lead peut provenir d'un {@link #prospect} non connecté à la place. Exactement l'un des
+     * deux est renseigné.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "client_id")
     private User client;
+
+    /** Prospect non authentifié à l'origine du lead (null si lead d'un client connecté). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "prospect_id")
+    private Prospect prospect;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "annonce_id", nullable = false)

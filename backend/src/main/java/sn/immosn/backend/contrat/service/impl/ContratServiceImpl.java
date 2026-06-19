@@ -5,15 +5,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.immosn.backend.annonce.data.repository.AnnonceRepository;
+import sn.immosn.backend.auth.data.entity.RoleType;
+import sn.immosn.backend.auth.data.entity.User;
 import sn.immosn.backend.auth.data.repository.UserRepository;
 import sn.immosn.backend.client.web.contrat.dto.*;
 import sn.immosn.backend.client.web.contrat.mapper.ContratMapper;
 import sn.immosn.backend.contrat.data.entity.Contrat;
+import sn.immosn.backend.contrat.data.entity.ContratDocument;
 import sn.immosn.backend.contrat.data.entity.StatutContrat;
 import sn.immosn.backend.contrat.data.entity.TypeContrat;
+import sn.immosn.backend.contrat.data.repository.ContratDocumentRepository;
 import sn.immosn.backend.contrat.data.repository.ContratRepository;
 import sn.immosn.backend.contrat.service.ContratHistoryService;
 import sn.immosn.backend.contrat.service.ContratService;
@@ -21,6 +26,10 @@ import sn.immosn.backend.lead.data.entity.Lead;
 import sn.immosn.backend.lead.data.entity.StatutLead;
 import sn.immosn.backend.lead.data.repository.LeadRepository;
 import sn.immosn.backend.lead.service.LeadHistoryService;
+import sn.immosn.backend.client.web.prospect.dto.ConversionResultDto;
+import sn.immosn.backend.prospect.data.entity.Prospect;
+import sn.immosn.backend.prospect.data.repository.ProspectRepository;
+import sn.immosn.backend.prospect.service.ProspectConversionService;
 import sn.immosn.backend.shared.exception.EntityNotFoundException;
 import sn.immosn.backend.shared.service.FileStorageService;
 import sn.immosn.backend.visite.data.entity.DemandeVisite;
@@ -53,18 +62,19 @@ public class ContratServiceImpl implements ContratService {
      * Le job ContratExpirationJob applique ACTIF → EXPIRE directement sur les entités
      * sans passer par cette validation (bypass assumé, cohérent avec la machine à états).
      */
-    private static final Map<StatutContrat, Set<StatutContrat>> TRANSITIONS_AUTORISEES = Map.of(
-        StatutContrat.EN_ATTENTE, Set.of(StatutContrat.ACTIF, StatutContrat.RESILIE),
-        StatutContrat.ACTIF, Set.of(StatutContrat.EXPIRE,
+    private static final Map<StatutContrat, Set<StatutContrat>> TRANSITIONS_AUTORISEES = Map.ofEntries(
+        Map.entry(StatutContrat.EN_ATTENTE, Set.of(StatutContrat.ACTIF, StatutContrat.RESILIE)),
+        Map.entry(StatutContrat.ACTIF, Set.of(StatutContrat.EXPIRE,
                 StatutContrat.EN_ATTENTE_RESILIATION,
-                StatutContrat.PROLONGATION_EN_ATTENTE),
-        StatutContrat.EN_ATTENTE_RESILIATION, Set.of(StatutContrat.RESILIE, StatutContrat.ACTIF),
-        StatutContrat.PROLONGATION_EN_ATTENTE, Set.of(StatutContrat.ACTIF),
-        StatutContrat.EXPIRE, Set.of(),
-        StatutContrat.RESILIE, Set.of()
+                StatutContrat.PROLONGATION_EN_ATTENTE)),
+        Map.entry(StatutContrat.EN_ATTENTE_RESILIATION, Set.of(StatutContrat.RESILIE, StatutContrat.ACTIF)),
+        Map.entry(StatutContrat.PROLONGATION_EN_ATTENTE, Set.of(StatutContrat.ACTIF)),
+        Map.entry(StatutContrat.EXPIRE, Set.of()),
+        Map.entry(StatutContrat.RESILIE, Set.of())
     );
 
     private final ContratRepository contratRepository;
+    private final ContratDocumentRepository contratDocumentRepository;
     private final UserRepository userRepository;
     private final AnnonceRepository annonceRepository;
     private final LeadRepository leadRepository;
@@ -72,6 +82,8 @@ public class ContratServiceImpl implements ContratService {
     private final ContratHistoryService contratHistoryService;
     private final LeadHistoryService leadHistoryService;
     private final FileStorageService fileStorageService;
+    private final ProspectConversionService prospectConversionService;
+    private final ProspectRepository prospectRepository;
 
     @Override
     @Transactional
@@ -173,8 +185,11 @@ public class ContratServiceImpl implements ContratService {
             ? dateFinLocation(dateDebut, dureeLocationMois)
             : null;
 
+        // Le client peut ne pas encore exister (visite invité) : le contrat porte alors sur le
+        // prospect, et le compte client ne sera créé qu'à l'activation finale par le SUPER_ADMIN.
         Contrat.ContratBuilder builder = Contrat.builder()
             .client(visite.getClient())
+            .prospect(visite.getProspect())
             .annonce(visite.getAnnonce())
             .dateDebut(dateDebut)
             .dateFin(dateFin)
@@ -224,15 +239,16 @@ public class ContratServiceImpl implements ContratService {
     public ContratResponseDto getById(Long id, String userEmail, boolean isAdmin) {
         Contrat contrat = contratRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Contrat non trouvé : id=" + id));
-        if (!isAdmin && !contrat.getClient().getEmail().equals(userEmail)) {
+        if (!isAdmin && (contrat.getClient() == null || !contrat.getClient().getEmail().equals(userEmail))) {
             throw new EntityNotFoundException("Contrat non trouvé");
         }
-        return mapper.toDto(contrat);
+        List<ContratDocument> documents = contratDocumentRepository.findByContratIdOrderByCreatedAtDesc(id);
+        return mapper.toDto(contrat, documents);
     }
 
     @Override
     @Transactional
-    public ContratResponseDto update(Long id, ContratUpdateRequestDto request) {
+    public ContratResponseDto update(Long id, ContratUpdateRequestDto request, String callerEmail) {
         log.info("Modification contrat : id={}", id);
         Contrat contrat = contratRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Contrat non trouvé : id=" + id));
@@ -272,11 +288,36 @@ public class ContratServiceImpl implements ContratService {
                     + "EXPIRE est réservé au job système quotidien. "
                     + "Utilisez les endpoints /resiliation ou /prolongation pour les autres statuts protégés.");
             }
+            if (request.statut() == StatutContrat.ACTIF) {
+                // L'activation est la validation finale du SUPER_ADMIN : le contrat signé par le
+                // client doit déjà avoir été uploadé (le rapport de visite et les pièces sont
+                // consultés en dehors du système). C'est seulement à cet instant que le compte
+                // client est créé, jamais avant.
+                User caller = userRepository.findByEmail(callerEmail)
+                    .orElseThrow(() -> new EntityNotFoundException("Utilisateur non trouvé : " + callerEmail));
+                boolean estSuperAdmin = caller.getRoles().stream()
+                    .anyMatch(r -> r.getRole() == RoleType.SUPER_ADMIN);
+                if (!estSuperAdmin) {
+                    throw new AccessDeniedException("Seul un SUPER_ADMIN peut activer un contrat.");
+                }
+                String documentUrlActivation = request.documentUrl() != null ? request.documentUrl() : contrat.getDocumentUrl();
+                if (documentUrlActivation == null || documentUrlActivation.isBlank()) {
+                    throw new IllegalArgumentException(
+                        "Le contrat signé par le client doit être téléversé avant l'activation.");
+                }
+                if (contrat.getClient() == null) {
+                    creerCompteClientDepuisProspect(contrat);
+                }
+                contrat.setValideParSuperAdminAt(LocalDateTime.now());
+            }
             validateTransition(contrat.getStatut(), request.statut());
             contrat.setStatut(request.statut());
         }
         if (request.documentUrl() != null) contrat.setDocumentUrl(request.documentUrl());
         if (request.notes() != null) contrat.setNotes(request.notes());
+        // Sprint 4 — paramètres d'éligibilité des signalements (applicables VENTE et LOCATION)
+        if (request.dateFinGarantie() != null) contrat.setDateFinGarantie(request.dateFinGarantie());
+        if (request.clausesContractuelles() != null) contrat.setClausesContractuelles(request.clausesContractuelles());
 
         // Mise à jour VENTE
         if (!isLocation) {
@@ -328,6 +369,25 @@ public class ContratServiceImpl implements ContratService {
                 resolveUpdateAction(ancienStatut, saved.getStatut()), null);
         }
         return mapper.toDto(saved);
+    }
+
+    @Override
+    @Transactional
+    public ContratResponseDto updateProspect(Long id, ContratProspectUpdateRequestDto request) {
+        Contrat contrat = contratRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Contrat non trouvé : id=" + id));
+        if (contrat.getProspect() == null) {
+            throw new IllegalArgumentException(
+                "Ce contrat est déjà lié à un client, les informations du prospect ne sont pas modifiables.");
+        }
+        Prospect prospect = contrat.getProspect();
+        prospect.setNom(request.nom());
+        prospect.setPrenom(request.prenom());
+        prospect.setEmail(request.email());
+        prospect.setTelephone(request.telephone());
+        prospectRepository.save(prospect);
+        log.info("Prospect #{} mis à jour depuis le contrat #{}", prospect.getId(), id);
+        return mapper.toDto(contratRepository.findById(id).orElseThrow());
     }
 
     @Override
@@ -486,11 +546,65 @@ public class ContratServiceImpl implements ContratService {
         return mapper.toDto(saved);
     }
 
+    @Override
+    @Transactional
+    public ContratResponseDto addDocuments(Long id, ContratDocumentCreateRequestDto request, String adminEmail) {
+        Contrat contrat = contratRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Contrat non trouvé : id=" + id));
+        var admin = userRepository.findByEmail(adminEmail)
+            .orElseThrow(() -> new EntityNotFoundException("Administrateur non trouvé : " + adminEmail));
+
+        for (ContratDocumentCreateRequestDto.Item item : request.documents()) {
+            ContratDocument document = ContratDocument.builder()
+                .contrat(contrat)
+                .type(item.type())
+                .url(item.url())
+                .uploadedBy(admin)
+                .build();
+            contratDocumentRepository.save(document);
+        }
+        log.info("{} document(s) ajouté(s) au contrat #{} par {}", request.documents().size(), id, adminEmail);
+
+        List<ContratDocument> documents = contratDocumentRepository.findByContratIdOrderByCreatedAtDesc(id);
+        return mapper.toDto(contrat, documents);
+    }
+
+    @Override
+    @Transactional
+    public ContratResponseDto removeDocument(Long id, Long documentId) {
+        Contrat contrat = contratRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Contrat non trouvé : id=" + id));
+        contratDocumentRepository.deleteByIdAndContratId(documentId, id);
+        log.info("Document #{} supprimé du contrat #{}", documentId, id);
+
+        List<ContratDocument> documents = contratDocumentRepository.findByContratIdOrderByCreatedAtDesc(id);
+        return mapper.toDto(contrat, documents);
+    }
+
     private Contrat loadClientContrat(Long id, String clientEmail) {
         var client = userRepository.findByEmail(clientEmail)
             .orElseThrow(() -> new EntityNotFoundException("Utilisateur non trouvé"));
         return contratRepository.findByIdAndClientId(id, client.getId())
             .orElseThrow(() -> new EntityNotFoundException("Contrat non trouvé pour ce client : id=" + id));
+    }
+
+    /**
+     * Crée le compte CLIENT au moment de l'activation finale du contrat — jamais avant.
+     * Délègue à {@link ProspectConversionService} (mêmes règles : mot de passe temporaire,
+     * rattachement des discussions/visites, envoi des identifiants), puis lie le contrat au
+     * compte nouvellement créé.
+     */
+    private void creerCompteClientDepuisProspect(Contrat contrat) {
+        if (contrat.getProspect() == null) {
+            throw new IllegalStateException(
+                "Le contrat #" + contrat.getId() + " n'a ni client ni prospect : impossible d'activer.");
+        }
+        ConversionResultDto resultat = prospectConversionService.convertirProspect(contrat.getProspect().getId());
+        var client = userRepository.findById(resultat.userId())
+            .orElseThrow(() -> new EntityNotFoundException("Compte client introuvable après conversion : id=" + resultat.userId()));
+        contrat.setClient(client);
+        log.info("Contrat #{} : compte client #{} créé à l'activation depuis le prospect #{}",
+            contrat.getId(), client.getId(), contrat.getProspect().getId());
     }
 
     // Machine à états

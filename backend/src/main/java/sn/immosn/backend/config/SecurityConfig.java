@@ -115,6 +115,15 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/types-bien/paged").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/locations/**").permitAll()
 
+                //  Parcours visiteur non authentifié (Sprint 1) — endpoints invité publics.
+                //  Placés AVANT les règles génériques /visites/** et /discussions/** ci-dessous,
+                //  qui exigent une authentification : l'ordre est significatif.
+                .requestMatchers(HttpMethod.POST, "/api/v1/visites/invite").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/visites/suivi/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/discussions/invite").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/discussions/token/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/discussions/token/**").permitAll()
+
                 //  ADMIN ou SUPER_ADMIN
                 .requestMatchers(HttpMethod.POST, "/api/v1/annonces").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/v1/annonces/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
@@ -144,6 +153,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/contrats/**").authenticated()
                 .requestMatchers("/api/v1/signalements/**").authenticated()
                 .requestMatchers("/api/v1/favoris/**").authenticated()
+                // Conversion prospect → client (Sprint 3) : granularité SUPER_ADMIN via @PreAuthorize
+                .requestMatchers("/api/v1/prospects/**").authenticated()
 
                 //  Swagger UI + OpenAPI docs 
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()

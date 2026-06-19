@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
 import { useRoute } from 'vue-router'
 
@@ -11,23 +12,50 @@ function getInitials(name) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 }
 
-const navLinks = [
-  { to: '/admin/dashboard',       label: 'Dashboard',      icon: 'grid' },
-  { to: '/admin/annonces',        label: 'Annonces',       icon: 'building' },
-  { to: '/admin/messages',        label: 'Messages',       icon: 'chat' },
-  { to: '/admin/visites',         label: 'Visites',        icon: 'calendar' },
-  { to: '/admin/leads',           label: 'Leads',          icon: 'target' },
-  { to: '/admin/contrats',        label: 'Contrats',       icon: 'document' },
-  { to: '/admin/signalements',    label: 'Signalements',   icon: 'alert' },
-  { to: '/admin/types-biens',     label: 'Types de biens', icon: 'tag' },
-  { to: '/admin/commodites',      label: 'Commodités',     icon: 'list' },
-  { to: '/admin/administrateurs', label: 'Admins',         icon: 'people', superAdminOnly: true },
-  { to: '/admin/profil',          label: 'Compte',         icon: 'user' },
+// Navigation regroupée par section (Sprint 4). Les routes métier sont inchangées.
+const navGroups = [
+  {
+    title: null, // section principale (suivi commercial), sans titre
+    links: [
+      { to: '/admin/dashboard',    label: 'Dashboard',    icon: 'grid' },
+      { to: '/admin/messages',     label: 'Messages',     icon: 'chat' },
+      { to: '/admin/visites',      label: 'Visites',      icon: 'calendar' },
+      { to: '/admin/leads',        label: 'Leads',        icon: 'target' },
+      { to: '/admin/contrats',     label: 'Contrats',     icon: 'document' },
+      { to: '/admin/signalements', label: 'Signalements', icon: 'alert' },
+    ],
+  },
+  {
+    title: 'Ressources',
+    links: [
+      { to: '/admin/annonces',    label: 'Annonces',       icon: 'building' },
+      { to: '/admin/types-biens', label: 'Types de biens', icon: 'tag' },
+      { to: '/admin/commodites',  label: 'Commodités',     icon: 'list' },
+    ],
+  },
+  {
+    title: 'Paramétrages',
+    links: [
+      { to: '/admin/administrateurs', label: 'Administrateurs', icon: 'people', superAdminOnly: true },
+      { to: '/admin/profil',          label: 'Mon compte',      icon: 'user' },
+    ],
+  },
 ]
+
+// Un groupe n'est visible que s'il contient au moins un lien autorisé pour le rôle courant
+function visibleLinks(group) {
+  return group.links.filter(l => !l.superAdminOnly || authStore.role === 'SUPER_ADMIN')
+}
 
 function isActive(path) {
   return route.path === path || route.path.startsWith(path + '/')
 }
+
+// Libellé de la page courante (tous groupes confondus) pour l'en-tête
+const currentLabel = computed(() => {
+  const all = navGroups.flatMap(g => g.links)
+  return all.find(l => isActive(l.to))?.label ?? 'Dashboard'
+})
 </script>
 
 <template>
@@ -41,9 +69,11 @@ function isActive(path) {
 
       <!-- L'affichage de l'utilisateur connecté a été déplacé vers le header -->
       <nav class="sidebar__nav">
+        <template v-for="(group, gi) in navGroups" :key="gi">
+        <div v-if="visibleLinks(group).length" class="sidebar__group">
+        <p v-if="group.title" class="sidebar__group-title">{{ group.title }}</p>
         <RouterLink
-          v-for="link in navLinks"
-          v-show="!link.superAdminOnly || authStore.role === 'SUPER_ADMIN'"
+          v-for="link in visibleLinks(group)"
           :key="link.to"
           :to="link.to"
           class="sidebar__link"
@@ -77,6 +107,8 @@ function isActive(path) {
           </span>
           <span class="sidebar__link-label">{{ link.label }}</span>
         </RouterLink>
+        </div>
+        </template>
       </nav>
 
       <!-- Bas de sidebar -->
@@ -97,7 +129,7 @@ function isActive(path) {
           <!-- Titre de la page courante -->
           <div class="admin-header-page">
             <span class="admin-header-page-label">
-              {{ navLinks.find(l => isActive(l.to))?.label ?? 'Dashboard' }}
+              {{ currentLabel }}
             </span>
           </div>
 
@@ -216,6 +248,25 @@ function isActive(path) {
   flex-direction: column;
   gap: 2px;
   padding: 0.5rem 0.75rem;
+}
+
+.sidebar__group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sidebar__group + .sidebar__group {
+  margin-top: 0.85rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.sidebar__group-title {
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.45;
+  padding: 0.35rem 0.85rem 0.2rem;
 }
 
 .sidebar__link {

@@ -1,8 +1,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Download, FileText, Paperclip, Pencil, Check, X } from 'lucide-vue-next'
+import { ArrowLeft, Download, FileText, Paperclip, Upload, Check, X, Trash2 } from 'lucide-vue-next'
 import contratService from '@/services/contratService'
+import visiteService from '@/services/visiteService'
 import { uploadPdf } from '@/services/cloudinaryService'
 import historyService from '@/services/historyService'
 import StatusBadge from '@/components/StatusBadge.vue'
@@ -15,15 +16,34 @@ const contrat  = ref(null)
 const loading  = ref(false)
 const error    = ref('')
 
-// Modal édition statut général
-const showEdit        = ref(false)
-const editStatut      = ref('')
-const editNotes       = ref('')
-const editDocumentUrl = ref('')
-const pdfFile         = ref(null)
-const pdfUploading    = ref(false)
+const rapportVisite = ref(null)
+
+function isImageUrl(url) { return /\.(jpe?g|png|gif|webp)$/i.test(url || '') }
+function isPdfUrl(url) { return /\.pdf$/i.test(url || '') }
+
+const TYPE_DOCUMENT_LABELS = {
+  PRE_CONTRAT:     'Pré-contrat',
+  CONTRAT_SIGNE:   'Contrat signé',
+  PIECE_IDENTITE:  "Pièce d'identité",
+  AUTRE:           'Autre',
+}
+
+// Modal mise à jour (dates / montant / durée / pièces jointes / notes)
+const showEdit       = ref(false)
+const editForm       = ref({})
+const editIsLoc       = ref(false)  // true si le contrat édité est de type LOCATION
+const editNotes      = ref('')
+const docFiles        = ref([])
+const uploading       = ref(false)
 const saving          = ref(false)
 const activating      = ref(false)
+const uploadingSigned = ref(false)
+const signedFileInput = ref(null)
+const showRapportDocModal = ref(false)
+
+// Édition des infos prospect (contrat sans client encore)
+const prospectForm    = ref({ nom: '', prenom: '', email: '', telephone: '' })
+const savingProspect  = ref(false)
 
 // Modal résiliation (accepter / refuser)
 const showResiliationModal = ref(false)
@@ -39,7 +59,7 @@ const prolongationMotif     = ref('')
 const prolongationLoading   = ref(false)
 
 const STATUT_LABELS = {
-  EN_ATTENTE:              'En attente',
+  EN_ATTENTE:              'Pré-contrat',
   ACTIF:                   'Actif',
   EXPIRE:                  'Expiré',
   RESILIE:                 'Résilié',
@@ -61,12 +81,62 @@ async function fetchContrat() {
   try {
     const res = await contratService.getById(route.params.id)
     contrat.value = res.data.data
+    if (!contrat.value.clientId) {
+      prospectForm.value = {
+        nom:       contrat.value.prospectNom?.split(' ').slice(-1)[0] ?? '',
+        prenom:    contrat.value.prospectNom?.split(' ').slice(0, -1).join(' ') ?? '',
+        email:     contrat.value.prospectEmail ?? '',
+        telephone: contrat.value.prospectTelephone ?? '',
+      }
+    }
+    if (contrat.value.visiteId) {
+      try {
+        const rapportRes = await visiteService.getRapport(contrat.value.visiteId)
+        rapportVisite.value = rapportRes.data.data
+      } catch { rapportVisite.value = null }
+    }
   } catch (e) {
     error.value = e.response?.status === 404
       ? 'Contrat introuvable.'
       : 'Impossible de charger ce contrat.'
   } finally {
     loading.value = false
+  }
+}
+
+async function saveProspect() {
+  if (savingProspect.value) return
+  if (!prospectForm.value.nom || !prospectForm.value.email || !prospectForm.value.telephone) {
+    alert('Nom, email et téléphone sont obligatoires.')
+    return
+  }
+  savingProspect.value = true
+  try {
+    await contratService.updateProspect(contrat.value.id, prospectForm.value)
+    await fetchContrat()
+  } catch (e) {
+    alert(e.response?.data?.message || "Erreur lors de la mise à jour du prospect.")
+  } finally {
+    savingProspect.value = false
+  }
+}
+
+function triggerSignedUpload() {
+  signedFileInput.value?.click()
+}
+
+async function onSignedFileChange(e) {
+  const file = e.target.files?.[0]
+  e.target.value = ''
+  if (!file) return
+  uploadingSigned.value = true
+  try {
+    await contratService.uploadDocument(contrat.value.id, file)
+    await fetchContrat()
+  } catch (err) {
+    alert(err.response?.data?.message || 'Erreur lors du téléversement du contrat signé.')
+  } finally {
+    uploadingSigned.value = false
   }
 }
 
@@ -160,37 +230,72 @@ async function submitProlongation() {
   }
 }
 
-// Modal édition générale
+// Modal mise à jour (dates / montant / durée / pièces jointes / notes)
 
 function openEdit() {
-  editStatut.value      = contrat.value.statut
-  editNotes.value       = contrat.value.notes ?? ''
-  editDocumentUrl.value = contrat.value.documentUrl ?? ''
-  pdfFile.value         = null
-  showEdit.value        = true
+  editIsLoc.value = contrat.value.typeContrat === 'LOCATION'
+  editForm.value = {
+    dateDebut:         contrat.value.dateDebut ?? '',
+    dateFin:           contrat.value.dateFin ?? '',
+    montant:           contrat.value.montant ?? '',
+    dureeLocationMois: contrat.value.dureeLocationMois ?? '',
+  }
+  editNotes.value = contrat.value.notes ?? ''
+  docFiles.value  = []
+  showEdit.value  = true
+}
+
+function onDocFilesChange(e) {
+  docFiles.value = Array.from(e.target.files || [])
 }
 
 async function saveEdit() {
   saving.value = true
   try {
-    // Upload PDF si un nouveau fichier est sélectionné
-    if (pdfFile.value) {
-      pdfUploading.value = true
-      editDocumentUrl.value = await uploadPdf(pdfFile.value)
-      pdfUploading.value = false
+    const documents = []
+    if (docFiles.value.length) {
+      uploading.value = true
+      for (const file of docFiles.value) {
+        const url = await uploadPdf(file)
+        documents.push({ type: 'AUTRE', url })
+      }
+      uploading.value = false
     }
-    await contratService.update(contrat.value.id, {
-      statut:      editStatut.value      || null,
-      notes:       editNotes.value       || null,
-      documentUrl: editDocumentUrl.value || null,
-    })
+
+    if (documents.length) {
+      await contratService.addDocuments(contrat.value.id, documents)
+    }
+
+    const payload = {
+      dateDebut: editForm.value.dateDebut || null,
+      notes:     editNotes.value         || null,
+    }
+    if (editIsLoc.value) {
+      payload.dureeLocationMois = editForm.value.dureeLocationMois
+        ? Number(editForm.value.dureeLocationMois) : null
+    } else {
+      payload.dateFin = editForm.value.dateFin  || null
+      payload.montant = editForm.value.montant ? Number(editForm.value.montant) : null
+    }
+    await contratService.update(contrat.value.id, payload)
+
     showEdit.value = false
     await fetchContrat()
   } catch (e) {
-    pdfUploading.value = false
-    alert(e.response?.data?.message || 'Erreur lors de la modification.')
+    uploading.value = false
+    alert(e.response?.data?.message || "Erreur lors de la mise à jour.")
   } finally {
     saving.value = false
+  }
+}
+
+async function removeDocument(doc) {
+  if (!confirm(`Supprimer le document « ${TYPE_DOCUMENT_LABELS[doc.type] || doc.type} » ?`)) return
+  try {
+    await contratService.removeDocument(contrat.value.id, doc.id)
+    await fetchContrat()
+  } catch (e) {
+    alert(e.response?.data?.message || 'Erreur lors de la suppression.')
   }
 }
 
@@ -265,7 +370,11 @@ onMounted(() => fetchContrat())
             <a v-if="contrat.documentUrl" :href="contrat.documentUrl" target="_blank" class="cda-btn cda-btn--outline">
               <Download :size="14" /> Télécharger
             </a>
-            <button class="cda-btn cda-btn--primary" @click="openEdit"><Pencil :size="13" /> Modifier</button>
+            <input ref="signedFileInput" type="file" accept=".pdf,.png,.jpg,.jpeg" class="cda-hidden-input" @change="onSignedFileChange" />
+            <button v-if="contrat.statut === 'EN_ATTENTE'" class="cda-btn cda-btn--outline" :disabled="uploadingSigned" @click="triggerSignedUpload">
+              <Upload :size="13" /> {{ uploadingSigned ? 'Envoi…' : (contrat.documentUrl ? 'Remplacer le contrat signé' : 'Téléverser le contrat signé') }}
+            </button>
+            <button class="cda-btn cda-btn--primary" @click="openEdit"><Upload :size="13" /> Mise à jour</button>
           </div>
         </div>
 
@@ -284,22 +393,37 @@ onMounted(() => fetchContrat())
         <!-- Grille -->
         <div class="cda-grid">
           <div class="cda-card">
-            <h2 class="cda-card__title">Client</h2>
-            <dl class="cda-dl">
+            <h2 class="cda-card__title">{{ contrat.clientId ? 'Client' : 'Prospect (compte non créé)' }}</h2>
+            <dl class="cda-dl" v-if="contrat.clientId">
               <div class="cda-dl__row"><dt>Nom</dt><dd>{{ contrat.clientNom }}</dd></div>
               <div class="cda-dl__row"><dt>ID client</dt><dd>{{ contrat.clientId }}</dd></div>
             </dl>
-          </div>
-
-          <div class="cda-card">
-            <h2 class="cda-card__title">Bien immobilier</h2>
-            <dl class="cda-dl">
-              <div class="cda-dl__row">
-                <dt>Libellé</dt>
-                <dd><RouterLink :to="`/admin/annonces/${contrat.annonceId}`" class="cda-link">{{ contrat.annonceLibelle }}</RouterLink></dd>
+            <form v-else class="cda-prospect-form" @submit.prevent="saveProspect">
+              <div class="cda-prospect-grid">
+                <div class="modal-box__field">
+                  <label for="prospect-nom">Nom</label>
+                  <input id="prospect-nom" v-model="prospectForm.nom" type="text" class="modal-box__input" required />
+                </div>
+                <div class="modal-box__field">
+                  <label for="prospect-prenom">Prénom</label>
+                  <input id="prospect-prenom" v-model="prospectForm.prenom" type="text" class="modal-box__input" />
+                </div>
+                <div class="modal-box__field">
+                  <label for="prospect-email">Email</label>
+                  <input id="prospect-email" v-model="prospectForm.email" type="email" class="modal-box__input" required />
+                </div>
+                <div class="modal-box__field">
+                  <label for="prospect-telephone">Téléphone</label>
+                  <input id="prospect-telephone" v-model="prospectForm.telephone" type="tel" class="modal-box__input" required />
+                </div>
+                <p class="cda-hint cda-prospect-grid__hint">
+                  Le compte client sera créé automatiquement à partir de ces informations à l'activation finale du contrat.
+                </p>
               </div>
-              <div class="cda-dl__row"><dt>Adresse</dt><dd>{{ contrat.annonceAdresse || '–' }}</dd></div>
-            </dl>
+              <button type="submit" class="cda-btn cda-btn--primary" :disabled="savingProspect">
+                {{ savingProspect ? 'Enregistrement…' : 'Enregistrer le prospect' }}
+              </button>
+            </form>
           </div>
 
           <div class="cda-card">
@@ -322,13 +446,60 @@ onMounted(() => fetchContrat())
           </div>
 
           <div class="cda-card">
+            <h2 class="cda-card__title">Bien immobilier</h2>
+            <dl class="cda-dl">
+              <div class="cda-dl__row">
+                <dt>Libellé</dt>
+                <dd><RouterLink :to="`/admin/annonces/${contrat.annonceId}`" class="cda-link">{{ contrat.annonceLibelle }}</RouterLink></dd>
+              </div>
+              <div class="cda-dl__row"><dt>Adresse</dt><dd>{{ contrat.annonceAdresse || '–' }}</dd></div>
+            </dl>
+          </div>
+
+          <div class="cda-card">
             <h2 class="cda-card__title">Historique</h2>
             <dl class="cda-dl">
               <div class="cda-dl__row"><dt>Créé le</dt><dd>{{ formatDatetime(contrat.createdAt) }}</dd></div>
               <div class="cda-dl__row"><dt>Mis à jour</dt><dd>{{ formatDatetime(contrat.updatedAt) }}</dd></div>
               <div v-if="contrat.leadId" class="cda-dl__row"><dt>Lead lié</dt><dd>{{ contrat.leadId }}</dd></div>
-              <div v-if="contrat.visiteId" class="cda-dl__row"><dt>Visite liée</dt><dd>{{ contrat.visiteId }}</dd></div>
+              <div v-if="contrat.visiteId" class="cda-dl__row">
+                <dt>Visite liée</dt>
+                <dd><RouterLink :to="`/admin/visites/${contrat.visiteId}`" class="cda-link">Voir la visite</RouterLink></dd>
+              </div>
             </dl>
+          </div>
+
+          <!-- Rapport de visite -->
+          <div class="cda-card cda-card--full" v-if="contrat.visiteId">
+            <h2 class="cda-card__title"><FileText :size="14" /> Rapport de visite</h2>
+            <template v-if="rapportVisite">
+              <dl class="cda-dl">
+                <div class="cda-dl__row"><dt>Auteur</dt><dd>{{ rapportVisite.auteurAdminNom }}</dd></div>
+                <div class="cda-dl__row"><dt>Issue</dt><dd>{{ rapportVisite.aboutie ? 'Visite aboutie' : 'Sans suite' }}</dd></div>
+              </dl>
+              <p class="cda-notes">{{ rapportVisite.compteRendu }}</p>
+              <button v-if="rapportVisite.documentUrl" class="cda-btn cda-btn--outline" @click="showRapportDocModal = true">
+                <Paperclip :size="13" /> Voir les pièces jointes du rapport
+              </button>
+              <p v-else class="cda-hint">Aucun document joint au rapport.</p>
+            </template>
+            <p v-else class="cda-hint">Aucun rapport disponible pour cette visite.</p>
+          </div>
+
+          <!-- Pièces jointes -->
+          <div class="cda-card cda-card--full">
+            <h2 class="cda-card__title"><Paperclip :size="14" /> Pièces jointes</h2>
+            <p v-if="!contrat.documents || !contrat.documents.length" class="cda-hint">
+              Aucune pièce jointe uploadée pour ce contrat.
+            </p>
+            <ul v-else class="doc-list">
+              <li v-for="doc in contrat.documents" :key="doc.id" class="doc-list__item">
+                <span class="doc-list__type">{{ TYPE_DOCUMENT_LABELS[doc.type] || doc.type }}</span>
+                <a :href="doc.url" target="_blank" class="doc-list__link"><Download :size="12" /> Voir</a>
+                <span class="doc-list__meta">{{ doc.uploadedByNom }} · {{ formatDatetime(doc.createdAt) }}</span>
+                <button class="doc-list__remove" title="Supprimer" @click="removeDocument(doc)"><Trash2 :size="13" /></button>
+              </li>
+            </ul>
           </div>
 
           <!-- Motif résiliation client -->
@@ -355,9 +526,14 @@ onMounted(() => fetchContrat())
           <h2 class="cda-actions-section__title">Actions disponibles</h2>
 
           <!-- EN_ATTENTE → Valider ou Rejeter -->
-          <div v-if="contrat.statut === 'EN_ATTENTE'" class="cda-actions">
-            <button class="cda-btn cda-btn--success" :disabled="activating" @click="activer"><template v-if="!activating"><Check :size="14" /> Valider le contrat</template><template v-else>…</template></button>
-            <button class="cda-btn cda-btn--danger"  :disabled="activating" @click="rejeter"><template v-if="!activating"><X :size="14" /> Rejeter le contrat</template><template v-else>…</template></button>
+          <div v-if="contrat.statut === 'EN_ATTENTE'" class="cda-actions-col">
+            <p v-if="!contrat.documentUrl" class="cda-warn">
+              Le contrat signé par le client doit être téléversé (bouton « Téléverser le contrat signé » ci-dessus) avant de pouvoir valider.
+            </p>
+            <div class="cda-actions">
+              <button class="cda-btn cda-btn--success" :disabled="activating || !contrat.documentUrl" @click="activer"><template v-if="!activating"><Check :size="14" /> Valider le contrat</template><template v-else>…</template></button>
+              <button class="cda-btn cda-btn--danger"  :disabled="activating" @click="rejeter"><template v-if="!activating"><X :size="14" /> Rejeter le contrat</template><template v-else>…</template></button>
+            </div>
           </div>
 
           <!-- EN_ATTENTE_RESILIATION → Accepter ou Refuser -->
@@ -504,34 +680,60 @@ onMounted(() => fetchContrat())
       </div>
     </Teleport>
 
-    <!-- Modal édition générale -->
+    <!-- Modal mise à jour -->
     <Teleport to="body">
       <div v-if="showEdit" class="modal-overlay" @click.self="showEdit = false">
         <div class="modal-box">
-          <h2 class="modal-box__title">Modifier le contrat {{ contrat?.id }}</h2>
+          <h2 class="modal-box__title">Mise à jour — contrat {{ contrat?.id }}</h2>
+
+          <!-- Champs communs -->
           <div class="modal-box__field">
-            <label>Statut</label>
-            <select v-model="editStatut" class="modal-box__input">
-              <option v-for="s in ['EN_ATTENTE','ACTIF','RESILIE']" :key="s" :value="s">{{ STATUT_LABELS[s] }}</option>
-            </select>
+            <label>Date de début</label>
+            <input v-model="editForm.dateDebut" type="date" class="modal-box__input" />
           </div>
+
+          <!-- LOCATION : durée → montant et dateFin recalculés automatiquement -->
+          <template v-if="editIsLoc">
+            <div class="modal-box__field">
+              <label>Durée du bail (mois)</label>
+              <input v-model="editForm.dureeLocationMois" type="number" min="1" class="modal-box__input"
+                placeholder="Ex: 12" />
+            </div>
+            <p class="modal-box__info">
+              Le montant et la date de fin sont recalculés automatiquement à partir de la durée saisie.
+            </p>
+          </template>
+
+          <!-- VENTE : montant et dateFin librement éditables -->
+          <template v-else>
+            <div class="modal-box__field">
+              <label>Date de fin</label>
+              <input v-model="editForm.dateFin" type="date" class="modal-box__input" />
+            </div>
+            <div class="modal-box__field">
+              <label>Montant (FCFA)</label>
+              <input v-model="editForm.montant" type="number" min="0" class="modal-box__input" />
+            </div>
+          </template>
+
           <div class="modal-box__field">
-            <label>Document contrat (PDF)</label>
+            <span class="modal-box__field-title">Document contractuel</span>
             <label class="pdf-upload-zone">
               <Paperclip :size="15" />
-              <span v-if="pdfFile">{{ pdfFile.name }}</span>
-              <span v-else-if="editDocumentUrl">Remplacer le document existant</span>
-              <span v-else>Sélectionner un fichier PDF</span>
+              <span v-if="docFiles.length">{{ docFiles.length }} fichier{{ docFiles.length > 1 ? 's' : '' }} sélectionné{{ docFiles.length > 1 ? 's' : '' }}</span>
+              <span v-else>Sélectionner un ou plusieurs fichiers (PDF, image)</span>
               <input
                 type="file"
-                accept="application/pdf"
-                @change="e => pdfFile = e.target.files[0] || null"
+                accept="application/pdf,image/*"
+                multiple
+                @change="onDocFilesChange"
                 hidden
               />
             </label>
-            <a v-if="editDocumentUrl && !pdfFile" :href="editDocumentUrl" target="_blank" class="pdf-current-link">
-              <Download :size="12" /> Voir le document actuel
-            </a>
+            <ul v-if="docFiles.length" class="doc-pending-list">
+              <li v-for="(f, i) in docFiles" :key="i">{{ f.name }}</li>
+            </ul>
+            <span v-if="uploading" class="modal-box__hint">Upload en cours…</span>
           </div>
           <div class="modal-box__field">
             <label>Notes administratives</label>
@@ -539,9 +741,26 @@ onMounted(() => fetchContrat())
           </div>
           <div class="modal-box__footer">
             <button class="modal-box__cancel" @click="showEdit = false">Annuler</button>
-            <button class="modal-box__submit" :disabled="saving || pdfUploading" @click="saveEdit">
-              {{ pdfUploading ? 'Upload PDF…' : saving ? 'Enregistrement…' : 'Enregistrer' }}
+            <button class="modal-box__submit" :disabled="saving" @click="saveEdit">
+              {{ saving ? 'Enregistrement…' : 'Enregistrer' }}
             </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Modal pièces jointes du rapport de visite -->
+    <Teleport to="body">
+      <div v-if="showRapportDocModal" class="modal-overlay" @click.self="showRapportDocModal = false">
+        <div class="modal-box modal-box--lg">
+          <h2 class="modal-box__title">Pièces jointes du rapport de visite</h2>
+          <template v-if="rapportVisite?.documentUrl">
+            <iframe v-if="isPdfUrl(rapportVisite.documentUrl)" :src="rapportVisite.documentUrl" class="rapport-doc-frame" title="Document du rapport de visite"></iframe>
+            <img v-else-if="isImageUrl(rapportVisite.documentUrl)" :src="rapportVisite.documentUrl" class="rapport-doc-image" alt="Document du rapport de visite" />
+            <a v-else :href="rapportVisite.documentUrl" target="_blank" class="cda-link">Voir le document joint</a>
+          </template>
+          <div class="modal-box__footer">
+            <button class="modal-box__cancel" @click="showRapportDocModal = false">Fermer</button>
           </div>
         </div>
       </div>
@@ -593,12 +812,22 @@ onMounted(() => fetchContrat())
 .cda-montant { color: var(--color-accent); font-size: .95rem !important; }
 .cda-link { color: var(--color-primary); text-decoration: none; font-weight: 600; }
 .cda-notes { font-size: .88rem; color: var(--color-text); opacity: .7; line-height: 1.6; white-space: pre-wrap; margin: 0; }
+.rapport-doc-frame { width: 100%; height: 600px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); margin-top: .75rem; }
+.rapport-doc-image { max-width: 100%; border-radius: var(--radius-sm); margin-top: .75rem; display: block; }
 .cda-motif { font-size: .88rem; color: var(--color-text); line-height: 1.6; white-space: pre-wrap; margin: 0; font-style: italic; }
 
 .cda-actions-section { background: var(--color-card); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow-card); }
 .cda-actions-section__title { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--color-text); opacity: .5; margin: 0 0 1rem; }
 .cda-actions { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; }
+.cda-actions-col { display: flex; flex-direction: column; gap: .75rem; }
 .cda-readonly { font-size: .88rem; color: var(--color-text); opacity: .55; font-style: italic; }
+.cda-hint { font-size: .78rem; color: var(--color-text); opacity: .55; font-style: italic; margin: .5rem 0 0; }
+.cda-prospect-form { display: flex; flex-direction: column; gap: 0; }
+.cda-prospect-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem .85rem; margin-bottom: .75rem; }
+.cda-prospect-grid .modal-box__field { margin-bottom: 0; }
+.cda-prospect-grid__hint { grid-column: 1 / -1; margin: .15rem 0 0; }
+@media (max-width: 480px) { .cda-prospect-grid { grid-template-columns: 1fr; } }
+.cda-warn { font-size: .85rem; color: #d97706; background: rgba(217,119,6,.08); border-radius: var(--radius-sm); padding: .6rem .85rem; margin: 0; }
 
 .cda-btn {
   display: inline-flex; align-items: center; gap: .35rem;
@@ -614,6 +843,7 @@ onMounted(() => fetchContrat())
 .cda-btn--danger:hover:not(:disabled)  { background: rgba(220,38,38,.07); }
 .cda-btn--outline { background: none; border-color: var(--color-border); color: var(--color-primary); }
 .cda-btn--outline:hover:not(:disabled) { border-color: var(--color-primary); }
+.cda-hidden-input { display: none; }
 
 .badge-type { display: inline-flex; align-items: center; gap: .3rem; padding: .25rem .65rem; border-radius: 12px; font-size: .75rem; font-weight: 700; white-space: nowrap; }
 .badge-type--vente { background: #fef9c3; color: #a16207; }
@@ -622,6 +852,7 @@ onMounted(() => fetchContrat())
 /* Modals */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1rem; }
 .modal-box { background: var(--color-card); border-radius: var(--radius); padding: 1.75rem; width: 100%; max-width: 460px; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+.modal-box--lg { max-width: 720px; }
 .modal-box__title { font-size: 1rem; font-weight: 700; color: var(--color-text); margin-bottom: .5rem; }
 .modal-box__desc { font-size: .85rem; color: var(--color-text); opacity: .65; margin-bottom: 1rem; }
 .modal-box__motif {
@@ -635,7 +866,7 @@ onMounted(() => fetchContrat())
 .modal-box__hint { font-size: .72rem; font-weight: 400; opacity: .6; font-style: italic; margin-left: .3rem; }
 .modal-box__info { font-size: .78rem; color: var(--color-text); opacity: .55; font-style: italic; margin: -.5rem 0 1rem; }
 .modal-box__field { display: flex; flex-direction: column; gap: .4rem; margin-bottom: 1rem; }
-.modal-box__field label { font-size: .78rem; font-weight: 600; color: var(--color-text); opacity: .7; }
+.modal-box__field label, .modal-box__field-title { font-size: .78rem; font-weight: 600; color: var(--color-text); opacity: .7; }
 .modal-box__input, .modal-box__textarea { padding: .65rem .9rem; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); font-size: .88rem; background: var(--color-background); color: var(--color-text); width: 100%; box-sizing: border-box; }
 .modal-box__textarea { resize: vertical; }
 .modal-box__footer { display: flex; justify-content: flex-end; gap: .75rem; margin-top: 1.25rem; }
@@ -655,6 +886,23 @@ onMounted(() => fetchContrat())
   color: var(--color-text); opacity: .55; text-decoration: none; margin-top: .3rem;
 }
 .pdf-current-link:hover { opacity: .85; text-decoration: underline; }
+.doc-pending-list { margin: .4rem 0 0; padding: 0 0 0 1.1rem; font-size: .8rem; color: var(--color-text); opacity: .7; }
+.doc-pending-list li { margin-bottom: .15rem; }
+
+.doc-list { display: flex; flex-direction: column; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+.doc-list__item {
+  display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+  padding: .55rem .8rem; background: var(--color-background); border-radius: var(--radius-sm);
+}
+.doc-list__type { font-size: .85rem; font-weight: 700; color: var(--color-text); }
+.doc-list__link { display: inline-flex; align-items: center; gap: .25rem; font-size: .8rem; color: var(--color-primary); font-weight: 600; text-decoration: none; }
+.doc-list__link:hover { text-decoration: underline; }
+.doc-list__meta { font-size: .75rem; color: var(--color-text); opacity: .5; margin-left: auto; }
+.doc-list__remove {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: none; border: none; cursor: pointer; color: #dc2626; opacity: .7; padding: .2rem;
+}
+.doc-list__remove:hover { opacity: 1; }
 
 .spinner { width: 36px; height: 36px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }

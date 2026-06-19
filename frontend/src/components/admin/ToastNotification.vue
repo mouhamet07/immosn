@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+import { Check, X } from 'lucide-vue-next'
 
 const toasts = ref([])
 let nextId = 0
@@ -25,7 +26,10 @@ defineExpose({ show })
           class="toast"
           :class="`toast--${toast.type}`"
         >
-          <span class="toast__icon">{{ toast.type === 'success' ? '✓' : '✕' }}</span>
+          <span class="toast__icon">
+            <Check v-if="toast.type === 'success'" :size="16" />
+            <X v-else :size="16" />
+          </span>
           <span>{{ toast.message }}</span>
         </div>
       </TransitionGroup>

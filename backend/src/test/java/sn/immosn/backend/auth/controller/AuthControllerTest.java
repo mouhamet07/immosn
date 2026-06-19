@@ -34,12 +34,12 @@ class AuthControllerTest {
 
     private AuthResponseDto buildResponse(String email) {
         // AuthResponseDto est un POJO avec @AllArgsConstructor Lombok
-        // Signature : id, nomComplet, email, telephone, adresse, photo, creationDate, archived, accessToken, tokenType, roles, dernierConnexion, sessionsActives
+        // Signature : id, nomComplet, email, telephone, adresse, photo, creationDate, archived, accessToken, tokenType, roles, dernierConnexion, sessionsActives, motDePasseAChanger
         return new AuthResponseDto(
             1L, "Test User", email, "+221770000001",
             null, null,
             LocalDateTime.now(), false, "jwt-token-xxx", "Bearer", Set.of("CLIENT"),
-            LocalDateTime.now(), 1L
+            LocalDateTime.now(), 1L, false
         );
     }
 

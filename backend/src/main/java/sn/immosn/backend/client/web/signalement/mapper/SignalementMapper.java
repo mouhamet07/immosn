@@ -18,6 +18,9 @@ public class SignalementMapper {
             s.getStatut(),
             s.isRead(),
             s.getReponseAdmin(),
+            s.getTypeContratSnapshot(),
+            s.getMotifRejet(),
+            s.getDecisionAt(),
             s.getCreatedAt()
         );
     }

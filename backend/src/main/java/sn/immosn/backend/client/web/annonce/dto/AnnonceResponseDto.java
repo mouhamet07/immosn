@@ -1,5 +1,7 @@
 package sn.immosn.backend.client.web.annonce.dto;
 
+import sn.immosn.backend.annonce.data.entity.TypeTransaction;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.math.BigDecimal;
@@ -19,6 +21,7 @@ public record AnnonceResponseDto(
     Double latitude,
     Double longitude,
     TypeBienResponseDto typeBien,
+    TypeTransaction typeTransaction,
     List<CommoditeResponseDto> commodites,
     List<String> images,
     Boolean archived,

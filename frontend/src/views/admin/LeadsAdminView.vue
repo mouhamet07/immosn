@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { FileText, Edit3 } from 'lucide-vue-next'
+import { FileText, Edit3, X } from 'lucide-vue-next'
 import leadService from '@/services/leadService'
 import FilterSelect from '@/components/FilterSelect.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
@@ -177,7 +177,7 @@ onMounted(() => fetchLeads(0))
         <div class="modal" role="dialog" aria-modal="true">
           <div class="modal__header">
             <h2 class="modal__title">Note admin — Lead {{ modalLead?.id }}</h2>
-            <button class="modal__close" @click="closeNoteModal">✕</button>
+            <button class="modal__close" @click="closeNoteModal"><X :size="16" /></button>
           </div>
           <div class="modal__body">
             <p class="modal__meta">{{ modalLead?.clientNom }} · {{ modalLead?.annonceLibelle }}</p>

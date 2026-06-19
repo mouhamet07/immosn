@@ -23,6 +23,7 @@ const form = reactive({
   libelle:       '',
   description:   '',
   typeBienId:    null,
+  typeTransaction: 'VENTE',
   nbrPieces:     '',
   nbrSallesBain: '',
   surface:       '',
@@ -194,6 +195,7 @@ async function submit() {
       departement:   form.departement,
       quartier:      form.quartier,
       typeBienId:    form.typeBienId,
+      typeTransaction: form.typeTransaction,
       commoditeIds:  form.commoditeIds,
       images:        imageUrls,
       isExclusivite: form.isExclusivite,
@@ -258,6 +260,16 @@ async function submit() {
           <div class="field">
             <label class="field__label">PRIX (FCFA) <span class="req">*</span></label>
             <input v-model.number="form.prix" type="number" min="0" step="1" class="field__input" placeholder="ex. 150000000" @input="form.prix = Math.max(0, form.prix)" />
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label class="field__label">TYPE DE TRANSACTION <span class="req">*</span></label>
+            <select v-model="form.typeTransaction" class="field__input">
+              <option value="VENTE">Vente</option>
+              <option value="LOCATION">Location</option>
+            </select>
           </div>
         </div>
 

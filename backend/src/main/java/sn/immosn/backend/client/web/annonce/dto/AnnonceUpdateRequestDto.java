@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
+import sn.immosn.backend.annonce.data.entity.TypeTransaction;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -46,6 +47,8 @@ public record AnnonceUpdateRequestDto(
     String quartier,
 
     Long typeBienId,
+
+    TypeTransaction typeTransaction,
 
     List<Long> commoditeIds,
 

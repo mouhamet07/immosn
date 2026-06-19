@@ -2,6 +2,7 @@ package sn.immosn.backend.client.web.annonce.dto;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
+import sn.immosn.backend.annonce.data.entity.TypeTransaction;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -9,6 +10,8 @@ import java.util.List;
 public record SearchAnnonceRequestDto(
 
     Long typeBienId,
+
+    TypeTransaction typeTransaction,   // filtre VENTE / LOCATION (Sprint 4)
 
     @Positive BigDecimal prixMin,
     @Positive BigDecimal prixMax,

@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, reactive, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { X, Camera } from 'lucide-vue-next'
@@ -33,6 +33,7 @@ const form = reactive({
   libelle:        '',
   description:    '',
   typeBienId:     null,
+  typeTransaction: null,
   nbrPieces:      '',
   nbrSallesBain:  '',
   surface:        '',
@@ -130,6 +131,7 @@ onMounted(async () => {
     form.libelle      = a.libelle      || ''
     form.description  = a.description  || ''
     form.typeBienId   = a.typeBien?.id || null
+    form.typeTransaction = a.typeTransaction || null
     form.nbrPieces    = a.nbrPieces    || ''
     form.nbrSallesBain = a.nbrSallesBain || ''
     form.surface      = a.surface      || ''
@@ -190,12 +192,13 @@ async function handleSubmit() {
       departement:   form.departement,
       quartier:      form.quartier,
       typeBienId:    form.typeBienId,
+      typeTransaction: form.typeTransaction,
       commoditeIds:  form.commoditeIds,
       images:        finalImages,
       isExclusivite: form.isExclusivite,
     })
 
-    toast.value?.show('Annonce modifiée avec succès ✓', 'success')
+    toast.value?.show('Annonce modifiée avec succès', 'success')
     setTimeout(() => router.push(`/admin/annonces/${route.params.id}`), 1200)
   } catch (err) {
     toast.value?.show(err.userMessage || err.response?.data?.message || 'Erreur lors de la modification.', 'error')
@@ -258,6 +261,17 @@ async function handleSubmit() {
           <div class="field">
             <label class="field__label">PRIX (FCFA) <span class="req">*</span></label>
             <input v-model.number="form.prix" type="number" min="0" step="1" class="field__input" placeholder="ex. 50000000" @input="form.prix = Math.max(0, form.prix)" />
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label class="field__label">TYPE DE TRANSACTION</label>
+            <select v-model="form.typeTransaction" class="field__input">
+              <option :value="null">Non renseigné</option>
+              <option value="VENTE">Vente</option>
+              <option value="LOCATION">Location</option>
+            </select>
           </div>
         </div>
 

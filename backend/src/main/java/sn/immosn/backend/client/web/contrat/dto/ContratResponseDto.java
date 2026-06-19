@@ -6,11 +6,16 @@ import sn.immosn.backend.contrat.data.entity.TypeContrat;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record ContratResponseDto(
     Long id,
     Long clientId,
     String clientNom,
+    Long prospectId,
+    String prospectNom,
+    String prospectEmail,
+    String prospectTelephone,
     Long annonceId,
     String annonceLibelle,
     String annonceAdresse,
@@ -27,6 +32,8 @@ public record ContratResponseDto(
     String notes,
     String motifResiliation,
     String motifProlongation,
+    LocalDateTime valideParSuperAdminAt,
     LocalDateTime createdAt,
-    LocalDateTime updatedAt
+    LocalDateTime updatedAt,
+    List<ContratDocumentDto> documents
 ) {}

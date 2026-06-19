@@ -7,6 +7,22 @@ export default {
     return api.post('/discussions', { annonceId, premierMessage })
   },
 
+  // POST /api/v1/discussions/invite — PUBLIC : ouvrir une discussion sans compte
+  // payload : { annonceId, nom, prenom?, telephone, email, adresse?, premierMessage }
+  createInvite(payload) {
+    return api.post('/discussions/invite', payload)
+  },
+
+  // GET /api/v1/discussions/token/{token} — PUBLIC : relire une discussion invité
+  getByToken(token) {
+    return api.get(`/discussions/token/${token}`)
+  },
+
+  // POST /api/v1/discussions/token/{token}/messages — PUBLIC : répondre dans une discussion invité
+  sendInviteMessage(token, contenu) {
+    return api.post(`/discussions/token/${token}/messages`, { contenu })
+  },
+
   // GET /api/v1/discussions/client — discussions du client connecté
   getClientDiscussions(page = 0, size = 10) {
     return api.get('/discussions/client', { params: { page, size } })

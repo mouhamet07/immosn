@@ -24,6 +24,10 @@ public class AnnonceSpecification {
                 predicates.add(cb.equal(root.get("typeBien").get("id"), req.typeBienId()));
             }
 
+            if (req.typeTransaction() != null) {
+                predicates.add(cb.equal(root.get("typeTransaction"), req.typeTransaction()));
+            }
+
             if (req.prixMin() != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("prix"), req.prixMin()));
             }
