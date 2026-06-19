@@ -22,6 +22,7 @@ const router = createRouter({
         { path: 'annonces',          name: 'annonces',          component: () => import('@/views/annonces/ListeAnnoncesView.vue') },
         { path: 'annonces/:id',      name: 'detail-annonce',    component: () => import('@/views/annonces/DetailAnnonceView.vue') },
         { path: 'suivi-visite',      name: 'suivi-visite',      component: () => import('@/views/visites/SuiviVisiteView.vue') },
+        { path: 'visite-demande',    name: 'visite-demande',    component: () => import('@/views/visites/VisiteDemandeView.vue') },
         { path: 'profil',            name: 'profil',            component: () => import('@/views/profil/ProfilView.vue'),                   meta: { requiresAuth: true, role: 'CLIENT' } },
         { path: 'discussions',       name: 'discussions',       component: () => import('@/views/discussions/DiscussionsView.vue'),         meta: { requiresAuth: true, role: 'CLIENT' } },
         { path: 'mes-visites',       name: 'mes-visites',       component: () => import('@/views/visites/MesVisitesView.vue'),              meta: { requiresAuth: true, role: 'CLIENT' } },

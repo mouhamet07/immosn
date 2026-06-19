@@ -5,7 +5,6 @@ import { Heart, Phone, Mail, Share2, FileText, Flag } from 'lucide-vue-next'
 import ButtonPrimary from '@/components/ButtonPrimary.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import ImageGallery from '@/components/ImageGallery.vue'
-import VisiteInviteForm from '@/components/VisiteInviteForm.vue'
 import ContactInviteChat from '@/components/ContactInviteChat.vue'
 import annonceService from '@/services/annonceService'
 import discussionService from '@/services/discussionService'
@@ -56,8 +55,11 @@ function closeVisiteModal() {
 }
 
 function handleReserverVisite() {
-  // Parcours visiteur : un utilisateur non authentifié peut demander une visite
-  // via le formulaire invité (composant VisiteInviteForm). Aucune redirection connexion.
+  // Visiteur non authentifié : page dédiée /visite-demande (formulaire complet, mieux organisé qu'un modal).
+  if (!authStore.isAuthenticated) {
+    router.push({ name: 'visite-demande', query: { annonceId: annonce.value.id } })
+    return
+  }
   showVisiteModal.value = true
   visiteSuccess.value = false
 }
@@ -343,13 +345,8 @@ function toUSD(prix) {
             </button>
           </div>
 
-          <!-- Visiteur non authentifié : formulaire invité complet (gère son propre succès) -->
-          <div v-if="!authStore.isAuthenticated" class="modal-chat__compose" style="padding-top: 1.25rem;">
-            <VisiteInviteForm :annonce-id="annonce.id" />
-          </div>
-
-          <!-- Client connecté : flux existant inchangé -->
-          <template v-else-if="!visiteSuccess">
+          <!-- Réservé au client connecté : le visiteur non authentifié est redirigé vers /visite-demande -->
+          <template v-if="!visiteSuccess">
             <div class="modal-chat__compose" style="padding-top: 1.25rem;">
               <div style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:.75rem;">
                 <label style="font-size:.78rem;font-weight:600;opacity:.7;">Date et heure souhaitées *</label>

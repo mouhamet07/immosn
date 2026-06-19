@@ -27,7 +27,12 @@ public interface DemandeVisiteService {
 
     Page<DemandeVisiteResponseDto> getClientVisites(String clientEmail, StatutDemandeVisite statut, Pageable pageable);
 
-    Page<DemandeVisiteResponseDto> getAllVisites(StatutDemandeVisite statut, TypeTransaction typeTransaction, Pageable pageable);
+    /**
+     * Liste des demandes de visite pour la vue admin. Un ADMIN simple ne voit que les visites
+     * qui lui sont affectées (adminResponsable) ; le SUPER_ADMIN voit toutes les visites.
+     */
+    Page<DemandeVisiteResponseDto> getAllVisites(
+        StatutDemandeVisite statut, TypeTransaction typeTransaction, Pageable pageable, String callerEmail);
 
     DemandeVisiteResponseDto updateStatut(Long id, UpdateStatutVisiteDto dto, String userEmail, boolean isAdmin);
 

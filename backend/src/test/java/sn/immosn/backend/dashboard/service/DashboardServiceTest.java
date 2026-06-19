@@ -9,8 +9,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.Set;
 import sn.immosn.backend.annonce.data.repository.AnnonceRepository;
+import sn.immosn.backend.auth.data.entity.Role;
 import sn.immosn.backend.auth.data.entity.RoleType;
+import sn.immosn.backend.auth.data.entity.User;
 import sn.immosn.backend.auth.data.repository.UserRepository;
 import sn.immosn.backend.client.web.dashboard.dto.DashboardStatsDto;
 import sn.immosn.backend.contrat.data.entity.StatutContrat;
@@ -48,6 +52,11 @@ class DashboardServiceTest {
     @Test
     @DisplayName("getStats — agrège les compteurs de tous les domaines")
     void getStats_aggregatesAllCounts() {
+        User superAdmin = new User();
+        superAdmin.setEmail("super@immosn.sn");
+        superAdmin.setRoles(Set.of(new Role(1L, RoleType.SUPER_ADMIN)));
+        when(userRepository.findByEmail("super@immosn.sn")).thenReturn(Optional.of(superAdmin));
+
         // --- Compteurs directs ---
         when(annonceRepository.count()).thenReturn(12L);
         when(annonceRepository.countByIsArchivedFalse()).thenReturn(8L);
@@ -86,7 +95,7 @@ class DashboardServiceTest {
             .thenReturn(List.of());
 
         // Exécution
-        DashboardStatsDto stats = dashboardService.getStats();
+        DashboardStatsDto stats = dashboardService.getStats("super@immosn.sn");
 
         // Vérifications
         assertThat(stats).isNotNull();

@@ -194,7 +194,8 @@ const STATUT_VARIANTS = {
   // Annonces / contrats
   ACTIVE: 'success', ACTIF: 'success', RESILIE: 'danger', EXPIRE: 'neutral',
   // Visites
-  EN_ATTENTE: 'warning', ACCEPTEE: 'success', REFUSEE: 'danger',
+  EN_ATTENTE: 'warning', ACCEPTEE: 'success', AFFECTEE: 'info',
+  REPLANIFICATION_DEMANDEE: 'warning', RAPPORT_REDIGE: 'info', REFUSEE: 'danger',
   ANNULEE: 'neutral', TERMINEE: 'info',
   CLOTUREE_SANS_SUITE: 'neutral', CLOTUREE_AVEC_CONTRAT: 'info',
   // Leads
@@ -206,7 +207,8 @@ const STATUT_LABELS   = {
   // Annonces / contrats
   ACTIVE: 'Actif', ACTIF: 'Actif', RESILIE: 'Résilié', EXPIRE: 'Expiré',
   // Visites
-  EN_ATTENTE: 'En attente', ACCEPTEE: 'Acceptée', REFUSEE: 'Refusée',
+  EN_ATTENTE: 'En attente', ACCEPTEE: 'Acceptée', AFFECTEE: 'Affectée',
+  REPLANIFICATION_DEMANDEE: 'Replanification demandée', RAPPORT_REDIGE: 'Rapport rédigé', REFUSEE: 'Refusée',
   ANNULEE: 'Annulée', TERMINEE: 'Terminée',
   CLOTUREE_SANS_SUITE: 'Clôturée sans suite', CLOTUREE_AVEC_CONTRAT: 'Clôturée avec contrat',
   // Leads

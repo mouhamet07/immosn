@@ -55,17 +55,19 @@ public class VisiteTrackingNotificationServiceImpl implements VisiteTrackingNoti
 
     private void envoyerSms(String telephone, String token) {
         if (!twilioEnabled) {
-            log.info("[SMS] Twilio désactivé — numéro de suivi non envoyé par SMS (telephone={})", telephone);
+            log.info("[SMS] Twilio désactivé — numéro de suivi non envoyé par SMS (telephone={})", maskTelephone(telephone));
             return;
         }
         try {
+            log.info("[SMS] Tentative d'envoi du numéro de suivi par SMS (telephone={})", maskTelephone(telephone));
             Message.creator(
                 new PhoneNumber(telephone),
                 new PhoneNumber(twilioFromNumber),
                 "ImmoSN — votre numéro de suivi est : " + token
             ).create();
+            log.info("[SMS] Numéro de suivi envoyé avec succès (telephone={})", maskTelephone(telephone));
         } catch (Exception e) {
-            log.warn("[SMS] Échec d'envoi du numéro de suivi à {} : {}", telephone, e.getMessage());
+            log.error("[SMS] Échec d'envoi du numéro de suivi à {} : {}", maskTelephone(telephone), e.getMessage());
         }
     }
 
@@ -75,6 +77,7 @@ public class VisiteTrackingNotificationServiceImpl implements VisiteTrackingNoti
             return;
         }
         try {
+            log.info("[EMAIL] Tentative d'envoi du numéro de suivi par email (destinataire={})", email);
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(mailFrom);
             message.setTo(email);
@@ -85,8 +88,14 @@ public class VisiteTrackingNotificationServiceImpl implements VisiteTrackingNoti
                 + "Conservez-le pour suivre l'avancement de votre demande.\n\n"
                 + "L'équipe ImmoSN");
             mailSender.send(message);
+            log.info("[EMAIL] Numéro de suivi envoyé avec succès (destinataire={})", email);
         } catch (Exception e) {
-            log.warn("[EMAIL] Échec d'envoi du numéro de suivi à {} : {}", email, e.getMessage());
+            log.error("[EMAIL] Échec d'envoi du numéro de suivi à {} : {}", email, e.getMessage());
         }
+    }
+
+    private String maskTelephone(String telephone) {
+        if (telephone == null || telephone.length() < 4) return "****";
+        return "*".repeat(telephone.length() - 4) + telephone.substring(telephone.length() - 4);
     }
 }

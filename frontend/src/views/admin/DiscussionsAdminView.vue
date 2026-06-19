@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
-import { MessageSquare, ArrowLeft, Home, User, Send } from 'lucide-vue-next'
+import { MessageSquare, ArrowLeft, Home, User, Send, Phone, Mail } from 'lucide-vue-next'
 import discussionService from '@/services/discussionService'
 
 const discussions  = ref([])
@@ -131,7 +131,10 @@ onMounted(() => fetchDiscussions(0))
             </div>
             <div class="adm-item__body">
               <div class="adm-item__top">
-                <p class="adm-item__client">{{ d.clientNom }}</p>
+                <p class="adm-item__client">
+                  {{ d.clientNom }}
+                  <span v-if="d.prospectId" class="adm-item__prospect-tag">Prospect</span>
+                </p>
                 <span class="adm-item__date">{{ formatDate(d.dernierMessageAt || d.createdAt) }}</span>
               </div>
               <!-- Référence annonce -->
@@ -182,6 +185,16 @@ onMounted(() => fetchDiscussions(0))
             <RouterLink :to="`/admin/annonces/${selectedChat.annonceId}`" class="adm-chat__annonce-link">
               Voir l'annonce →
             </RouterLink>
+          </div>
+
+          <!-- Panneau infos prospect non converti : permet à l'agence de répondre hors système -->
+          <div v-if="selectedChat.prospectId" class="prospect-panel">
+            <p class="prospect-panel__title"><User :size="13" /> Prospect non converti — contact direct possible</p>
+            <div class="prospect-panel__grid">
+              <span class="prospect-panel__item"><User :size="12" /> {{ selectedChat.prospectPrenom ? selectedChat.prospectPrenom + ' ' : '' }}{{ selectedChat.prospectNom }}</span>
+              <span class="prospect-panel__item"><Phone :size="12" /> {{ selectedChat.prospectTelephone || '–' }}</span>
+              <span class="prospect-panel__item"><Mail :size="12" /> {{ selectedChat.prospectEmail || '–' }}</span>
+            </div>
           </div>
 
           <!-- Messages -->
@@ -342,6 +355,13 @@ onMounted(() => fetchDiscussions(0))
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.adm-item__prospect-tag {
+  font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
+  background: #fef3c7; color: #d97706; padding: .1rem .4rem; border-radius: 8px; flex-shrink: 0;
 }
 .adm-item__date { font-size: 0.7rem; color: var(--color-text); opacity: 0.4; flex-shrink: 0; }
 .adm-item__annonce-ref {
@@ -441,6 +461,24 @@ onMounted(() => fetchDiscussions(0))
   white-space: nowrap; text-decoration: none;
 }
 .adm-chat__annonce-link:hover { text-decoration: underline; }
+
+/* Panneau infos prospect non converti */
+.prospect-panel {
+  padding: .75rem 1.5rem;
+  background: #fffbeb;
+  border-bottom: 1px solid var(--color-border);
+}
+.prospect-panel__title {
+  display: flex; align-items: center; gap: .35rem;
+  font-size: .78rem; font-weight: 700; color: #92400e; margin-bottom: .4rem;
+}
+.prospect-panel__grid {
+  display: flex; flex-wrap: wrap; gap: 1rem;
+}
+.prospect-panel__item {
+  display: flex; align-items: center; gap: .3rem;
+  font-size: .8rem; color: var(--color-text);
+}
 
 .adm-chat__messages {
   flex: 1;

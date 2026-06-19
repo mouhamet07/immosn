@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useToastStore } from '@/stores/toastStore'
 import authService from '@/services/authService'
 import ButtonPrimary from '@/components/ButtonPrimary.vue'
+import InputField from '@/components/InputField.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -55,12 +56,12 @@ async function submit() {
       </p>
 
       <div class="fl-field">
-        <label>Nouveau mot de passe</label>
-        <input v-model="nouveau" type="password" placeholder="Au moins 8 caractères" @keydown.enter="submit" />
+        <InputField v-model="nouveau" label="Nouveau mot de passe" type="password"
+          placeholder="Au moins 8 caractères" @keydown.enter="submit" />
       </div>
       <div class="fl-field">
-        <label>Confirmer le mot de passe</label>
-        <input v-model="confirmation" type="password" @keydown.enter="submit" />
+        <InputField v-model="confirmation" label="Confirmer le mot de passe" type="password"
+          @keydown.enter="submit" />
       </div>
 
       <p v-if="error" class="fl-err">{{ error }}</p>

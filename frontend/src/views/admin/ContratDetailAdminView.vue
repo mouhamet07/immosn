@@ -37,6 +37,9 @@ const docFiles        = ref([])
 const uploading       = ref(false)
 const saving          = ref(false)
 const activating      = ref(false)
+const uploadingSigned = ref(false)
+const signedFileInput = ref(null)
+const showRapportDocModal = ref(false)
 
 // Édition des infos prospect (contrat sans client encore)
 const prospectForm    = ref({ nom: '', prenom: '', email: '', telephone: '' })
@@ -115,6 +118,25 @@ async function saveProspect() {
     alert(e.response?.data?.message || "Erreur lors de la mise à jour du prospect.")
   } finally {
     savingProspect.value = false
+  }
+}
+
+function triggerSignedUpload() {
+  signedFileInput.value?.click()
+}
+
+async function onSignedFileChange(e) {
+  const file = e.target.files?.[0]
+  e.target.value = ''
+  if (!file) return
+  uploadingSigned.value = true
+  try {
+    await contratService.uploadDocument(contrat.value.id, file)
+    await fetchContrat()
+  } catch (err) {
+    alert(err.response?.data?.message || 'Erreur lors du téléversement du contrat signé.')
+  } finally {
+    uploadingSigned.value = false
   }
 }
 
@@ -348,6 +370,10 @@ onMounted(() => fetchContrat())
             <a v-if="contrat.documentUrl" :href="contrat.documentUrl" target="_blank" class="cda-btn cda-btn--outline">
               <Download :size="14" /> Télécharger
             </a>
+            <input ref="signedFileInput" type="file" accept=".pdf,.png,.jpg,.jpeg" class="cda-hidden-input" @change="onSignedFileChange" />
+            <button v-if="contrat.statut === 'EN_ATTENTE'" class="cda-btn cda-btn--outline" :disabled="uploadingSigned" @click="triggerSignedUpload">
+              <Upload :size="13" /> {{ uploadingSigned ? 'Envoi…' : (contrat.documentUrl ? 'Remplacer le contrat signé' : 'Téléverser le contrat signé') }}
+            </button>
             <button class="cda-btn cda-btn--primary" @click="openEdit"><Upload :size="13" /> Mise à jour</button>
           </div>
         </div>
@@ -401,17 +427,6 @@ onMounted(() => fetchContrat())
           </div>
 
           <div class="cda-card">
-            <h2 class="cda-card__title">Bien immobilier</h2>
-            <dl class="cda-dl">
-              <div class="cda-dl__row">
-                <dt>Libellé</dt>
-                <dd><RouterLink :to="`/admin/annonces/${contrat.annonceId}`" class="cda-link">{{ contrat.annonceLibelle }}</RouterLink></dd>
-              </div>
-              <div class="cda-dl__row"><dt>Adresse</dt><dd>{{ contrat.annonceAdresse || '–' }}</dd></div>
-            </dl>
-          </div>
-
-          <div class="cda-card">
             <h2 class="cda-card__title">Détails du contrat</h2>
             <dl class="cda-dl">
               <div class="cda-dl__row">
@@ -431,6 +446,17 @@ onMounted(() => fetchContrat())
           </div>
 
           <div class="cda-card">
+            <h2 class="cda-card__title">Bien immobilier</h2>
+            <dl class="cda-dl">
+              <div class="cda-dl__row">
+                <dt>Libellé</dt>
+                <dd><RouterLink :to="`/admin/annonces/${contrat.annonceId}`" class="cda-link">{{ contrat.annonceLibelle }}</RouterLink></dd>
+              </div>
+              <div class="cda-dl__row"><dt>Adresse</dt><dd>{{ contrat.annonceAdresse || '–' }}</dd></div>
+            </dl>
+          </div>
+
+          <div class="cda-card">
             <h2 class="cda-card__title">Historique</h2>
             <dl class="cda-dl">
               <div class="cda-dl__row"><dt>Créé le</dt><dd>{{ formatDatetime(contrat.createdAt) }}</dd></div>
@@ -438,7 +464,7 @@ onMounted(() => fetchContrat())
               <div v-if="contrat.leadId" class="cda-dl__row"><dt>Lead lié</dt><dd>{{ contrat.leadId }}</dd></div>
               <div v-if="contrat.visiteId" class="cda-dl__row">
                 <dt>Visite liée</dt>
-                <dd><RouterLink :to="`/admin/visites/${contrat.visiteId}`" class="cda-link">Voir le rapport de visite</RouterLink></dd>
+                <dd><RouterLink :to="`/admin/visites/${contrat.visiteId}`" class="cda-link">Voir la visite</RouterLink></dd>
               </div>
             </dl>
           </div>
@@ -452,11 +478,9 @@ onMounted(() => fetchContrat())
                 <div class="cda-dl__row"><dt>Issue</dt><dd>{{ rapportVisite.aboutie ? 'Visite aboutie' : 'Sans suite' }}</dd></div>
               </dl>
               <p class="cda-notes">{{ rapportVisite.compteRendu }}</p>
-              <template v-if="rapportVisite.documentUrl">
-                <iframe v-if="isPdfUrl(rapportVisite.documentUrl)" :src="rapportVisite.documentUrl" class="rapport-doc-frame" title="Document du rapport de visite"></iframe>
-                <img v-else-if="isImageUrl(rapportVisite.documentUrl)" :src="rapportVisite.documentUrl" class="rapport-doc-image" alt="Document du rapport de visite" />
-                <a v-else :href="rapportVisite.documentUrl" target="_blank" class="cda-link">Voir le document joint</a>
-              </template>
+              <button v-if="rapportVisite.documentUrl" class="cda-btn cda-btn--outline" @click="showRapportDocModal = true">
+                <Paperclip :size="13" /> Voir les pièces jointes du rapport
+              </button>
               <p v-else class="cda-hint">Aucun document joint au rapport.</p>
             </template>
             <p v-else class="cda-hint">Aucun rapport disponible pour cette visite.</p>
@@ -504,7 +528,7 @@ onMounted(() => fetchContrat())
           <!-- EN_ATTENTE → Valider ou Rejeter -->
           <div v-if="contrat.statut === 'EN_ATTENTE'" class="cda-actions-col">
             <p v-if="!contrat.documentUrl" class="cda-warn">
-              Le contrat signé par le client doit être téléversé (bouton « Mise à jour ») avant de pouvoir valider.
+              Le contrat signé par le client doit être téléversé (bouton « Téléverser le contrat signé » ci-dessus) avant de pouvoir valider.
             </p>
             <div class="cda-actions">
               <button class="cda-btn cda-btn--success" :disabled="activating || !contrat.documentUrl" @click="activer"><template v-if="!activating"><Check :size="14" /> Valider le contrat</template><template v-else>…</template></button>
@@ -724,6 +748,23 @@ onMounted(() => fetchContrat())
         </div>
       </div>
     </Teleport>
+
+    <!-- Modal pièces jointes du rapport de visite -->
+    <Teleport to="body">
+      <div v-if="showRapportDocModal" class="modal-overlay" @click.self="showRapportDocModal = false">
+        <div class="modal-box modal-box--lg">
+          <h2 class="modal-box__title">Pièces jointes du rapport de visite</h2>
+          <template v-if="rapportVisite?.documentUrl">
+            <iframe v-if="isPdfUrl(rapportVisite.documentUrl)" :src="rapportVisite.documentUrl" class="rapport-doc-frame" title="Document du rapport de visite"></iframe>
+            <img v-else-if="isImageUrl(rapportVisite.documentUrl)" :src="rapportVisite.documentUrl" class="rapport-doc-image" alt="Document du rapport de visite" />
+            <a v-else :href="rapportVisite.documentUrl" target="_blank" class="cda-link">Voir le document joint</a>
+          </template>
+          <div class="modal-box__footer">
+            <button class="modal-box__cancel" @click="showRapportDocModal = false">Fermer</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -802,6 +843,7 @@ onMounted(() => fetchContrat())
 .cda-btn--danger:hover:not(:disabled)  { background: rgba(220,38,38,.07); }
 .cda-btn--outline { background: none; border-color: var(--color-border); color: var(--color-primary); }
 .cda-btn--outline:hover:not(:disabled) { border-color: var(--color-primary); }
+.cda-hidden-input { display: none; }
 
 .badge-type { display: inline-flex; align-items: center; gap: .3rem; padding: .25rem .65rem; border-radius: 12px; font-size: .75rem; font-weight: 700; white-space: nowrap; }
 .badge-type--vente { background: #fef9c3; color: #a16207; }
@@ -810,6 +852,7 @@ onMounted(() => fetchContrat())
 /* Modals */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1rem; }
 .modal-box { background: var(--color-card); border-radius: var(--radius); padding: 1.75rem; width: 100%; max-width: 460px; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+.modal-box--lg { max-width: 720px; }
 .modal-box__title { font-size: 1rem; font-weight: 700; color: var(--color-text); margin-bottom: .5rem; }
 .modal-box__desc { font-size: .85rem; color: var(--color-text); opacity: .65; margin-bottom: 1rem; }
 .modal-box__motif {

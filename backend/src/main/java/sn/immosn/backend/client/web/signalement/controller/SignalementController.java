@@ -267,6 +267,8 @@ public class SignalementController {
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "400", description = "Identifiant invalide",
             content = @Content(mediaType = "application/json")),
+        @ApiResponse(responseCode = "401", description = "Token JWT manquant ou expiré",
+            content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "403", description = "Accès interdit — rôle ADMIN ou SUPER_ADMIN requis",
             content = @Content(mediaType = "application/json")),
         @ApiResponse(responseCode = "404", description = "Signalement non trouvé",
@@ -275,9 +277,10 @@ public class SignalementController {
     @GetMapping("/{id}/historique")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<PagedResponse<SignalementHistoryDto>> getHistorique(
+            @Parameter(description = "Identifiant du signalement", required = true, example = "5")
             @PathVariable Long id,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @Parameter(description = "Numéro de page", example = "0") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Taille de la page", example = "20") @RequestParam(defaultValue = "20") int size) {
         if (id == null || id <= 0) {
             return ResponseEntity.badRequest().build();
         }

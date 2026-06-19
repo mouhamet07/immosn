@@ -202,12 +202,29 @@ public class DemandeVisiteServiceImpl implements DemandeVisiteService {
     @Override
     @Transactional(readOnly = true)
     public Page<DemandeVisiteResponseDto> getAllVisites(
-        StatutDemandeVisite statut, TypeTransaction typeTransaction, Pageable pageable
+        StatutDemandeVisite statut, TypeTransaction typeTransaction, Pageable pageable, String callerEmail
     ) {
         // Admin path: no isArchived filter — archived visits remain visible for audit/review.
         // Mutation helpers (loadVisite) still enforce isArchivedFalse to block edits on archived visits.
+        User caller = loadUser(callerEmail);
+        boolean estSuperAdmin = caller.getRoles().stream()
+            .anyMatch(r -> r.getRole() == RoleType.SUPER_ADMIN);
+
         Page<DemandeVisite> page;
-        if (statut != null && typeTransaction != null) {
+        if (!estSuperAdmin) {
+            // ADMIN simple : restreint aux visites qui lui sont affectées
+            Long adminId = caller.getId();
+            if (statut != null && typeTransaction != null) {
+                page = visiteRepository.findByAdminResponsableIdAndStatutAndAnnonce_TypeTransaction(
+                    adminId, statut, typeTransaction, pageable);
+            } else if (statut != null) {
+                page = visiteRepository.findByAdminResponsableIdAndStatut(adminId, statut, pageable);
+            } else if (typeTransaction != null) {
+                page = visiteRepository.findByAdminResponsableIdAndAnnonce_TypeTransaction(adminId, typeTransaction, pageable);
+            } else {
+                page = visiteRepository.findByAdminResponsableId(adminId, pageable);
+            }
+        } else if (statut != null && typeTransaction != null) {
             page = visiteRepository.findByStatutAndAnnonce_TypeTransaction(statut, typeTransaction, pageable);
         } else if (statut != null) {
             page = visiteRepository.findByStatut(statut, pageable);

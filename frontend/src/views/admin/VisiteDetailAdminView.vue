@@ -300,9 +300,11 @@ const historiqueLoading = ref(false)
 
 const ACTION_LABELS = {
   CREATION:              'Création',
+  CREATION_INVITE:       'Création (visiteur non authentifié)',
   ACCEPTATION:           'Acceptation',
   REFUS:                 'Refus',
   ANNULATION:            'Annulation',
+  ABANDON:               'Abandon automatique',
   CLOTURE_SANS_SUITE:    'Clôturée sans suite',
   CLOTURE_AVEC_CONTRAT:  'Clôturée avec contrat',
   REPROGRAMMATION:       'Reprogrammation (admin)',
@@ -311,6 +313,7 @@ const ACTION_LABELS = {
   REPLANIFICATION_DEMANDEE: 'Replanification demandée',
   REPLANIFICATION_ACCEPTEE: 'Replanification acceptée',
   RAPPORT_REDIGE:           'Rapport rédigé',
+  CHANGEMENT_STATUT:        'Changement de statut',
 }
 
 async function fetchHistorique() {

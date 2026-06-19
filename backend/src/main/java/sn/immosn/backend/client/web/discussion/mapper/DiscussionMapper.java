@@ -46,6 +46,11 @@ public class DiscussionMapper {
             image,
             clientId,
             resolveClientName(d),
+            prospectIdNonConverti(d),
+            prospectNonConverti(d) ? d.getProspect().getNom() : null,
+            prospectNonConverti(d) ? d.getProspect().getPrenom() : null,
+            prospectNonConverti(d) ? d.getProspect().getEmail() : null,
+            prospectNonConverti(d) ? d.getProspect().getTelephone() : null,
             messageDtos,
             unreadCount,
             d.getCreatedAt()
@@ -104,11 +109,25 @@ public class DiscussionMapper {
             image,
             clientId,
             resolveClientName(d),
+            prospectIdNonConverti(d),
+            prospectNonConverti(d) ? d.getProspect().getNom() : null,
+            prospectNonConverti(d) ? d.getProspect().getPrenom() : null,
+            prospectNonConverti(d) ? d.getProspect().getEmail() : null,
+            prospectNonConverti(d) ? d.getProspect().getTelephone() : null,
             last != null ? last.getContenu() : null,
             last != null ? DiscussionListDto.SenderRoleDto.valueOf(last.getSenderRole().name()) : null,
             unreadCount,
             d.getCreatedAt(),
             last != null ? last.getCreatedAt() : d.getCreatedAt()
         );
+    }
+
+    /** Discussion liée à un prospect dont le compte CLIENT n'a pas encore été créé (conversion). */
+    private boolean prospectNonConverti(Discussion d) {
+        return d.getProspect() != null && d.getProspect().getConvertedUser() == null;
+    }
+
+    private Long prospectIdNonConverti(Discussion d) {
+        return prospectNonConverti(d) ? d.getProspect().getId() : null;
     }
 }

@@ -20,22 +20,28 @@ const modifError   = ref('')
 const formModif    = reactive({ dateVisite: '', commentaire: '' })
 
 const STATUT_LABELS = {
-  EN_ATTENTE:            'En attente',
-  ACCEPTEE:              'Acceptée',
-  REFUSEE:               'Refusée',
-  ANNULEE:               'Annulée',
-  CLOTUREE_SANS_SUITE:   'Clôturée sans suite',
-  CLOTUREE_AVEC_CONTRAT: 'Clôturée avec contrat',
-  TERMINEE:              'Terminée',
+  EN_ATTENTE:               'En attente',
+  ACCEPTEE:                 'Acceptée',
+  AFFECTEE:                 'Affectée',
+  REPLANIFICATION_DEMANDEE: 'Replanification demandée',
+  RAPPORT_REDIGE:           'Rapport rédigé',
+  REFUSEE:                  'Refusée',
+  ANNULEE:                  'Annulée',
+  CLOTUREE_SANS_SUITE:      'Clôturée sans suite',
+  CLOTUREE_AVEC_CONTRAT:    'Clôturée avec contrat',
+  TERMINEE:                 'Terminée',
 }
 const STATUT_VARIANTS = {
-  EN_ATTENTE:            'warning',
-  ACCEPTEE:              'success',
-  REFUSEE:               'danger',
-  ANNULEE:               'neutral',
-  CLOTUREE_SANS_SUITE:   'neutral',
-  CLOTUREE_AVEC_CONTRAT: 'info',
-  TERMINEE:              'info',
+  EN_ATTENTE:               'warning',
+  ACCEPTEE:                 'success',
+  AFFECTEE:                 'info',
+  REPLANIFICATION_DEMANDEE: 'warning',
+  RAPPORT_REDIGE:           'info',
+  REFUSEE:                  'danger',
+  ANNULEE:                  'neutral',
+  CLOTUREE_SANS_SUITE:      'neutral',
+  CLOTUREE_AVEC_CONTRAT:    'info',
+  TERMINEE:                 'info',
 }
 
 async function fetchVisite() {

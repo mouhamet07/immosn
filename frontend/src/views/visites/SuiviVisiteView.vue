@@ -18,6 +18,7 @@ const STATUT_LABELS = {
   ACCEPTEE:                 'Acceptée',
   AFFECTEE:                 'Affectée',
   REPLANIFICATION_DEMANDEE: 'Replanification demandée',
+  RAPPORT_REDIGE:           'Rapport rédigé',
   REFUSEE:                  'Refusée',
   ANNULEE:                  'Annulée',
   CLOTUREE_SANS_SUITE:      'Clôturée sans suite',
@@ -27,8 +28,9 @@ const STATUT_LABELS = {
 const STATUT_VARIANTS = {
   EN_ATTENTE:               'warning',
   ACCEPTEE:                 'success',
-  AFFECTEE:                 'success',
+  AFFECTEE:                 'info',
   REPLANIFICATION_DEMANDEE: 'warning',
+  RAPPORT_REDIGE:           'info',
   REFUSEE:                  'danger',
   ANNULEE:                  'neutral',
   CLOTUREE_SANS_SUITE:      'neutral',

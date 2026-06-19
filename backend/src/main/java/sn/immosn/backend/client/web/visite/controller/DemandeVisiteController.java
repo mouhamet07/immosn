@@ -199,9 +199,11 @@ public class DemandeVisiteController {
             @Parameter(description = "Numéro de page", example = "0") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Taille de la page", example = "20") @RequestParam(defaultValue = "20") int size,
             @Parameter(description = "Filtre optionnel par statut") @RequestParam(required = false) StatutDemandeVisite statut,
-            @Parameter(description = "Filtre optionnel par type de transaction (VENTE/LOCATION)") @RequestParam(required = false) sn.immosn.backend.annonce.data.entity.TypeTransaction typeTransaction) {
+            @Parameter(description = "Filtre optionnel par type de transaction (VENTE/LOCATION)") @RequestParam(required = false) sn.immosn.backend.annonce.data.entity.TypeTransaction typeTransaction,
+            Principal principal) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        return ResponseEntity.ok(PagedResponse.fromPage(service.getAllVisites(statut, typeTransaction, pageable)));
+        return ResponseEntity.ok(PagedResponse.fromPage(
+            service.getAllVisites(statut, typeTransaction, pageable, principal.getName())));
     }
 
     @Operation(
@@ -356,6 +358,7 @@ public class DemandeVisiteController {
     @PutMapping("/{id}/modifier")
     @PreAuthorize("hasRole('CLIENT')")
     public ResponseEntity<RestResponse<DemandeVisiteResponseDto>> modifierParClient(
+            @Parameter(description = "Identifiant de la demande de visite", required = true, example = "12")
             @PathVariable Long id,
             @RequestBody @Valid UpdateDateVisiteDto dto,
             Principal principal) {
@@ -471,8 +474,8 @@ public class DemandeVisiteController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<PagedResponse<VisiteHistoryDto>> getHistorique(
             @Parameter(description = "Identifiant de la visite", required = true) @PathVariable Long id,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @Parameter(description = "Numéro de page", example = "0") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Taille de la page", example = "20") @RequestParam(defaultValue = "20") int size) {
         if (id == null || id <= 0) {
             return ResponseEntity.badRequest().build();
         }
@@ -497,6 +500,7 @@ public class DemandeVisiteController {
     @PutMapping("/{id}/affecter")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<RestResponse<DemandeVisiteResponseDto>> affecter(
+            @Parameter(description = "Identifiant de la demande de visite", required = true, example = "12")
             @PathVariable Long id, @RequestBody @Valid AffecterAdminDto dto) {
         if (id == null || id <= 0) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -520,6 +524,7 @@ public class DemandeVisiteController {
     @PutMapping("/{id}/replanification")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<RestResponse<DemandeVisiteResponseDto>> demanderReplanification(
+            @Parameter(description = "Identifiant de la demande de visite", required = true, example = "12")
             @PathVariable Long id, @RequestBody @Valid ReplanificationDto dto) {
         if (id == null || id <= 0) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -542,7 +547,9 @@ public class DemandeVisiteController {
     })
     @PutMapping("/{id}/replanification/accepter")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public ResponseEntity<RestResponse<DemandeVisiteResponseDto>> accepterReplanification(@PathVariable Long id) {
+    public ResponseEntity<RestResponse<DemandeVisiteResponseDto>> accepterReplanification(
+            @Parameter(description = "Identifiant de la demande de visite", required = true, example = "12")
+            @PathVariable Long id) {
         if (id == null || id <= 0) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(RestResponse.badRequest("Identifiant invalide", null));
@@ -565,6 +572,7 @@ public class DemandeVisiteController {
     @PostMapping("/{id}/rapport")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<RestResponse<RapportVisiteResponseDto>> creerRapport(
+            @Parameter(description = "Identifiant de la demande de visite", required = true, example = "12")
             @PathVariable Long id,
             @RequestBody @Valid RapportVisiteCreateRequestDto dto,
             Principal principal) {
@@ -586,7 +594,9 @@ public class DemandeVisiteController {
     })
     @GetMapping("/{id}/rapport")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public ResponseEntity<RestResponse<RapportVisiteResponseDto>> consulterRapport(@PathVariable Long id) {
+    public ResponseEntity<RestResponse<RapportVisiteResponseDto>> consulterRapport(
+            @Parameter(description = "Identifiant de la demande de visite", required = true, example = "12")
+            @PathVariable Long id) {
         if (id == null || id <= 0) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(RestResponse.badRequest("Identifiant invalide", null));
@@ -607,7 +617,9 @@ public class DemandeVisiteController {
     @PostMapping(value = "/{id}/rapport/document", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<RestResponse<RapportVisiteResponseDto>> uploadRapportDocument(
+            @Parameter(description = "Identifiant de la demande de visite", required = true, example = "12")
             @PathVariable Long id,
+            @Parameter(description = "Fichier du rapport (PDF/PNG/JPG, max 10 Mo)", required = true)
             @RequestParam("file") MultipartFile file) {
         if (id == null || id <= 0) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)

@@ -43,6 +43,18 @@ public interface DemandeVisiteRepository extends JpaRepository<DemandeVisite, Lo
     Page<DemandeVisite> findByStatutAndAnnonce_TypeTransaction(
         StatutDemandeVisite statut, TypeTransaction typeTransaction, Pageable pageable);
 
+    // ADMIN simple — restreint aux visites qui lui sont affectées (adminResponsable)
+    Page<DemandeVisite> findByAdminResponsableId(Long adminResponsableId, Pageable pageable);
+
+    Page<DemandeVisite> findByAdminResponsableIdAndStatut(
+        Long adminResponsableId, StatutDemandeVisite statut, Pageable pageable);
+
+    Page<DemandeVisite> findByAdminResponsableIdAndAnnonce_TypeTransaction(
+        Long adminResponsableId, TypeTransaction typeTransaction, Pageable pageable);
+
+    Page<DemandeVisite> findByAdminResponsableIdAndStatutAndAnnonce_TypeTransaction(
+        Long adminResponsableId, StatutDemandeVisite statut, TypeTransaction typeTransaction, Pageable pageable);
+
     boolean existsByClientIdAndAnnonceIdAndStatutIn(
         Long clientId, Long annonceId, java.util.List<StatutDemandeVisite> statuts);
 
@@ -61,4 +73,13 @@ public interface DemandeVisiteRepository extends JpaRepository<DemandeVisite, Lo
         WHERE v.isArchived = false
         """)
     List<DemandeVisite> findRecentForDashboard(Pageable pageable);
+
+    // Variante ADMIN simple — restreinte aux visites affectées à l'admin connecté
+    @Query("""
+        SELECT v FROM DemandeVisite v
+        JOIN FETCH v.annonce
+        JOIN FETCH v.client
+        WHERE v.isArchived = false AND v.adminResponsable.id = :adminId
+        """)
+    List<DemandeVisite> findRecentForDashboardByAdmin(@Param("adminId") Long adminId, Pageable pageable);
 }

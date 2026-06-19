@@ -100,7 +100,7 @@ public class ProspectConversionServiceImpl implements ProspectConversionService 
         prospect.setConvertedUser(saved);
         prospectRepository.save(prospect);
 
-        // Transmission des identifiants (canal réel non encore branché — voir NotificationService)
+        // Transmission des identifiants par email + SMS au client, et notification email au(x) SUPER_ADMIN
         notificationService.sendCredentials(saved, motDePasseTemporaire);
 
         log.info("Prospect #{} converti → User #{} (CLIENT, compte généré). {} discussion(s) et {} visite(s) rattachées.",

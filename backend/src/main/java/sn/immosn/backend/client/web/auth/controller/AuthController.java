@@ -237,7 +237,8 @@ public class AuthController {
             content = @Content(mediaType = "application/json"))
     })
     @GetMapping("/admins")
-    public ResponseEntity<PagedResponse<AuthResponseDto>> listAdmins(Pageable pageable) {
+    public ResponseEntity<PagedResponse<AuthResponseDto>> listAdmins(
+            @Parameter(description = "Pagination : numéro de page, taille, tri") Pageable pageable) {
         return ResponseEntity
         .status(HttpStatus.OK)
         .body(PagedResponse.fromPage(authService.listAdmins(pageable)));

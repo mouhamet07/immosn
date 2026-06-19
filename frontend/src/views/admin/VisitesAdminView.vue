@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { Pencil } from 'lucide-vue-next'
+import { Pencil, Eye } from 'lucide-vue-next'
 import visiteService from '@/services/visiteService'
 import FilterSelect from '@/components/FilterSelect.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
@@ -19,24 +19,30 @@ const dateModalId   = ref(null)
 const newDate       = ref('')
 const dateComment   = ref('')
 
-const STATUTS = ['', 'EN_ATTENTE', 'ACCEPTEE', 'REFUSEE', 'ANNULEE', 'CLOTUREE_SANS_SUITE', 'CLOTUREE_AVEC_CONTRAT', 'TERMINEE']
+const STATUTS = ['', 'EN_ATTENTE', 'ACCEPTEE', 'AFFECTEE', 'REPLANIFICATION_DEMANDEE', 'RAPPORT_REDIGE', 'REFUSEE', 'ANNULEE', 'CLOTUREE_SANS_SUITE', 'CLOTUREE_AVEC_CONTRAT', 'TERMINEE']
 const STATUT_LABELS = {
-  EN_ATTENTE:            'En attente',
-  ACCEPTEE:              'Acceptée',
-  REFUSEE:               'Refusée',
-  ANNULEE:               'Annulée',
-  CLOTUREE_SANS_SUITE:   'Clôturée sans suite',
-  CLOTUREE_AVEC_CONTRAT: 'Clôturée avec contrat',
-  TERMINEE:              'Terminée',
+  EN_ATTENTE:               'En attente',
+  ACCEPTEE:                 'Acceptée',
+  AFFECTEE:                 'Affectée',
+  REPLANIFICATION_DEMANDEE: 'Replanification demandée',
+  RAPPORT_REDIGE:           'Rapport rédigé',
+  REFUSEE:                  'Refusée',
+  ANNULEE:                  'Annulée',
+  CLOTUREE_SANS_SUITE:      'Clôturée sans suite',
+  CLOTUREE_AVEC_CONTRAT:    'Clôturée avec contrat',
+  TERMINEE:                 'Terminée',
 }
 const STATUT_VARIANTS = {
-  EN_ATTENTE:            'warning',
-  ACCEPTEE:              'success',
-  REFUSEE:               'danger',
-  ANNULEE:               'neutral',
-  CLOTUREE_SANS_SUITE:   'neutral',
-  CLOTUREE_AVEC_CONTRAT: 'info',
-  TERMINEE:              'info',
+  EN_ATTENTE:               'warning',
+  ACCEPTEE:                 'success',
+  AFFECTEE:                 'info',
+  REPLANIFICATION_DEMANDEE: 'warning',
+  RAPPORT_REDIGE:           'info',
+  REFUSEE:                  'danger',
+  ANNULEE:                  'neutral',
+  CLOTUREE_SANS_SUITE:      'neutral',
+  CLOTUREE_AVEC_CONTRAT:    'info',
+  TERMINEE:                 'info',
 }
 const filterOptions = STATUTS.map(s => ({ value: s, label: s ? STATUT_LABELS[s] : 'Toutes les visites' }))
 
@@ -132,7 +138,9 @@ onMounted(() => fetchVisites(0))
             <td class="td-statut"><StatusBadge :label="STATUT_LABELS[v.statut] ?? v.statut" :variant="STATUT_VARIANTS[v.statut] ?? 'neutral'" /></td>
             <td>
               <div class="td-actions">
-                <RouterLink :to="`/admin/visites/${v.id}`" class="va-detail-link">Voir détails</RouterLink>
+                <RouterLink :to="`/admin/visites/${v.id}`" class="va-detail-link" title="Voir détails" aria-label="Voir détails">
+                  <Eye :size="16" />
+                </RouterLink>
               </div>
             </td>
           </tr>
@@ -197,9 +205,9 @@ onMounted(() => fetchVisites(0))
 .va-edit-date { font-size: .72rem; color: var(--color-primary); background: none; border: none; cursor: pointer; padding: 0; margin-top: .15rem; }
 
 .va-detail-link {
-  padding: .4rem .9rem; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm);
-  color: var(--color-text); font-size: .82rem; font-weight: 600; background: none;
-  text-decoration: none; transition: all .15s; display: inline-block;
+  width: 32px; height: 32px; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm);
+  color: var(--color-text); background: none;
+  text-decoration: none; transition: all .15s; display: inline-flex; align-items: center; justify-content: center;
 }
 .va-detail-link:hover { border-color: var(--color-primary); color: var(--color-primary); }
 

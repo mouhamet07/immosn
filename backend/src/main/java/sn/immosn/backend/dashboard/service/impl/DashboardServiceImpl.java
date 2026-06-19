@@ -7,7 +7,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.immosn.backend.annonce.data.repository.AnnonceRepository;
 import sn.immosn.backend.auth.data.entity.RoleType;
+import sn.immosn.backend.auth.data.entity.User;
 import sn.immosn.backend.auth.data.repository.UserRepository;
+import sn.immosn.backend.shared.exception.EntityNotFoundException;
 import sn.immosn.backend.client.web.dashboard.dto.DashboardStatsDto;
 import sn.immosn.backend.client.web.dashboard.dto.RecentActivityDto;
 import sn.immosn.backend.contrat.data.entity.StatutContrat;
@@ -54,8 +56,9 @@ public class DashboardServiceImpl implements DashboardService {
     private final DiscussionRepository discussionRepository;
 
     @Override
-    public DashboardStatsDto getStats() {
+    public DashboardStatsDto getStats(String callerEmail) {
         var page = PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Long adminId = adminScopeId(callerEmail);
 
         // Compteurs : COUNT uniquement, aucune entité chargée
         long totalAnnonces = annonceRepository.count();
@@ -94,7 +97,7 @@ public class DashboardServiceImpl implements DashboardService {
             sn.immosn.backend.annonce.data.entity.TypeTransaction.LOCATION);
 
         // Activités récentes (5 par domaine, fusionnées, priorité EN_ATTENTE/OUVERT en tête)
-        List<RecentActivityDto> activites = buildRecentActivities(page);
+        List<RecentActivityDto> activites = buildRecentActivities(page, adminId);
 
         return new DashboardStatsDto(
             totalAnnonces, annoncesActives,
@@ -111,12 +114,13 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     @Override
-    public PagedResponse<RecentActivityDto> getActivities(int page, int size, String type) {
+    public PagedResponse<RecentActivityDto> getActivities(int page, int size, String type, String callerEmail) {
         String upper = type == null ? "ALL" : type.toUpperCase();
         var cap = PageRequest.of(0, BOUNDED_FETCH_CAP, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Long adminId = adminScopeId(callerEmail);
 
         List<RecentActivityDto> all = switch (upper) {
-            case "VISITE" -> buildVisites(cap);
+            case "VISITE" -> buildVisites(cap, adminId);
             case "CONTRAT" -> buildContrats(cap);
             case "SIGNALEMENT" -> buildSignalements(cap);
             case "BIEN" -> buildAnnonces(cap);
@@ -124,7 +128,7 @@ public class DashboardServiceImpl implements DashboardService {
             default -> {
                 List<RecentActivityDto> merged = new ArrayList<>();
                 merged.addAll(buildAnnonces(cap));
-                merged.addAll(buildVisites(cap));
+                merged.addAll(buildVisites(cap, adminId));
                 merged.addAll(buildContrats(cap));
                 merged.addAll(buildSignalements(cap));
                 merged.addAll(buildMessages(cap));
@@ -167,10 +171,10 @@ public class DashboardServiceImpl implements DashboardService {
         return visiteRepository.countByDateVisiteBetweenAndIsArchivedFalse(start, end);
     }
 
-    private List<RecentActivityDto> buildRecentActivities(PageRequest page) {
+    private List<RecentActivityDto> buildRecentActivities(PageRequest page, Long adminId) {
         List<RecentActivityDto> activities = new ArrayList<>();
         activities.addAll(buildAnnonces(page));
-        activities.addAll(buildVisites(page));
+        activities.addAll(buildVisites(page, adminId));
         activities.addAll(buildContrats(page));
         activities.addAll(buildSignalements(page));
         activities.addAll(buildMessages(page));
@@ -189,14 +193,26 @@ public class DashboardServiceImpl implements DashboardService {
             .toList();
     }
 
-    private List<RecentActivityDto> buildVisites(PageRequest page) {
-        return visiteRepository.findRecentForDashboard(page).stream()
+    private List<RecentActivityDto> buildVisites(PageRequest page, Long adminId) {
+        List<sn.immosn.backend.visite.data.entity.DemandeVisite> visites = adminId != null
+            ? visiteRepository.findRecentForDashboardByAdmin(adminId, page)
+            : visiteRepository.findRecentForDashboard(page);
+        return visites.stream()
             .map(v -> new RecentActivityDto(
                 "VISITE",
                 "Visite : " + v.getAnnonce().getLibelle(),
                 v.getClient().getNomComplet(),
                 v.getStatut().name(), v.getCreatedAt()))
             .toList();
+    }
+
+    /** Retourne l'ID de l'admin connecté si ADMIN simple (filtrage requis), null si SUPER_ADMIN (vue globale). */
+    private Long adminScopeId(String callerEmail) {
+        User caller = userRepository.findByEmail(callerEmail)
+            .orElseThrow(() -> new EntityNotFoundException("Utilisateur non trouvé"));
+        boolean estSuperAdmin = caller.getRoles().stream()
+            .anyMatch(r -> r.getRole() == RoleType.SUPER_ADMIN);
+        return estSuperAdmin ? null : caller.getId();
     }
 
     private List<RecentActivityDto> buildContrats(PageRequest page) {

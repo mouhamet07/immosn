@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { Home, MapPin, Calendar, Search, AlertCircle, RefreshCw } from 'lucide-vue-next'
+import { Home, MapPin, Calendar, Search, AlertCircle, RefreshCw, Eye } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import visiteService from '@/services/visiteService'
 import FilterSelect from '@/components/FilterSelect.vue'
@@ -16,26 +16,32 @@ const totalPages  = ref(1)
 const filtreStatut = ref('')
 const cancelling  = ref(null)
 
-const STATUTS = ['', 'EN_ATTENTE', 'ACCEPTEE', 'REFUSEE', 'ANNULEE', 'CLOTUREE_SANS_SUITE', 'CLOTUREE_AVEC_CONTRAT']
+const STATUTS = ['', 'EN_ATTENTE', 'ACCEPTEE', 'AFFECTEE', 'REPLANIFICATION_DEMANDEE', 'RAPPORT_REDIGE', 'REFUSEE', 'ANNULEE', 'CLOTUREE_SANS_SUITE', 'CLOTUREE_AVEC_CONTRAT']
 
 const STATUT_LABELS = {
-  EN_ATTENTE:            'En attente',
-  ACCEPTEE:              'Acceptée',
-  REFUSEE:               'Refusée',
-  ANNULEE:               'Annulée',
-  CLOTUREE_SANS_SUITE:   'Clôturée sans suite',
-  CLOTUREE_AVEC_CONTRAT: 'Clôturée avec contrat',
-  TERMINEE:              'Terminée',
+  EN_ATTENTE:               'En attente',
+  ACCEPTEE:                 'Acceptée',
+  AFFECTEE:                 'Affectée',
+  REPLANIFICATION_DEMANDEE: 'Replanification demandée',
+  RAPPORT_REDIGE:           'Rapport rédigé',
+  REFUSEE:                  'Refusée',
+  ANNULEE:                  'Annulée',
+  CLOTUREE_SANS_SUITE:      'Clôturée sans suite',
+  CLOTUREE_AVEC_CONTRAT:    'Clôturée avec contrat',
+  TERMINEE:                 'Terminée',
 }
 const filterOptions = STATUTS.map(s => ({ value: s, label: s ? STATUT_LABELS[s] : 'Tous les statuts' }))
 const STATUT_VARIANTS = {
-  EN_ATTENTE:            'warning',
-  ACCEPTEE:              'success',
-  REFUSEE:               'danger',
-  ANNULEE:               'neutral',
-  CLOTUREE_SANS_SUITE:   'neutral',
-  CLOTUREE_AVEC_CONTRAT: 'info',
-  TERMINEE:              'info',
+  EN_ATTENTE:               'warning',
+  ACCEPTEE:                 'success',
+  AFFECTEE:                 'info',
+  REPLANIFICATION_DEMANDEE: 'warning',
+  RAPPORT_REDIGE:           'info',
+  REFUSEE:                  'danger',
+  ANNULEE:                  'neutral',
+  CLOTUREE_SANS_SUITE:      'neutral',
+  CLOTUREE_AVEC_CONTRAT:    'info',
+  TERMINEE:                 'info',
 }
 
 async function fetchVisites(page = 0) {
@@ -144,7 +150,9 @@ onMounted(() => fetchVisites(0))
             <p v-if="v.commentaire" class="mv-card__comment">{{ v.commentaire }}</p>
           </div>
           <div class="mv-card__actions">
-            <RouterLink :to="`/visites/${v.id}`" class="mv-card__detail">Voir détails</RouterLink>
+            <RouterLink :to="`/visites/${v.id}`" class="mv-card__detail" title="Voir détails" aria-label="Voir détails">
+              <Eye :size="16" />
+            </RouterLink>
             <button
               v-if="v.statut === 'EN_ATTENTE' || v.statut === 'ACCEPTEE'"
               class="mv-card__cancel"
@@ -254,9 +262,10 @@ onMounted(() => fetchVisites(0))
   gap: 8px;
 }
 .mv-card__detail {
-  padding: .4rem .9rem; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm);
-  color: var(--color-text); font-size: .82rem; font-weight: 600; background: none;
-  text-decoration: none; transition: all .15s; display: inline-block; text-align: center;
+  width: 36px; height: 36px; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm);
+  color: var(--color-text); background: none;
+  text-decoration: none; transition: all .15s; display: inline-flex; align-items: center; justify-content: center;
+  align-self: center;
 }
 .mv-card__detail:hover { border-color: var(--color-primary); color: var(--color-primary); }
 .mv-card__cancel {

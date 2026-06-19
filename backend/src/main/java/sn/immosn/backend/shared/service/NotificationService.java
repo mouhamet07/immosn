@@ -3,11 +3,10 @@ package sn.immosn.backend.shared.service;
 import sn.immosn.backend.auth.data.entity.User;
 
 /**
- * Abstraction d'envoi de notifications (Sprint 3).
+ * Abstraction d'envoi de notifications liées à la création de compte (Sprint 3).
  *
- * <p>L'envoi réel (email/SMS) n'est pas encore branché : cette interface fige le contrat
- * pour permettre la conversion prospect → client dès maintenant. Une implémentation concrète
- * (SMTP, passerelle SMS…) pourra être fournie ultérieurement sans toucher au reste du code.</p>
+ * <p>Implémentation par défaut : {@link sn.immosn.backend.shared.service.impl.ClientWelcomeNotificationServiceImpl}
+ * (email + SMS au client, email au(x) SUPER_ADMIN).</p>
  */
 public interface NotificationService {
 
