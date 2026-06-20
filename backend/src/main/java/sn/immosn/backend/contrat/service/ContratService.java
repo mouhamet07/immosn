@@ -21,7 +21,7 @@ public interface ContratService {
 
     Page<ContratResponseDto> getClientContrats(String clientEmail, StatutContrat statut, Pageable pageable);
 
-    Page<ContratResponseDto> getAllContrats(StatutContrat statut, Pageable pageable);
+    Page<ContratResponseDto> getAllContrats(StatutContrat statut, TypeContrat typeContrat, Pageable pageable);
 
     ContratResponseDto getById(Long id, String userEmail, boolean isAdmin);
 

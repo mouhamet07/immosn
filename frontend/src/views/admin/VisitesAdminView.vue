@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { Pencil, Eye } from 'lucide-vue-next'
 import visiteService from '@/services/visiteService'
 import FilterSelect from '@/components/FilterSelect.vue'
+import FilterTabs from '@/components/FilterTabs.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 
 const visites     = ref([])
@@ -46,9 +47,12 @@ const STATUT_VARIANTS = {
 }
 const filterOptions = STATUTS.map(s => ({ value: s, label: s ? STATUT_LABELS[s] : 'Toutes les visites' }))
 
-const TYPES = ['', 'VENTE', 'LOCATION']
 const TYPE_LABELS = { VENTE: 'Vente', LOCATION: 'Location' }
-const typeFilterOptions = TYPES.map(t => ({ value: t, label: t ? TYPE_LABELS[t] : 'Tous les types' }))
+const TYPE_TABS = [
+  { value: '', label: 'Toutes' },
+  { value: 'VENTE', label: 'Vente' },
+  { value: 'LOCATION', label: 'Location' },
+]
 
 async function fetchVisites(page = 0) {
   loading.value = true
@@ -93,9 +97,9 @@ onMounted(() => fetchVisites(0))
         <p class="va-toolbar__count">{{ totalItems }} demande{{ totalItems !== 1 ? 's' : '' }}</p>
       </div>
       <div class="va-filters">
-        <FilterSelect
+        <FilterTabs
           :model-value="filtreType"
-          :options="typeFilterOptions"
+          :tabs="TYPE_TABS"
           @update:model-value="(v) => { filtreType = v; fetchVisites(0) }"
         />
         <FilterSelect

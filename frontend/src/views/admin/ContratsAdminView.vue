@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import contratService from '@/services/contratService'
 import FilterSelect from '@/components/FilterSelect.vue'
+import FilterTabs from '@/components/FilterTabs.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 
 const contrats    = ref([])
@@ -10,6 +11,13 @@ const currentPage = ref(0)
 const totalPages  = ref(1)
 const totalItems  = ref(0)
 const filtreStatut = ref('')
+const filtreType    = ref('')
+
+const TYPE_TABS = [
+  { value: '', label: 'Tous' },
+  { value: 'VENTE', label: 'Vente' },
+  { value: 'LOCATION', label: 'Location' },
+]
 
 const STATUTS       = ['', 'EN_ATTENTE', 'ACTIF', 'EXPIRE', 'RESILIE', 'EN_ATTENTE_RESILIATION', 'PROLONGATION_EN_ATTENTE']
 const STATUT_LABELS = {
@@ -33,7 +41,7 @@ const STATUT_VARIANTS = {
 async function fetchContrats(page = 0) {
   loading.value = true
   try {
-    const res = await contratService.getAllContrats(page, 20, filtreStatut.value || null)
+    const res = await contratService.getAllContrats(page, 20, filtreStatut.value || null, filtreType.value || null)
     contrats.value    = res.data.data
     currentPage.value = res.data.currentPage
     totalPages.value  = res.data.totalPages
@@ -54,11 +62,18 @@ onMounted(() => fetchContrats(0))
         <h1 class="ca-toolbar__title">Contrats</h1>
         <p class="ca-toolbar__count">{{ totalItems }} contrat{{ totalItems !== 1 ? 's' : '' }}</p>
       </div>
-      <FilterSelect
-        :model-value="filtreStatut"
-        :options="filterOptions"
-        @update:model-value="(v) => { filtreStatut = v; fetchContrats(0) }"
-      />
+      <div class="ca-filters">
+        <FilterTabs
+          :model-value="filtreType"
+          :tabs="TYPE_TABS"
+          @update:model-value="(v) => { filtreType = v; fetchContrats(0) }"
+        />
+        <FilterSelect
+          :model-value="filtreStatut"
+          :options="filterOptions"
+          @update:model-value="(v) => { filtreStatut = v; fetchContrats(0) }"
+        />
+      </div>
     </div>
 
     <div v-if="loading" class="ca-loading"><div class="spinner"></div></div>
@@ -115,6 +130,7 @@ onMounted(() => fetchContrats(0))
 <style scoped>
 .ca-page { background: var(--color-background); min-height: 100%; padding: 1.5rem; }
 .ca-toolbar { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
+.ca-filters { display: flex; gap: .6rem; flex-wrap: wrap; }
 .ca-toolbar__title { font-size: 1.4rem; font-weight: 800; color: var(--color-text); }
 .ca-toolbar__count { font-size: .82rem; color: var(--color-text); opacity: .5; }
 .ca-loading { display: flex; justify-content: center; padding: 4rem; }

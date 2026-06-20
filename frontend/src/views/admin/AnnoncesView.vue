@@ -1,8 +1,9 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import ConfirmModal from '@/components/admin/ConfirmModal.vue'
 import ToastNotification from '@/components/admin/ToastNotification.vue'
+import FilterTabs from '@/components/FilterTabs.vue'
 import { usePagination } from '@/composables/usePagination'
 import annonceService from '@/services/annonceService'
 import typeBienService from '@/services/typeBienService'
@@ -17,10 +18,26 @@ const confirmId = ref(null)
 
 // Filtre actif/archivé/tous
 const filtreStatut = ref('tous') // 'tous' | 'actif' | 'archive'
+const STATUT_TABS = [
+  { value: 'tous', label: 'Toutes' },
+  { value: 'actif', label: 'Actives' },
+  { value: 'archive', label: 'Archivées' },
+]
+
+// Filtre vente/location/toutes
+const filtreType = ref('')
+const TYPE_TABS = [
+  { value: '', label: 'Toutes' },
+  { value: 'VENTE', label: 'Vente' },
+  { value: 'LOCATION', label: 'Location' },
+]
+
 const annoncesFiltrees = computed(() => {
-  if (filtreStatut.value === 'actif')   return annonces.value.filter(a => !a.archived)
-  if (filtreStatut.value === 'archive') return annonces.value.filter(a => a.archived)
-  return annonces.value
+  let liste = annonces.value
+  if (filtreStatut.value === 'actif')   liste = liste.filter(a => !a.archived)
+  if (filtreStatut.value === 'archive') liste = liste.filter(a => a.archived)
+  if (filtreType.value)                 liste = liste.filter(a => a.typeTransaction === filtreType.value)
+  return liste
 })
 
 // Types de biens chargés pour le select dans la modal
@@ -42,7 +59,9 @@ const editForm = ref({
   images: [],
 })
 
-const { currentPage, totalPages, paginated, rangeLabel, prev, next } = usePagination(annoncesFiltrees, 6)
+const { currentPage, totalPages, paginated, rangeLabel, prev, next, reset } = usePagination(annoncesFiltrees, 6)
+
+watch([filtreStatut, filtreType], () => reset())
 
 function formatPrix(p) {
   return new Intl.NumberFormat('fr-FR').format(p) + ' FCFA'
@@ -211,11 +230,8 @@ async function restaurer(id) {
         <p class="page-header__subtitle">Gérez toutes les annonces de la plateforme.</p>
       </div>
       <div class="page-header__actions">
-        <div class="filter-tabs">
-          <button class="filter-tab" :class="{ 'filter-tab--active': filtreStatut === 'tous' }"    @click="filtreStatut = 'tous'">Toutes</button>
-          <button class="filter-tab" :class="{ 'filter-tab--active': filtreStatut === 'actif' }"   @click="filtreStatut = 'actif'">Actives</button>
-          <button class="filter-tab" :class="{ 'filter-tab--active': filtreStatut === 'archive' }" @click="filtreStatut = 'archive'">Archivées</button>
-        </div>
+        <FilterTabs v-model="filtreType" :tabs="TYPE_TABS" />
+        <FilterTabs v-model="filtreStatut" :tabs="STATUT_TABS" />
         <button class="btn-add" @click="router.push('/admin/annonces/publier')">
           + Publier une annonce
         </button>
@@ -235,6 +251,7 @@ async function restaurer(id) {
             <th>Libellé</th>
             <th>Adresse</th>
             <th>Type</th>
+            <th>Transaction</th>
             <th>Prix</th>
             <th>Date</th>
             <th>Statut</th>
@@ -246,6 +263,12 @@ async function restaurer(id) {
             <td class="table-annonce-title">{{ a.libelle }}</td>
             <td class="td-muted">{{ a.adresse }}</td>
             <td class="td-muted">{{ a.typeBien?.libelle || '–' }}</td>
+            <td class="td-type">
+              <span v-if="a.typeTransaction" :class="['badge-type', a.typeTransaction === 'VENTE' ? 'badge-type--vente' : 'badge-type--location']">
+                {{ a.typeTransaction === 'VENTE' ? 'Vente' : 'Location' }}
+              </span>
+              <span v-else class="td-muted">–</span>
+            </td>
             <td class="table-price">{{ formatPrix(a.prix) }}</td>
             <td class="table-date">{{ formatDate(a.createdAt) }}</td>
             <td>
@@ -269,7 +292,7 @@ async function restaurer(id) {
             </td>
           </tr>
           <tr v-if="paginated.length === 0">
-            <td colspan="7" class="empty-state">
+            <td colspan="8" class="empty-state">
               <div class="empty-state__content">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40" style="color:#9ca3af"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-4h6v4"/></svg>
                 <p>Aucune annonce trouvée.</p>
@@ -310,29 +333,6 @@ async function restaurer(id) {
   gap: 0.75rem;
   flex-wrap: wrap;
 }
-
-.filter-tabs {
-  display: flex;
-  background: var(--color-background);
-  border: 1px solid var(--color-border-solid);
-  border-radius: var(--radius-sm);
-  padding: 2px;
-  gap: 2px;
-}
-
-.filter-tab {
-  padding: 0.35rem 0.85rem;
-  border-radius: 4px;
-  font-size: 0.82rem;
-  font-weight: 500;
-  color: var(--color-text-muted);
-  background: transparent;
-  border: none;
-  transition: background 0.15s, color 0.15s;
-  white-space: nowrap;
-}
-.filter-tab:hover { color: var(--color-text); }
-.filter-tab--active { background: var(--color-card); color: var(--color-text); font-weight: 600; box-shadow: 0 1px 4px rgba(45,55,72,.1); }
 
 .btn-add {
   background: var(--color-primary);
@@ -472,6 +472,10 @@ async function restaurer(id) {
 .data-table__row:last-child { border-bottom: none; }
 .data-table td { padding: 0.9rem 1rem; vertical-align: middle; }
 .td-muted { color: var(--color-text); opacity: 0.6; font-size: 0.85rem; }
+.td-type { width: 1%; white-space: nowrap; text-align: center; }
+.badge-type { display: inline-flex; align-items: center; gap: .3rem; padding: .25rem .65rem; border-radius: 12px; font-size: .75rem; font-weight: 700; white-space: nowrap; }
+.badge-type--vente { background: #fef9c3; color: #a16207; }
+.badge-type--location { background: #ede9fe; color: #7c3aed; }
 
 .empty-state { text-align: center; padding: 3rem !important; }
 .empty-state__content { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; color: var(--color-text); opacity: 0.5; font-size: 1.5rem; }

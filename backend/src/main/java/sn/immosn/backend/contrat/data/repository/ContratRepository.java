@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import sn.immosn.backend.contrat.data.entity.Contrat;
 import sn.immosn.backend.contrat.data.entity.StatutContrat;
+import sn.immosn.backend.contrat.data.entity.TypeContrat;
 
 import java.util.List;
 import java.util.Optional;
@@ -21,6 +22,11 @@ public interface ContratRepository extends JpaRepository<Contrat, Long> {
     Page<Contrat> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
     Page<Contrat> findByStatutOrderByCreatedAtDesc(StatutContrat statut, Pageable pageable);
+
+    Page<Contrat> findByTypeContratOrderByCreatedAtDesc(TypeContrat typeContrat, Pageable pageable);
+
+    Page<Contrat> findByStatutAndTypeContratOrderByCreatedAtDesc(
+        StatutContrat statut, TypeContrat typeContrat, Pageable pageable);
 
     Optional<Contrat> findByIdAndClientId(Long id, Long clientId);
 
