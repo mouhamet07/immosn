@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { MessageSquare, ArrowLeft, Home, User, Send, Phone, Mail } from 'lucide-vue-next'
 import discussionService from '@/services/discussionService'
+import { getErrorMessage } from '@/utils/messages'
 
 const discussions  = ref([])
 const loading      = ref(false)
@@ -10,6 +11,7 @@ const selectedChat = ref(null)
 const chatLoading  = ref(false)
 const newMessage   = ref('')
 const sending      = ref(false)
+const sendError    = ref('')
 const messagesRef  = ref(null)
 const currentPage  = ref(0)
 const totalPages   = ref(1)
@@ -52,14 +54,15 @@ async function openDiscussion(id) {
 async function sendMessage() {
   if (!newMessage.value.trim() || sending.value) return
   sending.value = true
+  sendError.value = ''
   try {
     const res = await discussionService.sendMessage(selectedId.value, newMessage.value.trim())
     selectedChat.value.messages.push(res.data.data)
     newMessage.value = ''
     await nextTick()
     scrollBottom()
-  } catch {
-    // silencieux
+  } catch (e) {
+    sendError.value = getErrorMessage(e)
   } finally {
     sending.value = false
   }
@@ -212,6 +215,7 @@ onMounted(() => fetchDiscussions(0))
           </div>
 
           <!-- Zone saisie -->
+          <p v-if="sendError" class="adm-chat__send-err">{{ sendError }}</p>
           <div class="adm-chat__compose">
             <input
               v-model="newMessage"
@@ -519,6 +523,13 @@ onMounted(() => fetchDiscussions(0))
 }
 .bubble__time { font-size: 0.68rem; color: var(--color-text); opacity: 0.4; margin-top: 0.2rem; }
 
+.adm-chat__send-err {
+  margin: 0;
+  padding: 0.4rem 1.25rem 0;
+  font-size: 0.82rem;
+  color: var(--color-accent);
+  background: var(--color-card);
+}
 .adm-chat__compose {
   display: flex;
   gap: 0.75rem;

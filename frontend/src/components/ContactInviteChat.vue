@@ -2,7 +2,9 @@
 import { ref, nextTick, onMounted } from 'vue'
 import ButtonPrimary from '@/components/ButtonPrimary.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import PhoneInput from '@/components/PhoneInput.vue'
 import discussionService from '@/services/discussionService'
+import { getErrorMessage } from '@/utils/messages'
 
 const props = defineProps({
   annonceId: { type: [Number, String], required: true },
@@ -20,6 +22,7 @@ const messages = ref([])
 const newMessage = ref('')
 const sendingMessage = ref(false)
 const messagesRef = ref(null)
+const chatError = ref('')
 
 function scrollChat() {
   if (messagesRef.value) messagesRef.value.scrollTop = messagesRef.value.scrollHeight
@@ -55,7 +58,7 @@ async function start() {
     await nextTick()
     scrollChat()
   } catch (e) {
-    error.value = e.response?.data?.message || "Erreur lors de l'envoi. Veuillez réessayer."
+    error.value = getErrorMessage(e)
   } finally {
     sending.value = false
   }
@@ -64,14 +67,15 @@ async function start() {
 async function sendChatMessage() {
   if (!newMessage.value.trim() || sendingMessage.value) return
   sendingMessage.value = true
+  chatError.value = ''
   try {
     const res = await discussionService.sendInviteMessage(guestToken.value, newMessage.value.trim())
     messages.value.push(res.data.data)
     newMessage.value = ''
     await nextTick()
     scrollChat()
-  } catch {
-    // Échec silencieux : le message n'est pas ajouté
+  } catch (e) {
+    chatError.value = getErrorMessage(e)
   } finally {
     sendingMessage.value = false
   }
@@ -84,10 +88,14 @@ async function refresh() {
     messages.value = res.data.data.messages ?? []
     await nextTick()
     scrollChat()
-  } catch {
-    // Token invalide : on repart d'un formulaire vierge
-    localStorage.removeItem(STORAGE_KEY)
-    guestToken.value = null
+  } catch (e) {
+    if (e.response?.status === 404) {
+      // Token invalide ou discussion supprimée : on repart d'un formulaire vierge
+      localStorage.removeItem(STORAGE_KEY)
+      guestToken.value = null
+    } else {
+      chatError.value = getErrorMessage(e)
+    }
   }
 }
 
@@ -116,7 +124,7 @@ onMounted(() => {
         </div>
         <div class="contact-invite__field">
           <label>Téléphone *</label>
-          <input v-model="form.telephone" type="tel" placeholder="+221 77 000 00 00" />
+          <PhoneInput v-model="form.telephone" />
         </div>
         <div class="contact-invite__field">
           <label>Email *</label>
@@ -151,6 +159,7 @@ onMounted(() => {
         </div>
       </div>
 
+      <p v-if="chatError" class="contact-invite__err">{{ chatError }}</p>
       <div class="contact-invite__input-row">
         <input
           v-model="newMessage"

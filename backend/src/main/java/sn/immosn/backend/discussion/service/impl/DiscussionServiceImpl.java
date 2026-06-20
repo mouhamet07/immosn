@@ -20,6 +20,7 @@ import sn.immosn.backend.discussion.data.entity.SenderRole;
 import sn.immosn.backend.discussion.data.repository.DiscussionRepository;
 import sn.immosn.backend.discussion.data.repository.MessageRepository;
 import sn.immosn.backend.discussion.service.DiscussionService;
+import sn.immosn.backend.discussion.service.GuestDiscussionNotificationService;
 import sn.immosn.backend.prospect.data.entity.Prospect;
 import sn.immosn.backend.prospect.data.repository.ProspectRepository;
 import sn.immosn.backend.shared.exception.EntityNotFoundException;
@@ -39,6 +40,7 @@ public class DiscussionServiceImpl implements DiscussionService {
     private final UserRepository userRepository;
     private final ProspectRepository prospectRepository;
     private final DiscussionMapper discussionMapper;
+    private final GuestDiscussionNotificationService guestNotificationService;
 
     /**
      * Crée une discussion ou retourne l'existante (idempotent).
@@ -236,6 +238,12 @@ public class DiscussionServiceImpl implements DiscussionService {
         Message saved = messageRepository.save(message);
         log.info("[{}] USER_EMAIL:{} {} SEND_MESSAGE DISCUSSION:{}",
             LocalDateTime.now(), senderEmail, role, discussionId);
+
+        // Réponse de l'admin à un visiteur sans compte : seul l'email peut le prévenir.
+        if (isAdmin && discussion.getClient() == null) {
+            guestNotificationService.notifyGuestOfReply(discussion, request.contenu());
+        }
+
         return discussionMapper.toMessageDto(saved);
     }
 
