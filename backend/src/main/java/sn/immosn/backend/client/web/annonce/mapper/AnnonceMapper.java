@@ -15,6 +15,8 @@ import sn.immosn.backend.annonce.data.entity.TypeBienAnnonce;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceCreateRequestDto;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceListDto;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceResponseDto;
+import sn.immosn.backend.client.web.proprietaire.mapper.ProprietaireMapper;
+import sn.immosn.backend.proprietaire.data.entity.Proprietaire;
 
 @Component
 @RequiredArgsConstructor
@@ -22,6 +24,7 @@ public class AnnonceMapper {
 
     private final TypeBienAnnonceMapper typeBienAnnonceMapper;
     private final CommoditeMapper commoditeMapper;
+    private final ProprietaireMapper proprietaireMapper;
 
     public AnnonceResponseDto toResponse(Annonce a) {
         return new AnnonceResponseDto(
@@ -48,7 +51,8 @@ public class AnnonceMapper {
             a.getCreatedAt() != null && a.getCreatedAt().isAfter(LocalDateTime.now().minusDays(30)),
             a.isExclusivite(),
             a.getCreatedAt(),
-            a.getUpdatedAt()
+            a.getUpdatedAt(),
+            proprietaireMapper.toSummary(a.getProprietaire())
         );
     }
 
@@ -74,11 +78,12 @@ public class AnnonceMapper {
             a.getCreatedAt(),
             a.isArchived(),
             a.getCreatedAt() != null && a.getCreatedAt().isAfter(LocalDateTime.now().minusDays(30)),
-            a.isExclusivite()
+            a.isExclusivite(),
+            proprietaireMapper.toSummary(a.getProprietaire())
         );
     }
 
-    public Annonce toEntity(AnnonceCreateRequestDto dto, TypeBienAnnonce typeBien, List<Commodite> commodites) {
+    public Annonce toEntity(AnnonceCreateRequestDto dto, TypeBienAnnonce typeBien, List<Commodite> commodites, Proprietaire proprietaire) {
         Annonce annonce = Annonce.builder()
             .libelle(dto.libelle())
             .description(dto.description())
@@ -94,6 +99,7 @@ public class AnnonceMapper {
             .images(dto.images())
             .isExclusivite(dto.isExclusivite() != null && dto.isExclusivite())
             .isArchived(false)
+            .proprietaire(proprietaire)
             .build();
 
             for (Commodite commodite : commodites) {

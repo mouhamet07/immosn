@@ -62,6 +62,9 @@ public interface DemandeVisiteRepository extends JpaRepository<DemandeVisite, Lo
 
     long countByAnnonce_TypeTransaction(TypeTransaction typeTransaction);
 
+    // Statistiques propriétaire : nombre de visites générées sur ses biens
+    long countByAnnonce_ProprietaireId(Long proprietaireId);
+
     @Query("SELECT COUNT(v) FROM DemandeVisite v WHERE v.dateVisite >= :start AND v.dateVisite < :end AND v.isArchived = false")
     long countByDateVisiteBetweenAndIsArchivedFalse(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 

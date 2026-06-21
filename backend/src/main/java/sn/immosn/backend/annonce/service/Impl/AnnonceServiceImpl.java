@@ -28,6 +28,8 @@ import sn.immosn.backend.client.web.annonce.mapper.AnnonceMapper;
 import sn.immosn.backend.contrat.data.entity.StatutContrat;
 import sn.immosn.backend.contrat.data.repository.ContratRepository;
 import sn.immosn.backend.location.service.GeoCodingService;
+import sn.immosn.backend.proprietaire.data.entity.Proprietaire;
+import sn.immosn.backend.proprietaire.data.repository.ProprietaireRepository;
 import sn.immosn.backend.shared.exception.EntityNotFoundException;
 
 import java.util.List;
@@ -44,6 +46,7 @@ public class AnnonceServiceImpl implements AnnonceService {
     private final AnnonceMapper annonceMapper;
     private final ContratRepository contratRepository;
     private final GeoCodingService geoCodingService;
+    private final ProprietaireRepository proprietaireRepository;
 
     @Override
     @Transactional
@@ -58,7 +61,12 @@ public class AnnonceServiceImpl implements AnnonceService {
             ? commoditeRepository.findByIdInAndIsArchivedFalse(requestDto.commoditeIds())
             : List.of();
 
-        Annonce annonce = annonceMapper.toEntity(requestDto, typeBien, commodites);
+        Proprietaire proprietaire = requestDto.proprietaireId() != null
+            ? proprietaireRepository.findById(requestDto.proprietaireId())
+                .orElseThrow(() -> new EntityNotFoundException("Propriétaire non trouvé : id=" + requestDto.proprietaireId()))
+            : null;
+
+        Annonce annonce = annonceMapper.toEntity(requestDto, typeBien, commodites, proprietaire);
         annonce.setRegion(resolveRegion(requestDto.region()));
         annonce.setAdresse(buildFinalAdresse(requestDto.adresseExacte(), annonce.getQuartier(), annonce.getDepartement()));
 
@@ -149,6 +157,16 @@ public class AnnonceServiceImpl implements AnnonceService {
         // Sprint 4 — type de transaction (VENTE / LOCATION)
         if (requestDto.typeTransaction() != null) {
             annonce.setTypeTransaction(requestDto.typeTransaction());
+        }
+
+        // proprietaireId est toujours appliqué tel que reçu (set ou clear) : le formulaire
+        // admin envoie systématiquement ce champ, null signifiant explicitement "aucun propriétaire".
+        if (requestDto.proprietaireId() != null) {
+            Proprietaire proprietaire = proprietaireRepository.findById(requestDto.proprietaireId())
+                .orElseThrow(() -> new EntityNotFoundException("Propriétaire non trouvé : id=" + requestDto.proprietaireId()));
+            annonce.setProprietaire(proprietaire);
+        } else {
+            annonce.setProprietaire(null);
         }
 
         if (requestDto.commoditeIds() != null) {

@@ -26,6 +26,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import sn.immosn.backend.proprietaire.data.entity.Proprietaire;
 
 @Entity
 @Table(name = "annonces")
@@ -74,6 +75,11 @@ public class Annonce {
     @Enumerated(EnumType.STRING)
     @Column(name = "type_transaction", length = 20)
     private TypeTransaction typeTransaction;
+
+    // Nullable : provenance du bien — peut être absente pour les annonces existantes ou créées sans propriétaire renseigné
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "proprietaire_id", nullable = true)
+    private Proprietaire proprietaire;
 
     @Builder.Default
     @OneToMany(mappedBy = "annonce",

@@ -1,11 +1,12 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Edit, Archive, RotateCcw, MapPin, Bed, Droplet, Maximize, CheckCircle } from 'lucide-vue-next'
+import { Edit, Archive, RotateCcw, MapPin, Bed, Droplet, Maximize, CheckCircle, Phone, Mail } from 'lucide-vue-next'
 import annonceService from '@/services/annonceService'
 import StatusBadge from '@/components/StatusBadge.vue'
 import ImageGallery from '@/components/ImageGallery.vue'
 import LocationMap from '@/components/LocationMap.vue'
+import ProprietaireStatsModal from '@/components/admin/ProprietaireStatsModal.vue'
 
 const route  = useRoute()
 const router = useRouter()
@@ -17,6 +18,9 @@ const error    = ref('')
 // Confirmation archivage
 const showConfirm = ref(false)
 const confirming  = ref(false)
+
+// Modal statistiques propriétaire
+const showOwnerStats = ref(false)
 
 async function fetchAnnonce() {
   loading.value = true
@@ -131,10 +135,6 @@ onMounted(fetchAnnonce)
           <!-- Emplacement -->
           <section class="daa-section">
             <h2 class="daa-section__title">Emplacement</h2>
-            <p v-if="annonce.quartier || annonce.departement" class="daa-adresse" style="margin-bottom:.75rem;">
-              <MapPin :size="13" />
-              {{ [annonce.quartier, annonce.departement].filter(Boolean).join(', ') }}
-            </p>
             <LocationMap
               :latitude="annonce.latitude"
               :longitude="annonce.longitude"
@@ -156,9 +156,26 @@ onMounted(fetchAnnonce)
             </div>
             <div class="daa-info-row"><span>Créée le</span><span>{{ new Date(annonce.createdAt).toLocaleDateString('fr-FR') }}</span></div>
           </div>
+
+          <div class="daa-info-card">
+            <h3 class="daa-info-card__title">Informations propriétaire</h3>
+            <template v-if="annonce.owner">
+              <div class="daa-info-row"><span>Nom</span><span>{{ annonce.owner.nomComplet }}</span></div>
+              <div class="daa-info-row"><span>Téléphone</span><span><Phone :size="13" /> {{ annonce.owner.telephone }}</span></div>
+              <div v-if="annonce.owner.email" class="daa-info-row"><span>Email</span><span><Mail :size="13" /> {{ annonce.owner.email }}</span></div>
+              <button class="daa-owner-stats-btn" @click="showOwnerStats = true">Voir statistiques</button>
+            </template>
+            <p v-else class="daa-owner-empty">Aucun propriétaire renseigné pour ce bien.</p>
+          </div>
         </aside>
       </div>
     </template>
+
+    <ProprietaireStatsModal
+      v-if="showOwnerStats && annonce?.owner"
+      :proprietaire-id="annonce.owner.id"
+      @close="showOwnerStats = false"
+    />
 
     <!-- Modal confirmation archivage -->
     <Teleport to="body">
@@ -206,6 +223,7 @@ onMounted(fetchAnnonce)
 
 /* Corps */
 .daa-body { display: grid; grid-template-columns: 1fr 280px; gap: 2rem; align-items: start; }
+.daa-sidebar { display: flex; flex-direction: column; gap: 1.25rem; }
 .daa-meta { margin-bottom: 1.25rem; }
 .daa-prix { font-size: 1.5rem; font-weight: 800; color: var(--color-accent); }
 .daa-adresse { display: flex; align-items: center; gap: .35rem; font-size: .88rem; color: var(--color-text-muted); margin-top: .25rem; }
@@ -228,7 +246,15 @@ onMounted(fetchAnnonce)
 .daa-info-row { display: flex; justify-content: space-between; align-items: center; padding: .5rem 0; border-bottom: 1px solid var(--color-border); font-size: .85rem; }
 .daa-info-row:last-child { border-bottom: none; }
 .daa-info-row span:first-child { color: var(--color-text-muted); }
-.daa-info-row span:last-child { font-weight: 600; color: var(--color-text); }
+.daa-info-row span:last-child { font-weight: 600; color: var(--color-text); display: flex; align-items: center; gap: .3rem; }
+
+.daa-owner-empty { font-size: .85rem; color: var(--color-text-muted); }
+.daa-owner-stats-btn {
+  margin-top: 1rem; width: 100%; padding: .55rem 1rem; border-radius: var(--radius-sm);
+  background: var(--color-primary); color: #fff; border: none; font-size: .85rem; font-weight: 600;
+  cursor: pointer; transition: background .15s;
+}
+.daa-owner-stats-btn:hover { background: var(--color-primary-hover); }
 
 
 /* Modal */

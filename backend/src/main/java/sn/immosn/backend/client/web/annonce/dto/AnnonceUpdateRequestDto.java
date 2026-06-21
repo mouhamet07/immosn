@@ -58,5 +58,8 @@ public record AnnonceUpdateRequestDto(
         message = "Les images doivent être des URLs Cloudinary valides"
     ) String> images,
 
-    Boolean isExclusivite
+    Boolean isExclusivite,
+
+    // Optionnel : null = pas de changement. Pour retirer le propriétaire, voir AnnonceService.
+    Long proprietaireId
 ) {}

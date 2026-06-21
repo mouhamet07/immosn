@@ -1,9 +1,10 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Pencil, Eye } from 'lucide-vue-next'
 import visiteService from '@/services/visiteService'
 import FilterSelect from '@/components/FilterSelect.vue'
-import FilterTabs from '@/components/FilterTabs.vue'
+import TableTabs from '@/components/TableTabs.vue'
+import TablePagination from '@/components/TablePagination.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 
 const visites     = ref([])
@@ -20,7 +21,10 @@ const dateModalId   = ref(null)
 const newDate       = ref('')
 const dateComment   = ref('')
 
-const STATUTS = ['', 'EN_ATTENTE', 'ACCEPTEE', 'AFFECTEE', 'REPLANIFICATION_DEMANDEE', 'RAPPORT_REDIGE', 'REFUSEE', 'ANNULEE', 'CLOTUREE_SANS_SUITE', 'CLOTUREE_AVEC_CONTRAT', 'TERMINEE']
+// TERMINEE est @Deprecated côté backend (StatutDemandeVisite) : statut historique en lecture
+// seule, l'API refuse toute transition vers cette valeur. Exclu du filtre — peut encore
+// apparaître en lecture sur d'anciennes visites, géré par le fallback 'neutral' ci-dessous.
+const STATUTS = ['', 'EN_ATTENTE', 'ACCEPTEE', 'AFFECTEE', 'REPLANIFICATION_DEMANDEE', 'RAPPORT_REDIGE', 'REFUSEE', 'ANNULEE', 'CLOTUREE_SANS_SUITE', 'CLOTUREE_AVEC_CONTRAT']
 const STATUT_LABELS = {
   EN_ATTENTE:               'En attente',
   ACCEPTEE:                 'Acceptée',
@@ -31,7 +35,6 @@ const STATUT_LABELS = {
   ANNULEE:                  'Annulée',
   CLOTUREE_SANS_SUITE:      'Clôturée sans suite',
   CLOTUREE_AVEC_CONTRAT:    'Clôturée avec contrat',
-  TERMINEE:                 'Terminée',
 }
 const STATUT_VARIANTS = {
   EN_ATTENTE:               'warning',
@@ -43,7 +46,6 @@ const STATUT_VARIANTS = {
   ANNULEE:                  'neutral',
   CLOTUREE_SANS_SUITE:      'neutral',
   CLOTUREE_AVEC_CONTRAT:    'info',
-  TERMINEE:                 'info',
 }
 const filterOptions = STATUTS.map(s => ({ value: s, label: s ? STATUT_LABELS[s] : 'Toutes les visites' }))
 
@@ -53,6 +55,9 @@ const TYPE_TABS = [
   { value: 'VENTE', label: 'Vente' },
   { value: 'LOCATION', label: 'Location' },
 ]
+
+// TablePagination est 1-indexée (comme TypeBienView) — la pagination serveur est 0-indexée
+const currentPageDisplay = computed(() => currentPage.value + 1)
 
 async function fetchVisites(page = 0) {
   loading.value = true
@@ -64,6 +69,15 @@ async function fetchVisites(page = 0) {
     totalItems.value  = res.data.totalElements ?? 0
   } catch { visites.value = [] }
   finally { loading.value = false }
+}
+
+function onPageChange(page) {
+  fetchVisites(page - 1)
+}
+
+function onTypeChange(v) {
+  filtreType.value = v
+  fetchVisites(0)
 }
 
 async function submitDate() {
@@ -96,66 +110,58 @@ onMounted(() => fetchVisites(0))
         <h1 class="va-toolbar__title">Demandes de visites</h1>
         <p class="va-toolbar__count">{{ totalItems }} demande{{ totalItems !== 1 ? 's' : '' }}</p>
       </div>
-      <div class="va-filters">
-        <FilterTabs
-          :model-value="filtreType"
-          :tabs="TYPE_TABS"
-          @update:model-value="(v) => { filtreType = v; fetchVisites(0) }"
-        />
-        <FilterSelect
-          :model-value="filtreStatut"
-          :options="filterOptions"
-          @update:model-value="(v) => { filtreStatut = v; fetchVisites(0) }"
-        />
+      <FilterSelect
+        :model-value="filtreStatut"
+        :options="filterOptions"
+        @update:model-value="(v) => { filtreStatut = v; fetchVisites(0) }"
+      />
+    </div>
+
+    <div class="va-card">
+      <TableTabs :model-value="filtreType" :tabs="TYPE_TABS" @update:model-value="onTypeChange" />
+
+      <div v-if="loading" class="va-loading"><div class="spinner"></div></div>
+      <div v-else-if="!visites.length" class="va-empty">Aucune demande.</div>
+
+      <div v-else class="va-table-wrap">
+        <table class="va-table">
+          <thead>
+            <tr>
+              <th>Visiteur</th><th>Annonce</th><th>Type</th><th>Date</th>
+              <th>Statut</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="v in visites" :key="v.id">
+              <td class="table-client">{{ v.clientNom }}</td>
+              <td>
+                <RouterLink :to="`/admin/annonces/${v.annonceId}`" class="va-td-link">{{ v.annonceLibelle }}</RouterLink>
+                <p class="va-td-sub">{{ v.annonceAdresse }}</p>
+              </td>
+              <td class="td-type">
+                <span v-if="v.typeTransaction" :class="['badge-type', v.typeTransaction === 'VENTE' ? 'badge-type--vente' : 'badge-type--location']">
+                  {{ TYPE_LABELS[v.typeTransaction] }}
+                </span>
+                <span v-else>–</span>
+              </td>
+              <td class="td-date">
+                <p class="table-date">{{ formatDate(v.dateVisite) }}</p>
+                <button class="va-edit-date" @click="openDateModal(v.id, v.dateVisite)"><Pencil :size="13" /> Modifier</button>
+              </td>
+              <td class="td-statut"><StatusBadge :label="STATUT_LABELS[v.statut] ?? v.statut" :variant="STATUT_VARIANTS[v.statut] ?? 'neutral'" /></td>
+              <td>
+                <div class="td-actions">
+                  <RouterLink :to="`/admin/visites/${v.id}`" class="va-detail-link" title="Voir détails" aria-label="Voir détails">
+                    <Eye :size="16" />
+                  </RouterLink>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-    </div>
 
-    <div v-if="loading" class="va-loading"><div class="spinner"></div></div>
-
-    <div v-else-if="!visites.length" class="va-empty">Aucune demande.</div>
-
-    <div v-else class="va-table-wrap">
-      <table class="va-table">
-        <thead>
-          <tr>
-            <th>Visiteur</th><th>Annonce</th><th>Type</th><th>Date souhaitée</th>
-            <th>Statut</th><th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="v in visites" :key="v.id">
-            <td class="table-client">{{ v.clientNom }}</td>
-            <td>
-              <RouterLink :to="`/admin/annonces/${v.annonceId}`" class="va-td-link">{{ v.annonceLibelle }}</RouterLink>
-              <p class="va-td-sub">{{ v.annonceAdresse }}</p>
-            </td>
-            <td class="td-type">
-              <span v-if="v.typeTransaction" :class="['badge-type', v.typeTransaction === 'VENTE' ? 'badge-type--vente' : 'badge-type--location']">
-                {{ TYPE_LABELS[v.typeTransaction] }}
-              </span>
-              <span v-else>–</span>
-            </td>
-            <td class="td-date">
-              <p class="table-date">{{ formatDate(v.dateVisite) }}</p>
-              <button class="va-edit-date" @click="openDateModal(v.id, v.dateVisite)"><Pencil :size="13" /> Modifier</button>
-            </td>
-            <td class="td-statut"><StatusBadge :label="STATUT_LABELS[v.statut] ?? v.statut" :variant="STATUT_VARIANTS[v.statut] ?? 'neutral'" /></td>
-            <td>
-              <div class="td-actions">
-                <RouterLink :to="`/admin/visites/${v.id}`" class="va-detail-link" title="Voir détails" aria-label="Voir détails">
-                  <Eye :size="16" />
-                </RouterLink>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div v-if="totalPages > 1" class="va-pager">
-      <button :disabled="currentPage === 0" @click="fetchVisites(currentPage - 1)">← Précédent</button>
-      <span>{{ currentPage + 1 }} / {{ totalPages }}</span>
-      <button :disabled="currentPage === totalPages - 1" @click="fetchVisites(currentPage + 1)">Suivant →</button>
+      <TablePagination :current-page="currentPageDisplay" :total-pages="totalPages" @update:current-page="onPageChange" />
     </div>
 
     <!-- Modal modifier date -->
@@ -164,12 +170,12 @@ onMounted(() => fetchVisites(0))
         <div class="modal-box">
           <h2 class="modal-box__title">Modifier la date de visite</h2>
           <div class="modal-box__field">
-            <label>Nouvelle date et heure</label>
-            <input v-model="newDate" type="datetime-local" class="modal-box__input" />
+            <label for="visite-date">Nouvelle date et heure</label>
+            <input id="visite-date" v-model="newDate" type="datetime-local" class="modal-box__input" />
           </div>
           <div class="modal-box__field">
-            <label>Commentaire (optionnel)</label>
-            <input v-model="dateComment" type="text" class="modal-box__input" placeholder="Raison du changement…" />
+            <label for="visite-comment">Commentaire (optionnel)</label>
+            <input id="visite-comment" v-model="dateComment" type="text" class="modal-box__input" placeholder="Raison du changement…" />
           </div>
           <div class="modal-box__footer">
             <button class="modal-box__cancel" @click="showDateModal = false">Annuler</button>
@@ -183,18 +189,20 @@ onMounted(() => fetchVisites(0))
 </template>
 
 <style scoped>
-.va-page { background: var(--color-background); min-height: 100%; padding: 1.5rem; }
-.va-toolbar { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
-.va-filters { display: flex; gap: .6rem; flex-wrap: wrap; }
+.va-page { background: var(--color-background); min-height: 100%; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
+.va-toolbar { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; }
 .va-toolbar__title { font-size: 1.4rem; font-weight: 800; color: var(--color-text); }
 .va-toolbar__count { font-size: .82rem; color: var(--color-text); opacity: .5; margin-top: .15rem; }
+
+.va-card { background: var(--color-card); border-radius: var(--radius); box-shadow: var(--shadow-card); overflow: hidden; }
+
 .va-loading { display: flex; justify-content: center; padding: 4rem; }
 .va-empty { text-align: center; padding: 3rem; color: var(--color-text); opacity: .45; }
 
 .va-table-wrap { overflow-x: auto; }
-.va-table { width: 100%; border-collapse: collapse; background: var(--color-card); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-card); }
-.va-table th { padding: .75rem 1rem; text-align: left; font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--color-text); opacity: .55; background: var(--color-background); border-bottom: 1px solid var(--color-border); }
-.va-table td { padding: .85rem 1rem; font-size: .88rem; color: var(--color-text); border-bottom: 1px solid var(--color-border); vertical-align: middle; }
+.va-table { width: 100%; border-collapse: collapse; }
+.va-table th { padding: .85rem 1.1rem; text-align: left; font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--color-text); opacity: .55; background: var(--color-background); border-bottom: 1px solid var(--color-border); }
+.va-table td { padding: 1rem 1.1rem; font-size: .88rem; color: var(--color-text); border-bottom: 1px solid var(--color-border); vertical-align: middle; }
 .va-table tr:last-child td { border-bottom: none; }
 .va-table tr:hover td { background: rgba(0,0,0,.02); }
 
@@ -214,10 +222,6 @@ onMounted(() => fetchVisites(0))
   text-decoration: none; transition: all .15s; display: inline-flex; align-items: center; justify-content: center;
 }
 .va-detail-link:hover { border-color: var(--color-primary); color: var(--color-primary); }
-
-.va-pager { display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1.25rem; font-size: .88rem; }
-.va-pager button { padding: .4rem .9rem; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-card); cursor: pointer; }
-.va-pager button:disabled { opacity: .4; cursor: not-allowed; }
 
 /* Modal générique */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1rem; }

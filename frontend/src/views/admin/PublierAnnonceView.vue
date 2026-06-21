@@ -9,6 +9,7 @@ import annonceService from '@/services/annonceService'
 import commoditeService from '@/services/commoditeService'
 import typeBienService from '@/services/typeBienService'
 import locationService from '@/services/locationService'
+import proprietaireService from '@/services/proprietaireService'
 import { uploadImages } from '@/services/cloudinaryService'
 
 const router = useRouter()
@@ -36,26 +37,30 @@ const form = reactive({
   commoditeIds:  [],
   images:        [],
   isExclusivite: false,
+  proprietaireId: null,
 })
 
 const commodites       = ref([])
 const typesBien        = ref([])
 const departements     = ref([])
 const quartiers        = ref([])
+const proprietaires    = ref([])
 const loadingQuartiers = ref(false)
 const geocoding        = ref(false)
 let geocodeTimer       = null
 
 onMounted(async () => {
   try {
-    const [resCommodites, resTypesBien, resDepts] = await Promise.all([
+    const [resCommodites, resTypesBien, resDepts, resProprietaires] = await Promise.all([
       commoditeService.getAllCommodites(),
       typeBienService.getAllTypesBien(),
       locationService.getDepartements(),
+      proprietaireService.getAll(),
     ])
-    commodites.value   = resCommodites.data.data
-    typesBien.value    = resTypesBien.data.data
-    departements.value = resDepts.data.data
+    commodites.value    = resCommodites.data.data
+    typesBien.value     = resTypesBien.data.data
+    departements.value  = resDepts.data.data
+    proprietaires.value = resProprietaires.data.data ?? []
   } catch {
     toast.value?.show('Erreur lors du chargement des données.', 'error')
   }
@@ -199,6 +204,7 @@ async function submit() {
       commoditeIds:  form.commoditeIds,
       images:        imageUrls,
       isExclusivite: form.isExclusivite,
+      proprietaireId: form.proprietaireId,
     })
     toast.value.show('Annonce publiée avec succès', 'success')
     setTimeout(() => router.push('/admin/annonces'), 1200)
@@ -269,6 +275,13 @@ async function submit() {
             <select v-model="form.typeTransaction" class="field__input">
               <option value="VENTE">Vente</option>
               <option value="LOCATION">Location</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field__label">PROPRIÉTAIRE <span class="field__optional">(facultatif)</span></label>
+            <select v-model="form.proprietaireId" class="field__input">
+              <option :value="null">Aucun propriétaire</option>
+              <option v-for="p in proprietaires" :key="p.id" :value="p.id">{{ p.nomComplet }} — {{ p.telephone }}</option>
             </select>
           </div>
         </div>

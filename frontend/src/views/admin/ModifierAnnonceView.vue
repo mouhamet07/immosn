@@ -6,6 +6,7 @@ import annonceService from '@/services/annonceService'
 import typeBienService from '@/services/typeBienService'
 import commoditeService from '@/services/commoditeService'
 import locationService from '@/services/locationService'
+import proprietaireService from '@/services/proprietaireService'
 import { uploadImages } from '@/services/cloudinaryService'
 import ToastNotification from '@/components/admin/ToastNotification.vue'
 import LocationMap from '@/components/LocationMap.vue'
@@ -45,7 +46,10 @@ const form = reactive({
   longitude:      null,
   commoditeIds:   [],
   isExclusivite:  false,
+  proprietaireId: null,
 })
+
+const proprietaires = ref([])
 
 function toggleCommodite(id) {
   const idx = form.commoditeIds.indexOf(id)
@@ -120,11 +124,12 @@ async function geocodeLocation() {
 onMounted(async () => {
   loading.value = true
   try {
-    const [resAnnonce, resTypes, resCommodites, resDepts] = await Promise.all([
+    const [resAnnonce, resTypes, resCommodites, resDepts, resProprietaires] = await Promise.all([
       annonceService.getAnnonceByIdAdmin(route.params.id),
       typeBienService.getAllTypesBien(),
       commoditeService.getAllCommodites(),
       locationService.getDepartements(),
+      proprietaireService.getAll(),
     ])
     const a = resAnnonce.data.data
 
@@ -143,11 +148,13 @@ onMounted(async () => {
     form.longitude    = a.longitude    ?? null
     form.commoditeIds   = a.commodites?.map(c => c.id) || []
     form.isExclusivite  = !!a.isExclusivite
+    form.proprietaireId = a.owner?.id ?? null
     existingImages.value = a.images ? [...a.images] : []
 
-    typesBien.value    = resTypes.data.data       || []
-    commodites.value   = resCommodites.data.data  || []
-    departements.value = resDepts.data.data       || []
+    typesBien.value     = resTypes.data.data        || []
+    commodites.value    = resCommodites.data.data   || []
+    departements.value  = resDepts.data.data        || []
+    proprietaires.value = resProprietaires.data.data || []
 
     // Charger les quartiers du département pré-rempli
     if (form.departement) {
@@ -196,6 +203,7 @@ async function handleSubmit() {
       commoditeIds:  form.commoditeIds,
       images:        finalImages,
       isExclusivite: form.isExclusivite,
+      proprietaireId: form.proprietaireId,
     })
 
     toast.value?.show('Annonce modifiée avec succès', 'success')
@@ -271,6 +279,13 @@ async function handleSubmit() {
               <option :value="null">Non renseigné</option>
               <option value="VENTE">Vente</option>
               <option value="LOCATION">Location</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field__label">PROPRIÉTAIRE <span class="ma-optional">(facultatif)</span></label>
+            <select v-model="form.proprietaireId" class="field__input">
+              <option :value="null">Aucun propriétaire</option>
+              <option v-for="p in proprietaires" :key="p.id" :value="p.id">{{ p.nomComplet }} — {{ p.telephone }}</option>
             </select>
           </div>
         </div>

@@ -1,6 +1,7 @@
 package sn.immosn.backend.client.web.annonce.dto;
 
 import sn.immosn.backend.annonce.data.entity.TypeTransaction;
+import sn.immosn.backend.client.web.proprietaire.dto.ProprietaireSummaryDto;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,6 +29,7 @@ public record AnnonceResponseDto(
     Boolean isNew,
     Boolean isExclusivite,
     LocalDateTime createdAt,
-    LocalDateTime updatedAt
+    LocalDateTime updatedAt,
+    ProprietaireSummaryDto owner
 ) {
 }
