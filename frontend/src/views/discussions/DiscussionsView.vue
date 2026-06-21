@@ -3,6 +3,7 @@ import { ref, onMounted, nextTick } from 'vue'
 import { Home, MessageSquare, Send, ArrowLeft, MessageCircle, Search, AlertCircle, RefreshCw } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import discussionService from '@/services/discussionService'
+import { getErrorMessage } from '@/utils/messages'
 
 const router = useRouter()
 
@@ -14,6 +15,7 @@ const selectedChat  = ref(null)
 const chatLoading   = ref(false)
 const newMessage    = ref('')
 const sending       = ref(false)
+const sendError     = ref('')
 const messagesRef   = ref(null)
 
 // Pagination liste
@@ -62,14 +64,15 @@ async function openDiscussion(id) {
 async function sendMessage() {
   if (!newMessage.value.trim() || sending.value) return
   sending.value = true
+  sendError.value = ''
   try {
     const res = await discussionService.sendMessage(selectedId.value, newMessage.value.trim())
     selectedChat.value.messages.push(res.data.data)
     newMessage.value = ''
     await nextTick()
     scrollBottom()
-  } catch {
-    // silencieux
+  } catch (e) {
+    sendError.value = getErrorMessage(e)
   } finally {
     sending.value = false
   }
@@ -237,6 +240,7 @@ onMounted(() => fetchDiscussions(0))
           </div>
 
           <!-- Zone saisie -->
+          <p v-if="sendError" class="disc-chat__send-err">{{ sendError }}</p>
           <div class="disc-chat__compose">
             <input
               v-model="newMessage"
@@ -543,6 +547,12 @@ onMounted(() => fetchDiscussions(0))
   background: var(--color-border);
 }
 
+.disc-chat__send-err {
+  margin: 0;
+  padding: 0.4rem 1.25rem 0;
+  font-size: 0.82rem;
+  color: var(--color-accent);
+}
 .disc-chat__compose {
   display: flex;
   align-items: center;

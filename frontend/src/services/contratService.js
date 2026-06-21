@@ -13,10 +13,11 @@ export default {
     return api.get('/contrats/client', { params })
   },
 
-  // GET /api/v1/contrats/admin?page&size&statut
-  getAllContrats(page = 0, size = 20, statut = null) {
+  // GET /api/v1/contrats/admin?page&size&statut&typeContrat
+  getAllContrats(page = 0, size = 20, statut = null, typeContrat = null) {
     const params = { page, size }
     if (statut) params.statut = statut
+    if (typeContrat) params.typeContrat = typeContrat
     return api.get('/contrats/admin', { params })
   },
 

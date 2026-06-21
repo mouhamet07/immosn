@@ -18,6 +18,7 @@ import sn.immosn.backend.dashboard.service.DashboardService;
 import sn.immosn.backend.discussion.data.repository.DiscussionRepository;
 import sn.immosn.backend.lead.data.entity.StatutLead;
 import sn.immosn.backend.lead.data.repository.LeadRepository;
+import sn.immosn.backend.proprietaire.data.repository.ProprietaireRepository;
 import sn.immosn.backend.shared.response.PagedResponse;
 import sn.immosn.backend.signalement.data.entity.StatutSignalement;
 import sn.immosn.backend.signalement.data.repository.SignalementRepository;
@@ -54,6 +55,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final SignalementRepository signalementRepository;
     private final LeadRepository leadRepository;
     private final DiscussionRepository discussionRepository;
+    private final ProprietaireRepository proprietaireRepository;
 
     @Override
     public DashboardStatsDto getStats(String callerEmail) {
@@ -96,6 +98,10 @@ public class DashboardServiceImpl implements DashboardService {
         long visitesLocation = visiteRepository.countByAnnonce_TypeTransaction(
             sn.immosn.backend.annonce.data.entity.TypeTransaction.LOCATION);
 
+        // Module propriétaires
+        long totalProprietaires = proprietaireRepository.count();
+        long proprietairesActifs = proprietaireRepository.countByIsArchivedFalse();
+
         // Activités récentes (5 par domaine, fusionnées, priorité EN_ATTENTE/OUVERT en tête)
         List<RecentActivityDto> activites = buildRecentActivities(page, adminId);
 
@@ -109,6 +115,7 @@ public class DashboardServiceImpl implements DashboardService {
             totalDisc,
             annoncesVente, annoncesLocation, contratsVente, contratsLocation,
             visitesVente, visitesLocation,
+            totalProprietaires, proprietairesActifs,
             activites
         );
     }

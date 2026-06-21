@@ -217,8 +217,12 @@ function retourAnnonces() {
   font-size: 0.85rem; font-weight: 600; color: var(--color-primary); text-decoration: underline;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
+  .vd-page { padding: 1rem .75rem; }
   .vd-card { padding: 1.5rem 1.25rem; }
   .vd-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .vd-header__title { font-size: 1.3rem; }
 }
 </style>

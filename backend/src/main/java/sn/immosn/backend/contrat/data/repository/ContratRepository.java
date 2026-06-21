@@ -4,9 +4,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import sn.immosn.backend.contrat.data.entity.Contrat;
 import sn.immosn.backend.contrat.data.entity.StatutContrat;
+import sn.immosn.backend.contrat.data.entity.TypeContrat;
 
 import java.util.List;
 import java.util.Optional;
@@ -22,6 +24,11 @@ public interface ContratRepository extends JpaRepository<Contrat, Long> {
 
     Page<Contrat> findByStatutOrderByCreatedAtDesc(StatutContrat statut, Pageable pageable);
 
+    Page<Contrat> findByTypeContratOrderByCreatedAtDesc(TypeContrat typeContrat, Pageable pageable);
+
+    Page<Contrat> findByStatutAndTypeContratOrderByCreatedAtDesc(
+        StatutContrat statut, TypeContrat typeContrat, Pageable pageable);
+
     Optional<Contrat> findByIdAndClientId(Long id, Long clientId);
 
     long countByStatut(StatutContrat statut);
@@ -31,6 +38,18 @@ public interface ContratRepository extends JpaRepository<Contrat, Long> {
 
     // Vérifie les contrats actifs liés à une annonce (bloque l'archivage)
     long countByAnnonceIdAndStatut(Long annonceId, StatutContrat statut);
+
+    // Statistiques propriétaire : nombre de contrats liés à ses biens
+    long countByAnnonce_ProprietaireId(Long proprietaireId);
+
+    // Revenus générés par un propriétaire : somme des contrats actifs ou expirés liés à ses biens
+    @Query("""
+        SELECT COALESCE(SUM(c.montant), 0) FROM Contrat c
+        WHERE c.annonce.proprietaire.id = :proprietaireId
+            AND c.statut IN (sn.immosn.backend.contrat.data.entity.StatutContrat.ACTIF,
+                              sn.immosn.backend.contrat.data.entity.StatutContrat.EXPIRE)
+        """)
+    java.math.BigDecimal sumMontantByProprietaireIdAndStatutActifOuExpire(@Param("proprietaireId") Long proprietaireId);
 
     // Job d'expiration : contrats dont dateFin < aujourd'hui et statut ACTIF
     java.util.List<Contrat> findByStatutAndDateFinBefore(

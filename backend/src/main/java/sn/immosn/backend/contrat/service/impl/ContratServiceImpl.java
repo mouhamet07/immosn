@@ -227,10 +227,17 @@ public class ContratServiceImpl implements ContratService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ContratResponseDto> getAllContrats(StatutContrat statut, Pageable pageable) {
-        Page<Contrat> page = statut != null
-            ? contratRepository.findByStatutOrderByCreatedAtDesc(statut, pageable)
-            : contratRepository.findAllByOrderByCreatedAtDesc(pageable);
+    public Page<ContratResponseDto> getAllContrats(StatutContrat statut, TypeContrat typeContrat, Pageable pageable) {
+        Page<Contrat> page;
+        if (statut != null && typeContrat != null) {
+            page = contratRepository.findByStatutAndTypeContratOrderByCreatedAtDesc(statut, typeContrat, pageable);
+        } else if (statut != null) {
+            page = contratRepository.findByStatutOrderByCreatedAtDesc(statut, pageable);
+        } else if (typeContrat != null) {
+            page = contratRepository.findByTypeContratOrderByCreatedAtDesc(typeContrat, pageable);
+        } else {
+            page = contratRepository.findAllByOrderByCreatedAtDesc(pageable);
+        }
         return page.map(mapper::toDto);
     }
 

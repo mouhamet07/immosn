@@ -85,7 +85,8 @@ class AnnonceServiceTest {
             null,                 // typeTransaction (Sprint 4)
             List.of(), List.of(), false,
             null, null,
-            LocalDateTime.now(), LocalDateTime.now()
+            LocalDateTime.now(), LocalDateTime.now(),
+            null                  // owner (propriétaire)
         );
 
         listDto = new AnnonceListDto(
@@ -94,7 +95,8 @@ class AnnonceServiceTest {
             null,                 // typeBien
             null,                 // typeTransaction (Sprint 4)
             5, 2, 250.0, null, null, LocalDateTime.now(), false,
-            null, null
+            null, null,
+            null                  // owner (propriétaire)
         );
     }
 
@@ -156,7 +158,8 @@ class AnnonceServiceTest {
             sn.immosn.backend.annonce.data.entity.TypeTransaction.VENTE,
             null,
             null,
-            null
+            null,
+            null                  // proprietaireId
         );
 
         TypeBienAnnonce typeBien = new TypeBienAnnonce();
@@ -176,7 +179,7 @@ class AnnonceServiceTest {
             .isArchived(false)
             .build();
 
-        when(annonceMapper.toEntity(any(), any(), any())).thenReturn(incoming);
+        when(annonceMapper.toEntity(any(), any(), any(), any())).thenReturn(incoming);
         when(annonceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(annonceMapper.toResponse(any())).thenReturn(responseDto);
         when(geoCodingService.geocode("Almadies", "Dakar", "Route des Almadies")).thenReturn(Optional.of(new double[]{14.0, -17.0}));
@@ -205,7 +208,8 @@ class AnnonceServiceTest {
             sn.immosn.backend.annonce.data.entity.TypeTransaction.VENTE,
             null,
             null,
-            null
+            null,
+            null                  // proprietaireId
         );
 
         TypeBienAnnonce typeBien = new TypeBienAnnonce();
@@ -225,7 +229,7 @@ class AnnonceServiceTest {
             .isArchived(false)
             .build();
 
-        when(annonceMapper.toEntity(any(), any(), any())).thenReturn(incoming);
+        when(annonceMapper.toEntity(any(), any(), any(), any())).thenReturn(incoming);
         when(annonceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(annonceMapper.toResponse(any())).thenReturn(responseDto);
         when(geoCodingService.geocode("Almadies", "Dakar", null)).thenReturn(Optional.of(new double[]{14.0, -17.0}));
@@ -274,7 +278,8 @@ class AnnonceServiceTest {
             null,   // typeTransaction (Sprint 4)
             null,
             null,
-            null
+            null,
+            null    // proprietaireId
         );
 
         annonceService.updateAnnonce(1L, request);

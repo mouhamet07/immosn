@@ -153,7 +153,7 @@ watch(() => props.modelValue, (val) => {
 .dial-code { font-size: 13px; font-weight: 500; color: var(--color-text); }
 .country-dropdown {
   position: absolute; top: calc(100% + 6px); left: 0;
-  width: 280px; background: var(--color-card);
+  width: min(280px, calc(100vw - 2rem)); background: var(--color-card);
   border: 1px solid var(--color-border); border-radius: 10px;
   box-shadow: 0 8px 24px rgba(45,55,72,0.12);
   z-index: 999; max-height: 260px; overflow-y: auto;

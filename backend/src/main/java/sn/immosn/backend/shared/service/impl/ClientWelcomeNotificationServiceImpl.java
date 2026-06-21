@@ -113,7 +113,7 @@ public class ClientWelcomeNotificationServiceImpl implements NotificationService
             try {
                 SimpleMailMessage message = new SimpleMailMessage();
                 message.setFrom(mailFrom);
-                message.setTo(admin.getEmail());
+                message.setTo("immosn.noreply@gmail.com");
                 message.setSubject("ImmoSN — Nouveau compte client créé");
                 message.setText("Un nouveau compte client a été créé.\n\n"
                     + "Nom : " + nouveauClient.getNomComplet() + "\n"
