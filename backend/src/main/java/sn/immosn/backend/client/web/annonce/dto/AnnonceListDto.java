@@ -1,6 +1,7 @@
 package sn.immosn.backend.client.web.annonce.dto;
 
 import sn.immosn.backend.annonce.data.entity.TypeTransaction;
+import sn.immosn.backend.client.web.proprietaire.dto.ProprietaireSummaryDto;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -24,6 +25,7 @@ public record AnnonceListDto (
     LocalDateTime createdAt,
     Boolean archived,
     Boolean isNew,
-    Boolean isExclusivite
+    Boolean isExclusivite,
+    ProprietaireSummaryDto owner
 ) {
 }

@@ -46,6 +46,15 @@ public interface AnnonceRepository extends JpaRepository<Annonce, Long>, JpaSpec
     // Sprint 4 — répartition des annonces actives par type de transaction (statistiques)
     long countByTypeTransactionAndIsArchivedFalse(TypeTransaction typeTransaction);
 
+    // Statistiques propriétaire : répartition de ses biens
+    long countByProprietaireId(Long proprietaireId);
+
+    long countByProprietaireIdAndTypeTransaction(Long proprietaireId, TypeTransaction typeTransaction);
+
+    long countByProprietaireIdAndIsArchivedFalse(Long proprietaireId);
+
+    Page<Annonce> findByProprietaireIdOrderByCreatedAtDesc(Long proprietaireId, Pageable pageable);
+
     // 5 dernières annonces actives pour le dashboard (List = pas de COUNT inutile)
     List<Annonce> findTop5ByIsArchivedFalseOrderByCreatedAtDesc();
 

@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import sn.immosn.backend.client.web.contrat.dto.*;
 import sn.immosn.backend.contrat.data.entity.StatutContrat;
+import sn.immosn.backend.contrat.data.entity.TypeContrat;
 import sn.immosn.backend.contrat.service.ContratHistoryService;
 import sn.immosn.backend.contrat.service.ContratService;
 import sn.immosn.backend.shared.response.PagedResponse;
@@ -147,9 +148,10 @@ public class ContratController {
     public ResponseEntity<PagedResponse<ContratResponseDto>> getAllContrats(
             @Parameter(description = "Numéro de page", example = "0") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Taille de la page", example = "20") @RequestParam(defaultValue = "20") int size,
-            @Parameter(description = "Filtre optionnel par statut") @RequestParam(required = false) StatutContrat statut) {
+            @Parameter(description = "Filtre optionnel par statut") @RequestParam(required = false) StatutContrat statut,
+            @Parameter(description = "Filtre optionnel par type de contrat (VENTE/LOCATION)") @RequestParam(required = false) TypeContrat typeContrat) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        return ResponseEntity.ok(PagedResponse.fromPage(service.getAllContrats(statut, pageable)));
+        return ResponseEntity.ok(PagedResponse.fromPage(service.getAllContrats(statut, typeContrat, pageable)));
     }
 
     @Operation(

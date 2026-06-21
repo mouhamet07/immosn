@@ -28,9 +28,10 @@ const navGroups = [
   {
     title: 'Ressources',
     links: [
-      { to: '/admin/annonces',    label: 'Annonces',       icon: 'building' },
-      { to: '/admin/types-biens', label: 'Types de biens', icon: 'tag' },
-      { to: '/admin/commodites',  label: 'Commodités',     icon: 'list' },
+      { to: '/admin/annonces',      label: 'Annonces',       icon: 'building' },
+      { to: '/admin/types-biens',   label: 'Types de biens', icon: 'tag' },
+      { to: '/admin/commodites',    label: 'Commodités',     icon: 'list' },
+      { to: '/admin/proprietaires', label: 'Propriétaires',  icon: 'user' },
     ],
   },
   {

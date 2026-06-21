@@ -64,5 +64,8 @@ public record AnnonceCreateRequestDto(
         message = "Les images doivent être des URLs Cloudinary valides (https://res.cloudinary.com/...)"
     ) String> images,
 
-    Boolean isExclusivite
+    Boolean isExclusivite,
+
+    // Optionnel : provenance du bien — peut être créé/associé après coup
+    Long proprietaireId
 ) {}

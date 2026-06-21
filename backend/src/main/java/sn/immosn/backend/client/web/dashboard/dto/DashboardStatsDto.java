@@ -30,6 +30,10 @@ public record DashboardStatsDto(
     long visitesVente,
     long visitesLocation,
 
+    // Module propriétaires
+    long totalProprietaires,
+    long proprietairesActifs,
+
     // Activités récentes
     List<RecentActivityDto> activitesRecentes
 ) {}

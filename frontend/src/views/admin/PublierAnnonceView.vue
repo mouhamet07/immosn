@@ -9,6 +9,7 @@ import annonceService from '@/services/annonceService'
 import commoditeService from '@/services/commoditeService'
 import typeBienService from '@/services/typeBienService'
 import locationService from '@/services/locationService'
+import proprietaireService from '@/services/proprietaireService'
 import { uploadImages } from '@/services/cloudinaryService'
 
 const router = useRouter()
@@ -36,26 +37,30 @@ const form = reactive({
   commoditeIds:  [],
   images:        [],
   isExclusivite: false,
+  proprietaireId: null,
 })
 
 const commodites       = ref([])
 const typesBien        = ref([])
 const departements     = ref([])
 const quartiers        = ref([])
+const proprietaires    = ref([])
 const loadingQuartiers = ref(false)
 const geocoding        = ref(false)
 let geocodeTimer       = null
 
 onMounted(async () => {
   try {
-    const [resCommodites, resTypesBien, resDepts] = await Promise.all([
+    const [resCommodites, resTypesBien, resDepts, resProprietaires] = await Promise.all([
       commoditeService.getAllCommodites(),
       typeBienService.getAllTypesBien(),
       locationService.getDepartements(),
+      proprietaireService.getAll({ actifsUniquement: true }),
     ])
-    commodites.value   = resCommodites.data.data
-    typesBien.value    = resTypesBien.data.data
-    departements.value = resDepts.data.data
+    commodites.value    = resCommodites.data.data
+    typesBien.value     = resTypesBien.data.data
+    departements.value  = resDepts.data.data
+    proprietaires.value = resProprietaires.data.data ?? []
   } catch {
     toast.value?.show('Erreur lors du chargement des données.', 'error')
   }
@@ -199,6 +204,7 @@ async function submit() {
       commoditeIds:  form.commoditeIds,
       images:        imageUrls,
       isExclusivite: form.isExclusivite,
+      proprietaireId: form.proprietaireId,
     })
     toast.value.show('Annonce publiée avec succès', 'success')
     setTimeout(() => router.push('/admin/annonces'), 1200)
@@ -270,6 +276,17 @@ async function submit() {
               <option value="VENTE">Vente</option>
               <option value="LOCATION">Location</option>
             </select>
+          </div>
+          <div class="field">
+            <label class="field__label">PROPRIÉTAIRE <span class="field__optional">(facultatif)</span></label>
+            <select v-if="proprietaires.length" v-model="form.proprietaireId" class="field__input">
+              <option :value="null">Aucun propriétaire</option>
+              <option v-for="p in proprietaires" :key="p.id" :value="p.id">{{ p.nomComplet }} — {{ p.telephone }}</option>
+            </select>
+            <div v-else class="field__empty-state">
+              <span>Aucun propriétaire disponible</span>
+              <RouterLink to="/admin/proprietaires" class="field__empty-link">Créer un propriétaire</RouterLink>
+            </div>
           </div>
         </div>
 
@@ -472,6 +489,13 @@ select.field__input { padding-right: 2.5rem; }
 .field__textarea { resize: vertical; min-height: 100px; }
 .field__optional { font-weight: 400; text-transform: none; font-size: 0.72rem; color: var(--color-text-muted); letter-spacing: 0; }
 .field__hint { font-size: 0.78rem; color: var(--color-text-muted); margin-top: 0.15rem; }
+.field__empty-state {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+  padding: 0.7rem 0.9rem; border: 1.5px dashed var(--color-border); border-radius: var(--radius-sm);
+  font-size: 0.85rem; color: var(--color-text-muted);
+}
+.field__empty-link { color: var(--color-primary); font-weight: 600; text-decoration: none; white-space: nowrap; }
+.field__empty-link:hover { text-decoration: underline; }
 
 .map-section { display: flex; flex-direction: column; gap: 0.5rem; }
 .map-loading { height: 280px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; background: #e8f2ef; border-radius: var(--radius); color: var(--color-primary); font-size: 0.88rem; }

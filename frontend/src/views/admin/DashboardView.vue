@@ -181,6 +181,7 @@ const statCards = computed(() => {
     { icon: 'target',       label: 'Leads abandonnés',     value: s.leadsAbandonnes,      total: null,                   color: 'gray',    to: '/admin/leads?statut=ABANDONNE' },
     { icon: 'alert',        label: 'Signalements ouverts', value: s.signalementsOuverts,  total: s.totalSignalements,    color: 'red',     to: '/admin/signalements' },
     { icon: 'chat', label: 'Discussions', value: s.totalDiscussions, total: null, color: 'teal', to: '/admin/messages' },
+    { icon: 'people', label: 'Propriétaires', value: s.proprietairesActifs, total: s.totalProprietaires, color: 'purple', to: '/admin/proprietaires' },
   ]
   // Carte admins visible uniquement pour SUPER_ADMIN
   if (authStore.role === 'SUPER_ADMIN') {

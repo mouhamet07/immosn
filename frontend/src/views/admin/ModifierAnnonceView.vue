@@ -6,6 +6,7 @@ import annonceService from '@/services/annonceService'
 import typeBienService from '@/services/typeBienService'
 import commoditeService from '@/services/commoditeService'
 import locationService from '@/services/locationService'
+import proprietaireService from '@/services/proprietaireService'
 import { uploadImages } from '@/services/cloudinaryService'
 import ToastNotification from '@/components/admin/ToastNotification.vue'
 import LocationMap from '@/components/LocationMap.vue'
@@ -45,7 +46,10 @@ const form = reactive({
   longitude:      null,
   commoditeIds:   [],
   isExclusivite:  false,
+  proprietaireId: null,
 })
+
+const proprietaires = ref([])
 
 function toggleCommodite(id) {
   const idx = form.commoditeIds.indexOf(id)
@@ -120,11 +124,12 @@ async function geocodeLocation() {
 onMounted(async () => {
   loading.value = true
   try {
-    const [resAnnonce, resTypes, resCommodites, resDepts] = await Promise.all([
+    const [resAnnonce, resTypes, resCommodites, resDepts, resProprietaires] = await Promise.all([
       annonceService.getAnnonceByIdAdmin(route.params.id),
       typeBienService.getAllTypesBien(),
       commoditeService.getAllCommodites(),
       locationService.getDepartements(),
+      proprietaireService.getAll({ actifsUniquement: true }),
     ])
     const a = resAnnonce.data.data
 
@@ -143,11 +148,18 @@ onMounted(async () => {
     form.longitude    = a.longitude    ?? null
     form.commoditeIds   = a.commodites?.map(c => c.id) || []
     form.isExclusivite  = !!a.isExclusivite
+    form.proprietaireId = a.owner?.id ?? null
     existingImages.value = a.images ? [...a.images] : []
 
-    typesBien.value    = resTypes.data.data       || []
-    commodites.value   = resCommodites.data.data  || []
-    departements.value = resDepts.data.data       || []
+    typesBien.value     = resTypes.data.data        || []
+    commodites.value    = resCommodites.data.data   || []
+    departements.value  = resDepts.data.data        || []
+    proprietaires.value = resProprietaires.data.data || []
+
+    // Le propriétaire actuel doit rester sélectionnable même s'il a été archivé depuis
+    if (a.owner && !proprietaires.value.some(p => p.id === a.owner.id)) {
+      proprietaires.value.push({ id: a.owner.id, nomComplet: a.owner.nomComplet, telephone: a.owner.telephone })
+    }
 
     // Charger les quartiers du département pré-rempli
     if (form.departement) {
@@ -196,6 +208,7 @@ async function handleSubmit() {
       commoditeIds:  form.commoditeIds,
       images:        finalImages,
       isExclusivite: form.isExclusivite,
+      proprietaireId: form.proprietaireId,
     })
 
     toast.value?.show('Annonce modifiée avec succès', 'success')
@@ -272,6 +285,17 @@ async function handleSubmit() {
               <option value="VENTE">Vente</option>
               <option value="LOCATION">Location</option>
             </select>
+          </div>
+          <div class="field">
+            <label class="field__label">PROPRIÉTAIRE <span class="ma-optional">(facultatif)</span></label>
+            <select v-if="proprietaires.length" v-model="form.proprietaireId" class="field__input">
+              <option :value="null">Aucun propriétaire</option>
+              <option v-for="p in proprietaires" :key="p.id" :value="p.id">{{ p.nomComplet }} — {{ p.telephone }}</option>
+            </select>
+            <div v-else class="ma-field-empty">
+              <span>Aucun propriétaire disponible</span>
+              <RouterLink to="/admin/proprietaires" class="ma-field-empty-link">Créer un propriétaire</RouterLink>
+            </div>
           </div>
         </div>
 
@@ -491,6 +515,13 @@ select.field__input { padding-right: 2.5rem; }
 
 .ma-optional { font-weight: 400; text-transform: none; font-size: .72rem; color: var(--color-text-muted); letter-spacing: 0; }
 .ma-field-hint { font-size: .78rem; color: var(--color-text-muted); margin-top: .15rem; }
+.ma-field-empty {
+  display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+  padding: .7rem .9rem; border: 1.5px dashed var(--color-border); border-radius: var(--radius-sm);
+  font-size: .85rem; color: var(--color-text-muted);
+}
+.ma-field-empty-link { color: var(--color-primary); font-weight: 600; text-decoration: none; white-space: nowrap; }
+.ma-field-empty-link:hover { text-decoration: underline; }
 .ma-map-section { display: flex; flex-direction: column; gap: .5rem; }
 .ma-map-hint { font-size: .78rem; color: var(--color-text-muted); text-align: center; }
 .ma-map-loading {
