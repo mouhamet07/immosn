@@ -4,9 +4,10 @@ import { useRouter } from 'vue-router'
 import { Eye, Pencil, Archive, Phone, Mail } from 'lucide-vue-next'
 import ConfirmModal from '@/components/admin/ConfirmModal.vue'
 import ToastNotification from '@/components/admin/ToastNotification.vue'
-import TableTabs from '@/components/TableTabs.vue'
+import FilterTabs from '@/components/FilterTabs.vue'
 import TablePagination from '@/components/TablePagination.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
+import PhoneInput from '@/components/PhoneInput.vue'
 import proprietaireService from '@/services/proprietaireService'
 
 const router = useRouter()
@@ -136,7 +137,7 @@ async function archiver() {
           <div class="field-row">
             <div class="field">
               <label class="field__label" for="prop-tel">TÉLÉPHONE <span class="req">*</span></label>
-              <input id="prop-tel" v-model="form.telephone" type="text" class="field__input" placeholder="ex. 771234567" />
+              <PhoneInput id="prop-tel" v-model="form.telephone" />
             </div>
             <div class="field">
               <label class="field__label" for="prop-email">EMAIL</label>
@@ -169,6 +170,7 @@ async function archiver() {
         <p class="page-header__subtitle">Gérez les propriétaires des biens immobiliers de la plateforme.</p>
       </div>
       <div class="page-header__actions">
+        <FilterTabs v-model="filtreStatut" :tabs="STATUT_TABS" />
         <button class="btn-add" @click="openCreate">
           + Ajouter un propriétaire
         </button>
@@ -180,10 +182,8 @@ async function archiver() {
       <div v-for="i in 5" :key="i" class="skeleton-row"></div>
     </div>
 
-    <!-- Table Card avec onglets intégrés -->
+    <!-- Table Card -->
     <div v-else class="table-card">
-      <TableTabs v-model="filtreStatut" :tabs="STATUT_TABS" />
-
       <div class="table-wrap">
         <table class="data-table">
           <thead>
