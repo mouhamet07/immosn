@@ -4,6 +4,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceListDto;
 import sn.immosn.backend.client.web.proprietaire.dto.ProprietaireCreateRequestDto;
+import sn.immosn.backend.client.web.proprietaire.dto.ProprietaireListItemDto;
 import sn.immosn.backend.client.web.proprietaire.dto.ProprietaireResponseDto;
 import sn.immosn.backend.client.web.proprietaire.dto.ProprietaireStatsDto;
 import sn.immosn.backend.client.web.proprietaire.dto.ProprietaireUpdateRequestDto;
@@ -16,9 +17,11 @@ public interface ProprietaireService {
 
     ProprietaireResponseDto getById(Long id);
 
-    Page<ProprietaireResponseDto> getAll(Pageable pageable);
+    Page<ProprietaireListItemDto> getAll(Pageable pageable, boolean activesUniquement);
 
     ProprietaireStatsDto getStats(Long id);
 
     Page<AnnonceListDto> getBiens(Long id, Pageable pageable);
+
+    void archive(Long id);
 }

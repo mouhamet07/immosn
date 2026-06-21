@@ -10,4 +10,8 @@ import sn.immosn.backend.proprietaire.data.entity.Proprietaire;
 public interface ProprietaireRepository extends JpaRepository<Proprietaire, Long> {
 
     Page<Proprietaire> findAllByOrderByNomCompletAsc(Pageable pageable);
+
+    Page<Proprietaire> findByIsArchivedFalseOrderByNomCompletAsc(Pageable pageable);
+
+    long countByIsArchivedFalse();
 }

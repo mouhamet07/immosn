@@ -42,6 +42,10 @@ public class Proprietaire {
     @Column(columnDefinition = "TEXT", nullable = true)
     private String notes;
 
+    @Builder.Default
+    @Column(name = "is_archived", nullable = false)
+    private boolean isArchived = false;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

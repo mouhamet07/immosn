@@ -10,6 +10,7 @@ import sn.immosn.backend.annonce.data.repository.AnnonceRepository;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceListDto;
 import sn.immosn.backend.client.web.annonce.mapper.AnnonceMapper;
 import sn.immosn.backend.client.web.proprietaire.dto.ProprietaireCreateRequestDto;
+import sn.immosn.backend.client.web.proprietaire.dto.ProprietaireListItemDto;
 import sn.immosn.backend.client.web.proprietaire.dto.ProprietaireResponseDto;
 import sn.immosn.backend.client.web.proprietaire.dto.ProprietaireStatsDto;
 import sn.immosn.backend.client.web.proprietaire.dto.ProprietaireUpdateRequestDto;
@@ -66,8 +67,11 @@ public class ProprietaireServiceImpl implements ProprietaireService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ProprietaireResponseDto> getAll(Pageable pageable) {
-        return proprietaireRepository.findAllByOrderByNomCompletAsc(pageable).map(proprietaireMapper::toResponse);
+    public Page<ProprietaireListItemDto> getAll(Pageable pageable, boolean activesUniquement) {
+        Page<Proprietaire> page = activesUniquement
+            ? proprietaireRepository.findByIsArchivedFalseOrderByNomCompletAsc(pageable)
+            : proprietaireRepository.findAllByOrderByNomCompletAsc(pageable);
+        return page.map(p -> proprietaireMapper.toListItem(p, getStats(p.getId())));
     }
 
     @Override
@@ -94,5 +98,14 @@ public class ProprietaireServiceImpl implements ProprietaireService {
             throw new EntityNotFoundException("Propriétaire non trouvé : id=" + id);
         }
         return annonceRepository.findByProprietaireIdOrderByCreatedAtDesc(id, pageable).map(annonceMapper::toListDto);
+    }
+
+    @Override
+    @Transactional
+    public void archive(Long id) {
+        Proprietaire proprietaire = proprietaireRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Propriétaire non trouvé : id=" + id));
+        proprietaire.setArchived(true);
+        proprietaireRepository.save(proprietaire);
     }
 }

@@ -1,6 +1,7 @@
 package sn.immosn.backend.client.web.proprietaire.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 import sn.immosn.backend.client.web.annonce.dto.AnnonceListDto;
 import sn.immosn.backend.client.web.proprietaire.dto.ProprietaireCreateRequestDto;
 import sn.immosn.backend.client.web.proprietaire.dto.ProprietaireDetailDto;
+import sn.immosn.backend.client.web.proprietaire.dto.ProprietaireListItemDto;
 import sn.immosn.backend.client.web.proprietaire.dto.ProprietaireResponseDto;
 import sn.immosn.backend.client.web.proprietaire.dto.ProprietaireStatsDto;
 import sn.immosn.backend.client.web.proprietaire.dto.ProprietaireUpdateRequestDto;
@@ -69,11 +72,13 @@ public class ProprietaireController {
         security = @SecurityRequirement(name = "bearerAuth")
     )
     @GetMapping
-    public ResponseEntity<PagedResponse<ProprietaireResponseDto>> getAll(
+    public ResponseEntity<PagedResponse<ProprietaireListItemDto>> getAll(
         @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "20") int size) {
+        @RequestParam(defaultValue = "20") int size,
+        @Parameter(description = "Si true, ne retourne que les propriétaires non archivés (utilisé par le select annonce)")
+        @RequestParam(defaultValue = "false") boolean actifsUniquement) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "nomComplet"));
-        return ResponseEntity.ok(PagedResponse.fromPage(proprietaireService.getAll(pageable)));
+        return ResponseEntity.ok(PagedResponse.fromPage(proprietaireService.getAll(pageable, actifsUniquement)));
     }
 
     @Operation(
@@ -121,5 +126,21 @@ public class ProprietaireController {
         @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         return ResponseEntity.ok(PagedResponse.fromPage(proprietaireService.getBiens(id, pageable)));
+    }
+
+    @Operation(
+        summary = "Archiver un propriétaire",
+        description = """
+            Archive le propriétaire (soft delete) — il n'apparaît plus dans le select de
+            création/modification d'annonce, mais son historique (biens, stats) est conservé.
+
+            **Accès : ADMIN ou SUPER_ADMIN**
+            """,
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @PatchMapping("/{id}/archive")
+    public ResponseEntity<RestResponse<Void>> archive(@PathVariable Long id) {
+        proprietaireService.archive(id);
+        return ResponseEntity.ok(RestResponse.success(null, HttpStatus.OK));
     }
 }

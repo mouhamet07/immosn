@@ -2,15 +2,15 @@ package sn.immosn.backend.client.web.proprietaire.dto;
 
 import java.time.LocalDateTime;
 
-public record ProprietaireResponseDto(
+// Item de liste admin — inclut un résumé des statistiques pour affichage direct dans le tableau
+public record ProprietaireListItemDto(
     Long id,
     String nomComplet,
-    String telephone,
     String email,
+    String telephone,
     String adresse,
-    String notes,
     Boolean isArchived,
     LocalDateTime createdAt,
-    LocalDateTime updatedAt
+    ProprietaireStatsDto statistiques
 ) {
 }

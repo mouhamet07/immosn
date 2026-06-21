@@ -23,6 +23,7 @@ import sn.immosn.backend.dashboard.service.impl.DashboardServiceImpl;
 import sn.immosn.backend.discussion.data.repository.DiscussionRepository;
 import sn.immosn.backend.lead.data.entity.StatutLead;
 import sn.immosn.backend.lead.data.repository.LeadRepository;
+import sn.immosn.backend.proprietaire.data.repository.ProprietaireRepository;
 import sn.immosn.backend.signalement.data.entity.StatutSignalement;
 import sn.immosn.backend.signalement.data.repository.SignalementRepository;
 import sn.immosn.backend.visite.data.entity.StatutDemandeVisite;
@@ -45,6 +46,7 @@ class DashboardServiceTest {
     @Mock SignalementRepository signalementRepository;
     @Mock LeadRepository leadRepository;
     @Mock DiscussionRepository discussionRepository;
+    @Mock ProprietaireRepository proprietaireRepository;
 
     @InjectMocks
     DashboardServiceImpl dashboardService;
